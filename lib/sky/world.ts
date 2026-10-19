@@ -23,5 +23,9 @@ export interface World {
   answerBond(id: string, accept: boolean): void;
   setLocation(lat: number, lon: number): Promise<boolean>;
   clearLocation(): Promise<boolean>;
+  setInterests(interests: string[]): Promise<boolean>;
+  toggleInterestDrive(on?: boolean): void;
+  selectInterest(tag: string | null): void;
+  driveToInterest(tag?: string): void;
 }
 export type WorldCtor = new (state: WorldState, ui: Store) => World;

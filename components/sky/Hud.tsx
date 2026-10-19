@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
+import { IcoSparkle, IcoIncognito, IcoX } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -18,17 +19,41 @@ const ICONS = {
 export { Ico, ICONS };
 
 export function TopBar() {
-  const { ui } = useSky();
+  const { ui, world } = useSky();
   const galaxy = useUI(ui, (s) => s.galaxy), galaxies = useUI(ui, (s) => s.galaxies);
   const census = useUI(ui, (s) => s.census), sound = useUI(ui, (s) => s.sound), status = useUI(ui, (s) => s.status);
+  const interestDrive = useUI(ui, (s) => s.interestDrive);
+  const selectedInterest = useUI(ui, (s) => s.selectedInterest);
+  const isIncognito = useUI(ui, (s) => s.isIncognito);
   const g = galaxies.find((x) => x.slug === galaxy);
   return (
     <header className="top" data-ui>
-      <button className="chip" onClick={() => ui.set({ panel: 'map' })} aria-label="Open galaxy map">
-        <i className="dot" style={{ background: g?.color || '#9fb0ff', boxShadow: `0 0 10px ${g?.color || '#9fb0ff'}` }} />
-        <span>{g?.name || 'Sky'}</span>
-        <span className="tiny">{galaxy === 'neighbours' ? '≤ 100 km' : `${Math.max(0, (census.counts[galaxy] ?? 0) - 1)} here`}</span>
-      </button>
+      <div className="row" style={{ gap: 8 }}>
+        <button className="chip" onClick={() => ui.set({ panel: 'map' })} aria-label="Open galaxy and interest map">
+          <i className="dot" style={{ background: g?.color || '#9fb0ff', boxShadow: `0 0 10px ${g?.color || '#9fb0ff'}` }} />
+          <span>{g?.name || 'Sky'}</span>
+          <span className="tiny">{galaxy === 'neighbours' ? '≤ 100 km' : `${Math.max(0, (census.counts[galaxy] ?? 0) - 1)} here`}</span>
+        </button>
+
+        {/* Separate Interest Sky Drive Toggle Switch (ON / OFF) */}
+        <button
+          className={`interest-drive-chip${interestDrive ? ' active' : ''}`}
+          onClick={() => world.toggleInterestDrive()}
+          aria-label="Toggle Interest Sky Drive"
+          title="Drive to Interest Sky: Steer towards lights with matching interests and draw constellation links"
+        >
+          <span className="chip-spark" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={13} /></span>
+          <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interest Sky'}</span>
+          <span className={`interest-switch ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
+        </button>
+
+        {isIncognito && (
+          <span className="top-incognito-badge" title="Ignoto / Incognito guest: Friends & save disabled" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <IcoIncognito size={13} /> Ignoto
+          </span>
+        )}
+      </div>
+
       <div className="row">
         <button className="icon" aria-label={sound ? 'Mute sound' : 'Turn sound on'} onClick={() => { const v = !sound; ui.set({ sound: v }); setSound(v); try { localStorage.setItem('sound', v ? '1' : '0'); } catch { /* ignore */ } if (v) unlock(); }}><Ico d={sound ? ICONS.sound : ICONS.mute} /></button>
         <button className="icon" aria-label="Settings" onClick={() => ui.set({ panel: 'settings' })}><Ico d={ICONS.gear} /></button>
@@ -43,7 +68,7 @@ export function Announcement() {
   const text = useUI(ui, (s) => s.announcement);
   const [hide, setHide] = useState('');
   if (!text || hide === text) return null;
-  return <div className="note" data-ui role="status"><span>{text}</span><button onClick={() => setHide(text)} aria-label="Dismiss">×</button></div>;
+  return <div className="note" data-ui role="status"><span>{text}</span><button onClick={() => setHide(text)} aria-label="Dismiss"><IcoX size={14} /></button></div>;
 }
 
 export function Dock() {
@@ -98,11 +123,12 @@ export function Toast() {
           ui.set({ toast: null });
         }}
       >
-        ×
+        <IcoX size={14} />
       </button>
     </div>
   );
 }
+
 
 export function IncomingCall() {
   const { ui, world } = useSky();

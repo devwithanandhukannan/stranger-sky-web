@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, getConfig } from '@/lib/api';
 import { getToken, logOut, onAuth } from '@/lib/auth';
+import { IcoUser, IcoCalendar } from '@/components/sky/icons';
 
 const MSG: Record<string, string> = {
   underage: 'Lumen is for people 18 and older.', registration_closed: 'Sign-ups are closed for now.', content_not_allowed: 'Please choose a different name.',
@@ -42,12 +43,40 @@ export default function Welcome() {
         <h1>Before you enter</h1>
         <p className="muted" style={{ margin: '6px 0 0' }}>No photos, no bio. Just a first name and your birthday.</p>
         <div className="stack">
-          <label className="tiny" htmlFor="nm">First name (shown only to people you choose to keep in touch with)</label>
-          <input id="nm" className="field" required maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" />
+          <label className="tiny" htmlFor="nm">First name (shown only to people you keep in touch with)</label>
+          <div className="input-box">
+            <span className="input-icon-left"><IcoUser size={18} /></span>
+            <input
+              id="nm"
+              className="input-inner"
+              required
+              maxLength={30}
+              placeholder="Your first name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="given-name"
+            />
+          </div>
+
           <label className="tiny" htmlFor="dob">Date of birth (private, used only to check you are {min}+)</label>
-          <input id="dob" className="field" type="date" required max={today} value={dob} onChange={(e) => setDob(e.target.value)} />
-          <label className="row tiny" style={{ alignItems: 'flex-start' }}><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} style={{ marginTop: 3 }} /> <span>I am {min} or older and I agree to the <Link href="/rules" target="_blank">community rules</Link> and <Link href="/privacy" target="_blank">privacy notice</Link>.</span></label>
-          <button className="btn" disabled={busy || !ok || !name.trim() || !dob}>Enter the sky</button>
+          <div className="input-box">
+            <span className="input-icon-left"><IcoCalendar size={18} /></span>
+            <input
+              id="dob"
+              className="input-inner"
+              type="date"
+              required
+              max={today}
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
+          </div>
+
+          <label className="row tiny" style={{ alignItems: 'flex-start', marginTop: 4 }}>
+            <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} style={{ marginTop: 3 }} />
+            <span>I am {min} or older and I agree to the <Link href="/rules" target="_blank">community rules</Link> and <Link href="/privacy" target="_blank">privacy notice</Link>.</span>
+          </label>
+          <button className="btn" disabled={busy || !ok || !name.trim() || !dob}>Continue</button>
           <button type="button" className="btn ghost" onClick={() => void logOut().then(() => router.replace('/login'))}>Sign out</button>
           <div className="err" role="alert">{err}</div>
         </div>
@@ -55,3 +84,4 @@ export default function Welcome() {
     </main>
   );
 }
+

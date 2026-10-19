@@ -18,6 +18,32 @@ function init() {
 
 export type AuthState = { email: string; verified: boolean } | null;
 
+export type IncognitoSession = { isIncognito: boolean; alias: string };
+
+export function getIncognitoSession(): IncognitoSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem('lumen_incognito');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setIncognitoSession(alias: string): IncognitoSession {
+  const session: IncognitoSession = { isIncognito: true, alias: alias.trim() || 'Drifting Stranger' };
+  try {
+    sessionStorage.setItem('lumen_incognito', JSON.stringify(session));
+  } catch { /* ignore */ }
+  return session;
+}
+
+export function clearIncognitoSession() {
+  try {
+    sessionStorage.removeItem('lumen_incognito');
+  } catch { /* ignore */ }
+}
+
 export async function onAuth(cb: (s: AuthState) => void) {
   const { auth, fb } = await init();
   return fb.onAuthStateChanged(auth, (u) => cb(u ? { email: u.email || '', verified: u.emailVerified } : null));

@@ -1,7 +1,7 @@
 'use client';
 import type { Socket } from 'socket.io-client';
 import { API } from '../api';
-import { getToken } from '../auth';
+import { getToken, getIncognitoSession } from '../auth';
 import { sfx, buzz, speakMessage } from './audio';
 import { type NearItem, type Store, type Planet, type Galaxy } from './store';
 import type { WorldState } from './state';
@@ -48,7 +48,14 @@ export class NetWorld implements World {
     this.ui.set({ status: 'connecting' });
     const s = io(API, {
       transports: ['websocket'], reconnectionDelayMax: 8000,
-      auth: (cb) => { getToken().then((t) => cb({ token: t || '' })).catch(() => cb({ token: '' })); },
+      auth: (cb) => {
+        const inc = getIncognitoSession();
+        if (inc) {
+          cb({ token: '', incognito: inc });
+        } else {
+          getToken().then((t) => cb({ token: t || '' })).catch(() => cb({ token: '' }));
+        }
+      },
     });
     this.s = s;
     const st = this.state, ui = this.ui;
@@ -63,7 +70,25 @@ export class NetWorld implements World {
 
     s.on('hello', (h) => {
       const currentTheme = ui.get().skyTheme;
-      ui.set({ name: h.name, galaxies: h.galaxies, thoughtMax: h.thoughtMax, skyTheme: currentTheme || 'auto', announcement: h.announcement || '', bonds: h.bonds });
+      let savedInterests: string[] = [];
+      try {
+        const raw = localStorage.getItem('userInterests');
+        if (raw) savedInterests = JSON.parse(raw);
+      } catch { /* ignore */ }
+      ui.set({
+        name: h.name,
+        galaxies: h.galaxies,
+        thoughtMax: h.thoughtMax,
+        skyTheme: currentTheme || 'auto',
+        announcement: h.announcement || '',
+        bonds: h.bonds,
+        isIncognito: !!h.isIncognito,
+        activeInterests: h.activeInterests || [],
+        userInterests: savedInterests,
+      });
+      if (savedInterests.length) {
+        void this.setInterests(savedInterests);
+      }
       try {
         const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('userLoc') : null;
         if (raw) {
@@ -167,8 +192,26 @@ export class NetWorld implements World {
       sfx.meteor();
     });
     s.on('census', (c) => ui.set({ census: c }));
+    s.on('interests:active', (d: { interests: { tag: string; count: number }[] }) => {
+      if (d?.interests) ui.set({ activeInterests: d.interests });
+    });
+    s.on('toast', (d: { text: string }) => {
+      if (d?.text) this.toast(d.text);
+    });
     s.on('lantern:reply', () => { ui.set({ inboxTick: ui.get().inboxTick + 1 }); this.toast('A lantern was answered'); sfx.receive(); });
-    s.on('kicked', (k: { reason: string }) => { ui.set({ status: 'kicked', denied: k.reason }); s.close(); });
+    s.on('kicked', (k: { reason: string; bannedUntil?: number; displayReason?: string; message?: string }) => {
+      ui.set({
+        status: 'kicked',
+        denied: k.reason,
+        banInfo: k.bannedUntil ? {
+          bannedUntil: k.bannedUntil,
+          reason: k.reason,
+          displayReason: k.displayReason || 'Temporary Ban',
+          message: k.message,
+        } : null,
+      });
+      s.close();
+    });
     s.on('full', () => { ui.set({ status: 'full' }); s.close(); });
   }
 
@@ -225,7 +268,13 @@ export class NetWorld implements World {
   }
   typing() { this.s?.volatile.emit('planet:typing'); }
   askPrompt() { this.s?.emit('planet:prompt'); }
-  keep() { this.s?.emit('planet:keep'); }
+  keep() {
+    if (this.ui.get().isIncognito) {
+      this.toast('Making friends is disabled in Incognito Mode.');
+      return;
+    }
+    this.s?.emit('planet:keep');
+  }
   leave() { this.s?.emit('planet:leave'); this.ui.set({ planet: null }); }
   async block(sid: string) {
     if (!this.s) return false;
@@ -235,8 +284,10 @@ export class NetWorld implements World {
   }
   async report(sid: string, reason: string, details: string) {
     if (!this.s) return false;
-    const r = await ack<{ ok?: boolean }>(this.s, 'report', { sid, reason, details });
-    if (r.ok) this.toast('Thank you. We will review it, and you will not see them again.');
+    const r = await ack<{ ok?: boolean; banned?: boolean }>(this.s, 'report', { sid, reason, details });
+    if (r.ok) {
+      this.toast('Report submitted. The user was immediately disconnected and suspended.');
+    }
     return !!r.ok;
   }
   async catchMeteor(id: string) {
@@ -268,4 +319,33 @@ export class NetWorld implements World {
     }
     return false;
   }
+
+  async setInterests(interests: string[]): Promise<boolean> {
+    this.ui.set({ userInterests: interests });
+    try { localStorage.setItem('userInterests', JSON.stringify(interests)); } catch { /* ignore */ }
+    if (!this.s) return true;
+    const r = await ack<{ ok?: boolean; error?: string }>(this.s, 'interests:set', { interests });
+    return !!r.ok;
+  }
+
+  toggleInterestDrive(on?: boolean) {
+    const cur = this.ui.get().interestDrive;
+    const next = on !== undefined ? on : !cur;
+    this.ui.set({ interestDrive: next });
+    this.toast(next ? 'Drive to Interest Sky: ON' : 'Drive to Interest Sky: OFF (Free drift)');
+    if (next) sfx.pulse();
+  }
+
+  selectInterest(tag: string | null) {
+    this.ui.set({ selectedInterest: tag });
+    if (tag) this.driveToInterest(tag);
+  }
+
+  driveToInterest(tag?: string) {
+    const targetTag = tag || this.ui.get().selectedInterest;
+    if (!targetTag) return;
+    this.hop();
+    this.toast(`Driving toward strangers exploring “${targetTag}”…`);
+  }
 }
+

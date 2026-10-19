@@ -4,10 +4,31 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let enabled = true;
 let ambientOn = false;
-let ambientTimer: ReturnType<typeof setTimeout> | null = null;
-let pads: OscillatorNode[] = [];
+let ambientTimers: (ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>)[] = [];
+let ambientNodes: (AudioNode | OscillatorNode)[] = [];
 
-const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+// Iconic Interstellar Chords: [Am9, Fmaj7, C add9, Em / G]
+// Emulating the 1926 Harrison & Harrison cathedral pipe organ from Temple Church, London
+const INTERSTELLAR_CHORDS = [
+  // Am9: A1, E2, A2, C3, E3, B3, C4, E4
+  [55, 82.41, 110, 130.81, 164.81, 246.94, 261.63, 329.63],
+  // Fmaj7: F1, C2, F2, A2, C3, E3, A3, C4, E4
+  [43.65, 65.41, 87.31, 110, 130.81, 164.81, 220, 261.63, 329.63],
+  // C add9: C2, G2, C3, E3, G3, D4, E4
+  [65.41, 98.0, 130.81, 164.81, 196.0, 293.66, 329.63],
+  // Em / G6: E2, B2, E3, G3, B3, D4, G4
+  [82.41, 123.47, 164.81, 196.0, 246.94, 293.66, 392.0],
+];
+
+// Iconic Hans Zimmer motifs (Day One, Stay, Cornfield Chase celestial phrases)
+const CELESTE_MOTIFS = [
+  [659.25, 698.46, 659.25], // E5 -> F5 -> E5 ("Day One" signature)
+  [440.0, 493.88, 523.25, 659.25], // A4 -> B4 -> C5 -> E5 ("Stay")
+  [659.25, 783.99, 880.0], // E5 -> G5 -> A5
+  [523.25, 493.88, 440.0], // C5 -> B4 -> A4
+  [329.63, 440.0, 493.88, 523.25], // E4 -> A4 -> B4 -> C5
+  [880.0, 783.99, 659.25, 523.25], // A5 -> G5 -> E5 -> C5 ("Cornfield Chase")
+];
 
 function ensure() {
   if (ctx) return ctx;
@@ -124,34 +145,255 @@ function startAmbient() {
   const c = ensure();
   if (!c || !master || ambientOn) return;
   ambientOn = true;
-  const g = c.createGain();
-  g.gain.value = 0.0;
-  g.gain.linearRampToValueAtTime(0.05, c.currentTime + 4);
-  g.connect(master);
-  const lfo = c.createOscillator();
-  const lg = c.createGain();
-  lfo.frequency.value = 0.07; lg.gain.value = 0.02;
-  lfo.connect(lg).connect(g.gain);
-  lfo.start();
-  pads = [110, 164.81, 246.94].map((f, i) => {
-    const o = c.createOscillator();
-    o.type = 'sine'; o.frequency.value = f; o.detune.value = i * 4 - 4;
-    o.connect(g); o.start();
-    return o;
-  });
-  pads.push(lfo);
-  const sparkle = () => {
-    if (!ambientOn) return;
-    tone(PENTA[Math.floor(Math.random() * PENTA.length)], 2.4, 0.05);
-    ambientTimer = setTimeout(sparkle, 4000 + Math.random() * 5000);
+
+  // Master ambient bus
+  const ambientBus = c.createGain();
+  ambientBus.gain.setValueAtTime(0.0001, c.currentTime);
+  ambientBus.gain.exponentialRampToValueAtTime(0.24, c.currentTime + 3.5);
+  ambientBus.connect(master);
+  ambientNodes.push(ambientBus);
+
+  // Warm cathedral pipe organ low-pass filter (Harrison & Harrison organ acoustic warmth)
+  const organFilter = c.createBiquadFilter();
+  organFilter.type = 'lowpass';
+  organFilter.frequency.setValueAtTime(820, c.currentTime);
+  organFilter.Q.value = 1.25;
+  organFilter.connect(ambientBus);
+  ambientNodes.push(organFilter);
+
+  // Organ swell LFO (expression pedal slowly opening and closing over 18s)
+  const swellLFO = c.createOscillator();
+  const swellGain = c.createGain();
+  swellLFO.type = 'sine';
+  swellLFO.frequency.setValueAtTime(0.04, c.currentTime); // ~25s full swell cycle
+  swellGain.gain.setValueAtTime(260, c.currentTime); // mod range ±260Hz around 820Hz
+  swellLFO.connect(swellGain);
+  swellGain.connect(organFilter.frequency);
+  swellLFO.start();
+  ambientNodes.push(swellLFO, swellGain);
+
+  // Celestial cosmic stereo delay network (vast cathedral reverberation)
+  const delayL = c.createDelay(1.5);
+  const delayR = c.createDelay(1.5);
+  const delayFeedback = c.createGain();
+  const delayFilter = c.createBiquadFilter();
+
+  delayL.delayTime.value = 0.38; // 380ms left
+  delayR.delayTime.value = 0.54; // 540ms right
+  delayFeedback.gain.value = 0.28;
+  delayFilter.type = 'lowpass';
+  delayFilter.frequency.value = 1200;
+
+  delayL.connect(delayFilter);
+  delayR.connect(delayFilter);
+  delayFilter.connect(delayFeedback);
+  delayFeedback.connect(delayL);
+  delayFeedback.connect(delayR);
+  delayFilter.connect(ambientBus);
+  ambientNodes.push(delayL, delayR, delayFeedback, delayFilter);
+
+  // Sub-bass Gargantua gravitational drone (42Hz deep space presence)
+  const subOsc = c.createOscillator();
+  const subGain = c.createGain();
+  subOsc.type = 'sine';
+  subOsc.frequency.setValueAtTime(42.5, c.currentTime);
+  subGain.gain.setValueAtTime(0.038, c.currentTime);
+  subOsc.connect(subGain);
+  subGain.connect(ambientBus);
+  subOsc.start();
+  ambientNodes.push(subOsc, subGain);
+
+  // Two alternating voice banks for seamless crossfading between Interstellar chords
+  let currentChordIdx = 0;
+  let activeBank = 'A';
+  let bankANodes: OscillatorNode[] = [];
+  let bankBNodes: OscillatorNode[] = [];
+  let bankAGain = c.createGain();
+  let bankBGain = c.createGain();
+
+  bankAGain.connect(organFilter);
+  bankBGain.connect(organFilter);
+  ambientNodes.push(bankAGain, bankBGain);
+
+  // Function to spawn organ pipe oscillators for a chord
+  const spawnChordOscillators = (chordFrequencies: number[], targetGain: GainNode): OscillatorNode[] => {
+    const list: OscillatorNode[] = [];
+    chordFrequencies.forEach((freq, idx) => {
+      const osc = c.createOscillator();
+      // Pipe organ blend: triangle waves for rich church harmonics, sine for deep sub bass
+      osc.type = freq < 100 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, c.currentTime);
+      // Slight natural chorus/detuning like multiple pipe ranks (e.g. Diapason & Principal)
+      osc.detune.setValueAtTime((idx % 3 - 1) * 3.5, c.currentTime);
+
+      const noteGain = c.createGain();
+      // Taper volume: deep bass notes get weight, high notes stay soft and airy
+      const noteVol = freq < 70 ? 0.045 : freq < 150 ? 0.032 : 0.022;
+      noteGain.gain.setValueAtTime(noteVol, c.currentTime);
+
+      osc.connect(noteGain);
+      noteGain.connect(targetGain);
+      osc.start();
+      list.push(osc);
+      ambientNodes.push(osc, noteGain);
+    });
+    return list;
   };
-  ambientTimer = setTimeout(sparkle, 3000);
+
+  // Start with Chord 0 in Bank A
+  bankAGain.gain.setValueAtTime(0.0001, c.currentTime);
+  bankAGain.gain.exponentialRampToValueAtTime(1.0, c.currentTime + 3.0);
+  bankBGain.gain.setValueAtTime(0.0001, c.currentTime);
+  bankANodes = spawnChordOscillators(INTERSTELLAR_CHORDS[0], bankAGain);
+
+  // Chord progression crossfade loop (every 14 seconds)
+  const cycleChord = () => {
+    if (!ambientOn || !c || !master) return;
+    const now = c.currentTime;
+    const nextChordIdx = (currentChordIdx + 1) % INTERSTELLAR_CHORDS.length;
+    const fadeDuration = 7.0; // 7 second smooth crossfade
+
+    if (activeBank === 'A') {
+      // Fade out Bank A, fade in Bank B with next chord
+      bankBNodes = spawnChordOscillators(INTERSTELLAR_CHORDS[nextChordIdx], bankBGain);
+      bankBGain.gain.cancelScheduledValues(now);
+      bankBGain.gain.setValueAtTime(bankBGain.gain.value, now);
+      bankBGain.gain.linearRampToValueAtTime(1.0, now + fadeDuration);
+
+      bankAGain.gain.cancelScheduledValues(now);
+      bankAGain.gain.setValueAtTime(bankAGain.gain.value, now);
+      bankAGain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration);
+
+      const oldNodes = bankANodes;
+      const cleanTimer = setTimeout(() => {
+        oldNodes.forEach((o) => {
+          try { o.stop(); o.disconnect(); } catch {}
+        });
+      }, (fadeDuration + 0.5) * 1000);
+      ambientTimers.push(cleanTimer);
+
+      activeBank = 'B';
+    } else {
+      // Fade out Bank B, fade in Bank A with next chord
+      bankANodes = spawnChordOscillators(INTERSTELLAR_CHORDS[nextChordIdx], bankAGain);
+      bankAGain.gain.cancelScheduledValues(now);
+      bankAGain.gain.setValueAtTime(bankAGain.gain.value, now);
+      bankAGain.gain.linearRampToValueAtTime(1.0, now + fadeDuration);
+
+      bankBGain.gain.cancelScheduledValues(now);
+      bankBGain.gain.setValueAtTime(bankBGain.gain.value, now);
+      bankBGain.gain.linearRampToValueAtTime(0.0001, now + fadeDuration);
+
+      const oldNodes = bankBNodes;
+      const cleanTimer = setTimeout(() => {
+        oldNodes.forEach((o) => {
+          try { o.stop(); o.disconnect(); } catch {}
+        });
+      }, (fadeDuration + 0.5) * 1000);
+      ambientTimers.push(cleanTimer);
+
+      activeBank = 'A';
+    }
+
+    currentChordIdx = nextChordIdx;
+  };
+
+  const chordInterval = setInterval(cycleChord, 14000);
+  ambientTimers.push(chordInterval);
+
+  // Miller's Planet Time Dilation subtle pulse (every 1.25s = 1 Earth day near Gargantua)
+  const timeTickInterval = setInterval(() => {
+    if (!ambientOn || !c || !master || !enabled) return;
+    const now = c.currentTime;
+    const tickOsc = c.createOscillator();
+    const tickGain = c.createGain();
+    const tickFilter = c.createBiquadFilter();
+
+    tickFilter.type = 'lowpass';
+    tickFilter.frequency.setValueAtTime(480, now);
+
+    tickOsc.type = 'triangle';
+    // Subtle wooden/sub-bass acoustic click sweep
+    tickOsc.frequency.setValueAtTime(160, now);
+    tickOsc.frequency.exponentialRampToValueAtTime(45, now + 0.032);
+
+    tickGain.gain.setValueAtTime(0.022, now);
+    tickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
+    tickOsc.connect(tickFilter);
+    tickFilter.connect(tickGain);
+    tickGain.connect(ambientBus);
+
+    tickOsc.start(now);
+    tickOsc.stop(now + 0.04);
+  }, 1250);
+  ambientTimers.push(timeTickInterval);
+
+  // Celestial Celeste / Piano Motif ("Day One" / "Stay" echoes across the stars)
+  const triggerCelesteMotif = () => {
+    if (!ambientOn || !c || !master || !enabled) return;
+    const motif = CELESTE_MOTIFS[Math.floor(Math.random() * CELESTE_MOTIFS.length)];
+    const noteSpacing = 0.72; // Spacing between melodic notes
+
+    motif.forEach((noteFreq, idx) => {
+      const noteTime = c.currentTime + idx * noteSpacing;
+      const o1 = c.createOscillator();
+      const o2 = c.createOscillator();
+      const noteGain = c.createGain();
+
+      // Felt piano / celeste: fundamental triangle + sine overtone
+      o1.type = 'triangle';
+      o1.frequency.setValueAtTime(noteFreq, noteTime);
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(noteFreq * 2, noteTime);
+
+      noteGain.gain.setValueAtTime(0.0001, noteTime);
+      noteGain.gain.linearRampToValueAtTime(0.042, noteTime + 0.015);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 3.2);
+
+      o1.connect(noteGain);
+      o2.connect(noteGain);
+      noteGain.connect(organFilter);
+      noteGain.connect(delayL);
+      noteGain.connect(delayR);
+
+      o1.start(noteTime);
+      o2.start(noteTime);
+      o1.stop(noteTime + 3.3);
+      o2.stop(noteTime + 3.3);
+    });
+
+    // Schedule next celestial motif in 9 to 15 seconds
+    const nextWait = 9000 + Math.random() * 6000;
+    const nextTimer = setTimeout(triggerCelesteMotif, nextWait);
+    ambientTimers.push(nextTimer);
+  };
+
+  const initialMotifTimer = setTimeout(triggerCelesteMotif, 4500);
+  ambientTimers.push(initialMotifTimer);
 }
+
 function stopAmbient() {
   ambientOn = false;
-  if (ambientTimer) clearTimeout(ambientTimer);
-  pads.forEach((o) => { try { o.stop(); } catch { /* already stopped */ } });
-  pads = [];
+  ambientTimers.forEach((t) => {
+    try {
+      clearTimeout(t);
+      clearInterval(t);
+    } catch {}
+  });
+  ambientTimers = [];
+
+  ambientNodes.forEach((n) => {
+    try {
+      if ('stop' in n && typeof (n as OscillatorNode).stop === 'function') {
+        (n as OscillatorNode).stop();
+      }
+      n.disconnect();
+    } catch {
+      /* ignore */
+    }
+  });
+  ambientNodes = [];
 }
 
 export const sfx = {

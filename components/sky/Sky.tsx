@@ -15,7 +15,8 @@ import { PlanetSheet } from './Planet';
 import { LanternSheet } from './Lanterns';
 import { ListView } from './ListView';
 import type { SkyEngine } from '@/lib/sky/engine';
-import { IcoPin, IcoShield, IcoGlobe, IcoRadar } from './icons';
+import { IcoPin, IcoShield, IcoGlobe, IcoRadar, IcoShieldAlert, IcoX } from './icons';
+
 
 const pref = (k: string, d: boolean) => { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch { return d; } };
 const hasWebGL = () => {
@@ -42,6 +43,20 @@ function NeighbourLocationPrompt() {
   const { ui, world } = useSky();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+
+  const handleClose = () => {
+    void world.travel('night');
+  };
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
   const requestLocation = () => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
@@ -75,12 +90,30 @@ function NeighbourLocationPrompt() {
   };
 
   return (
-    <div className="location-prompt-overlay" data-ui role="dialog" aria-label="Location Permission Required">
+    <div
+      className="location-prompt-overlay"
+      data-ui
+      role="dialog"
+      aria-label="Location Permission Required"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
       <div className="location-prompt-card">
+        <button
+          type="button"
+          className="location-prompt-close"
+          onClick={handleClose}
+          aria-label="Close"
+          title="Close and return to One Sky"
+        >
+          <IcoX size={15} />
+        </button>
+
         <div className="location-radar-wrap">
           <div className="location-radar-pulse" />
           <div className="location-radar-pulse outer" />
-          <div className="location-radar-core"><IcoPin size={22} style={{ color: '#071912' }} /></div>
+          <div className="location-radar-core"><IcoPin size={22} style={{ color: '#0071e3' }} /></div>
         </div>
 
         <h2 className="location-prompt-title">Discover Strangers Near You</h2>
@@ -90,27 +123,28 @@ function NeighbourLocationPrompt() {
 
         <div className="location-privacy-box">
           <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoShield size={17} style={{ color: '#38ef7d' }} /></span>
+            <span className="location-privacy-ico"><IcoShield size={17} style={{ color: '#ffffff' }} /></span>
             <div>
               <b>Zero Real-Time Tracking</b>
               <p className="tiny muted">Your exact coordinates are never shared with anyone.</p>
             </div>
           </div>
           <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoGlobe size={17} style={{ color: '#38ef7d' }} /></span>
+            <span className="location-privacy-ico"><IcoGlobe size={17} style={{ color: '#ffffff' }} /></span>
             <div>
               <b>Fuzzed Precision (~1.1 km)</b>
               <p className="tiny muted">Location is rounded for privacy. Others only see relative distance (e.g. <em>~14 km away</em>).</p>
             </div>
           </div>
           <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoRadar size={17} style={{ color: '#38ef7d' }} /></span>
+            <span className="location-privacy-ico"><IcoRadar size={17} style={{ color: '#ffffff' }} /></span>
             <div>
               <b>Max 100 km Radius</b>
               <p className="tiny muted">Only people within 100 km who also enabled location will drift into your orbit.</p>
             </div>
           </div>
         </div>
+
 
         {err && <div className="err" style={{ marginBottom: 12, textAlign: 'center' }}>{err}</div>}
 
@@ -147,6 +181,82 @@ const initialSkyTheme = () => {
   return 'auto';
 };
 
+function BanScreen({
+  banInfo,
+  reason,
+  onBackHome,
+}: {
+  banInfo: { bannedUntil?: number; reason?: string; displayReason?: string; message?: string } | null;
+  reason: string;
+  onBackHome: () => void;
+}) {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const until = banInfo?.bannedUntil || Date.now() + 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.floor((until - Date.now()) / 1000));
+  });
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const until = banInfo?.bannedUntil || Date.now() + 24 * 60 * 60 * 1000;
+      const remaining = Math.max(0, Math.floor((until - Date.now()) / 1000));
+      setTimeLeft(remaining);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [banInfo]);
+
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
+  const seconds = timeLeft % 60;
+  const timeFormatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  const displayReason =
+    banInfo?.displayReason ||
+    banInfo?.message ||
+    (reason === 'red_flag'
+      ? 'Automated detection of prohibited terms or inappropriate solicitation'
+      : 'Reported by other users for violating community guidelines');
+
+  return (
+    <div className="ban-page">
+      <div className="ban-card">
+        <div className="ban-badge">
+          <IcoShieldAlert size={14} />
+          <span>Immediate Ban</span>
+          <span>·</span>
+          <span>Zero Tolerance</span>
+        </div>
+
+
+        <h1 className="ban-title">You have been temporarily banned</h1>
+
+        <p className="tiny muted" style={{ color: '#ffb3c1', margin: 0 }}>
+          Your connection was immediately terminated.
+        </p>
+
+        <div className="ban-timer-box">
+          <div className="ban-timer-label">Ban expires in</div>
+          <div className="ban-countdown">{timeFormatted}</div>
+        </div>
+
+        <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: 16, padding: '12px 16px', margin: '14px 0', textAlign: 'left' }}>
+          <div className="tiny" style={{ color: '#ff9fb0', fontWeight: 650, marginBottom: 2 }}>Reason for suspension:</div>
+          <div style={{ color: '#fff', fontSize: 13.5, lineHeight: 1.45 }}>{displayReason}</div>
+        </div>
+
+        <p className="ban-notice">
+          Like Omegle and safe community apps, Lumen enforces an instant-ban policy for explicit content, harassment, prohibited words, or safety reports. You cannot reconnect until the timer runs out.
+        </p>
+
+        <div className="stack">
+          <button className="btn" style={{ background: 'linear-gradient(135deg, #ff4b69 0%, #c81e46 100%)', color: '#fff' }} onClick={onBackHome}>
+            Return to Home
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () => Promise<string | null>; onSignOut: () => void; onDeleted: () => void }) {
   const router = useRouter();
   const [ui] = useState(() =>
@@ -171,6 +281,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
 
   const status = useUI(ui, (s) => s.status);
   const denied = useUI(ui, (s) => s.denied);
+  const banInfo = useUI(ui, (s) => s.banInfo);
   const panel = useUI(ui, (s) => s.panel);
   const planet = useUI(ui, (s) => !!s.planet);
   const listMode = useUI(ui, (s) => s.listMode);
@@ -226,12 +337,20 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
 
   const ctx: SkyCtx = { ui, world, state, getToken, onSignOut, onDeleted };
 
+  const isBanned =
+    (status === 'kicked' && (denied === 'banned' || denied === 'red_flag' || denied === 'account_banned' || denied === 'account_suspended')) ||
+    (status === 'denied' && (denied === 'account_banned' || denied === 'account_suspended'));
+
+  if (isBanned) {
+    return <BanScreen banInfo={banInfo} reason={denied} onBackHome={() => router.replace('/')} />;
+  }
+
   if (status === 'kicked' || status === 'full' || (status === 'denied' && denied.startsWith('account_'))) {
     return (
       <div className="page"><div className="card center">
         <div className="logo" />
         <h1>{status === 'full' ? 'The sky is full' : status === 'kicked' && denied === 'other_session' ? 'Opened somewhere else' : 'You are not in the sky'}</h1>
-        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Lumen is open in another tab or device. Only one at a time.' : denied === 'account_banned' || denied === 'account_suspended' ? 'This account has been restricted for breaking the community rules.' : 'Your session ended.'}</p>
+        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Lumen is open in another tab or device. Only one at a time.' : 'Your session ended.'}</p>
         <div className="stack"><button className="btn" onClick={() => location.reload()}>Try again</button></div>
       </div></div>
     );

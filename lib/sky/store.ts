@@ -8,7 +8,16 @@ export const MOOD_NAMES = ['calm', 'warm', 'tender', 'hopeful', 'curious', 'drea
 
 export const F_NEW = 1, F_BUSY = 2, F_THOUGHT = 4, F_ECHO = 8, F_VET = 16;
 
-export type NearItem = { i: number; sid: string; t: string; m: number; f: number; distKm?: number | null };
+export type NearItem = {
+  i: number;
+  sid: string;
+  t: string;
+  m: number;
+  f: number;
+  distKm?: number | null;
+  interests?: string[];
+  isIncognito?: boolean;
+};
 export type Bond = { id: string; name: string; online: boolean };
 export type ChatMsg = { mine: boolean; t: string; ts: number };
 export type Planet = {
@@ -19,9 +28,17 @@ export type Planet = {
 export type Panel = null | 'thought' | 'lanterns' | 'bonds' | 'map' | 'settings' | 'list' | 'report';
 export type QualityName = 'high' | 'balanced' | 'low';
 
+export type BanInfo = {
+  bannedUntil: number;
+  reason: string;
+  displayReason: string;
+  message?: string;
+};
+
 export type UI = {
   status: 'idle' | 'connecting' | 'live' | 'offline' | 'kicked' | 'full' | 'denied';
   denied: string;
+  banInfo: BanInfo | null;
   name: string; galaxy: string; galaxies: Galaxy[];
   thought: string; mood: number; thoughtMax: number;
   near: NearItem[]; selected: string | null; incoming: string[];
@@ -34,15 +51,25 @@ export type UI = {
   reportSid: string | null;
   locationGranted: boolean;
   userLocation: { lat: number; lon: number } | null;
+  userInterests: string[];
+  activeInterests: { tag: string; count: number }[];
+  interestDrive: boolean;
+  selectedInterest: string | null;
+  isIncognito: boolean;
 };
 
 export const initialUI: UI = {
-  status: 'idle', denied: '', name: '', galaxy: '', galaxies: [], thought: '', mood: 0, thoughtMax: 120,
+  status: 'idle', denied: '', banInfo: null, name: '', galaxy: '', galaxies: [], thought: '', mood: 0, thoughtMax: 120,
   near: [], selected: null, incoming: [], planet: null, bonds: [], ring: null, meteor: null, meteorPrompt: null,
   census: { counts: {}, total: 0 }, announcement: '', skyTheme: 'auto', panel: null, lanternDrift: false, inboxTick: 0,
   toast: null, listMode: false, sound: true, messageSound: true, messageTone: 'pop', voiceReader: false, haptics: true, lite: false, quality: 'high', warp: 0, reportSid: null,
   locationGranted: false,
   userLocation: null,
+  userInterests: [],
+  activeInterests: [],
+  interestDrive: false,
+  selectedInterest: null,
+  isIncognito: false,
 };
 
 export function createStore<T extends object>(init: T) {

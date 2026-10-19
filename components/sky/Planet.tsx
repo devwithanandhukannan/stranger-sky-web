@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { ReportForm } from './Sheets';
-import { IcoPin, IcoBond } from './icons';
+import { IcoPin, IcoBond, IcoIncognito, IcoSparkle, IcoLock } from './icons';
+
 
 export function PlanetSheet() {
   const { ui, world } = useSky();
@@ -11,6 +12,7 @@ export function PlanetSheet() {
   const [text, setText] = useState(''), [err, setErr] = useState(''), [menu, setMenu] = useState<'' | 'report'>('');
   const sound = useUI(ui, (s) => s.sound);
   const messageSound = useUI(ui, (s) => s.messageSound);
+  const isIncognito = useUI(ui, (s) => s.isIncognito);
   const end = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
   const n = p?.msgs.length ?? 0;
@@ -68,6 +70,11 @@ export function PlanetSheet() {
           <div className="planet-meta">
             <div className="planet-title-row">
               <b className="planet-name">{p.known && p.with ? p.with.name : 'A stranger'}</b>
+              {isIncognito && (
+                <span className="top-incognito-badge" style={{ fontSize: 11, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <IcoIncognito size={11} /> Ignoto
+                </span>
+              )}
               <span className="planet-mood-tag" style={{ color, borderColor: `${color}45`, background: `${color}18` }}>
                 {moodName}
               </span>
@@ -115,10 +122,18 @@ export function PlanetSheet() {
         ) : (
           <>
             <div className="planet-body" aria-live="polite">
-              <div className="planet-privacy-pill">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span>Private planet · Messages fade into the cosmos when you leave</span>
-              </div>
+              {isIncognito ? (
+                <div className="planet-privacy-pill" style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span>Ignoto Mode · Ephemeral chat. Making friends and saving data is disabled.</span>
+                </div>
+              ) : (
+
+                <div className="planet-privacy-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span>Private planet · Messages fade into the cosmos when you leave</span>
+                </div>
+              )}
 
               {p.msgs.map((m, i) => (
                 <div key={m.ts ? `${m.ts}-${i}` : i} className={`bub-row${m.mine ? ' me' : ''}`}>
@@ -150,7 +165,7 @@ export function PlanetSheet() {
 
               {p.ended && (
                 <div className="planet-ended-notice">
-                  <span className="ended-icon">✦</span>
+                  <span className="ended-icon" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={14} /></span>
                   <p>{p.ended === 'blocked' ? 'This planet has closed.' : 'This planet has gently drifted away into the night sky.'}</p>
                 </div>
               )}
@@ -161,16 +176,30 @@ export function PlanetSheet() {
             {!p.ended && (
               <footer className="planet-f">
                 <div className="planet-quick-actions">
-                  <button
-                    className={`planet-chip-btn keep${p.kept ? ' waiting' : ''}${p.known ? ' bonded' : ''}`}
-                    disabled={p.kept || p.known}
-                    onClick={() => world.keep()}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <IcoBond size={13} />
-                      {p.known ? 'Kept in touch' : p.kept ? 'Waiting for them…' : 'Keep in touch'}
-                    </span>
-                  </button>
+                  {isIncognito ? (
+                    <button
+                      className="planet-chip-btn keep"
+                      disabled
+                      title="Ignoto / Incognito mode: Making friends and saving bonds is disabled"
+                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <IcoLock size={12} />
+                        Friends disabled (Ignoto)
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      className={`planet-chip-btn keep${p.kept ? ' waiting' : ''}${p.known ? ' bonded' : ''}`}
+                      disabled={p.kept || p.known}
+                      onClick={() => world.keep()}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <IcoBond size={13} />
+                        {p.known ? 'Kept in touch' : p.kept ? 'Waiting for them…' : 'Keep in touch'}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="planet-input-bar">

@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_BUSY } from '@/lib/sky/store';
 import { useSky } from './ctx';
-import { IcoPin, IcoSky, IcoRefresh, IcoSparkle } from './icons';
+import { IcoPin, IcoSky, IcoRefresh, IcoSparkle, IcoIncognito } from './icons';
 
 // The calm list view: for devices that struggle with WebGL or wanderers who prefer reading.
 export function ListView() {
@@ -15,6 +15,7 @@ export function ListView() {
 
   const currentGalaxy = galaxies.find((g) => g.slug === galaxy);
   const count = Math.max(0, (census.counts[galaxy] ?? 0) - 1);
+  const myInterests = useUI(ui, (s) => s.userInterests);
 
   useEffect(() => {
     void world.feed();
@@ -144,6 +145,11 @@ export function ListView() {
                     </p>
                     <div className="list-card-meta">
                       <span className="list-card-mood">{MOOD_NAMES[n.m] || 'calm'}</span>
+                      {n.isIncognito && (
+                        <span className="top-incognito-badge" style={{ fontSize: 10.5, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <IcoIncognito size={11} /> Ignoto
+                        </span>
+                      )}
                       {isEcho && <span className="list-card-tag echo">echo</span>}
                       {isBusy && <span className="list-card-tag busy">in conversation</span>}
                       {typeof n.distKm === 'number' && (
@@ -152,6 +158,19 @@ export function ListView() {
                         </span>
                       )}
                     </div>
+                    {n.interests && n.interests.length > 0 && (
+                      <div className="light-interests-list" style={{ margin: '6px 0 0' }}>
+                        {n.interests.map((tag) => {
+                          const shared = myInterests.map((t) => t.toLowerCase()).includes(tag.toLowerCase());
+                          return (
+                            <span key={tag} className={`interest-tag-pill${shared ? ' shared' : ''}`} style={{ fontSize: 11, padding: '3px 9px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              {shared && <IcoSparkle size={10} />}#{tag}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
                   </div>
 
                   <div className="list-card-actions">
