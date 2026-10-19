@@ -1,0 +1,1 @@
+{ "name": "Lumen", "short_name": "Lumen", "start_url": "/sky", "display": "standalone", "background_color": "#070b1a", "theme_color": "#070b1a", "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }] }
