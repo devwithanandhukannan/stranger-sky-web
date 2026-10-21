@@ -558,5 +558,21 @@ export const IcoPhoneHangup: FC<IconProps> = ({ size = 18, ...props }) => (
   </svg>
 );
 
+export const IcoPixelAlien: FC<IconProps> = ({ size = 22, ...props }) => (
+  <svg
+    width={size}
+    height={Math.round((size * 8) / 9)}
+    viewBox="0 0 9 8"
+    fill="currentColor"
+    shapeRendering="crispEdges"
+    aria-hidden="true"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...props.style }}
+    {...props}
+  >
+    <path d="M2 0h5v1H2z M1 1h7v1H1z M0 2h2v1H0z M4 2h1v1H4z M7 2h2v1H7z M0 3h9v1H0z M3 4h3v1H3z M2 5h1v1H2z M6 5h1v1H6z M1 6h1v1H1z M7 6h1v1H7z M0 7h1v1H0z M8 7h1v1H8z" />
+  </svg>
+);
+
+
 
 

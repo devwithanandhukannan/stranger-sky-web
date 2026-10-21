@@ -618,35 +618,39 @@ export function SettingsSheet() {
           </div>
         )}
 
-        <div className="theme-grid">
+        <div className="theme-pill-grid">
           {[
             {
               id: 'auto',
               name: 'Auto Sync',
               sub: `Syncs with clock (${getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset' : 'Dark Space'})`,
               icon: IcoClock,
-              iconColor: '#7aa2ff',
+              iconColor: '#4338ca',
+              iconFill: '#818cf8',
             },
             {
               id: 'day',
               name: 'Daylight Sky',
               sub: 'Luminous azure & sunlight (06:00–17:00)',
               icon: IcoSun,
-              iconColor: '#fbbf24',
+              iconColor: '#d97706',
+              iconFill: '#fbbf24',
             },
             {
               id: 'evening',
               name: 'Sunset Twilight',
               sub: 'Golden rose & violet horizon (17:00–20:30)',
               icon: IcoSunset,
-              iconColor: '#ff6584',
+              iconColor: '#e11d48',
+              iconFill: '#f97316',
             },
             {
               id: 'midnight',
               name: 'Dark Space',
               sub: 'Obsidian cosmos & stars (20:30–06:00)',
               icon: IcoMoon,
-              iconColor: '#93c5fd',
+              iconColor: '#0f172a',
+              iconFill: '#1e293b',
             },
           ].map((item) => {
             const IconComp = item.icon;
@@ -655,7 +659,7 @@ export function SettingsSheet() {
               <button
                 key={item.id}
                 type="button"
-                className={`theme-card${active ? ' active' : ''}`}
+                className={`theme-pill-btn ${item.id}${active ? ' active' : ''}`}
                 onClick={() => {
                   ui.set({ skyTheme: item.id });
                   try {
@@ -670,23 +674,28 @@ export function SettingsSheet() {
                 }}
                 aria-label={`Select ${item.name} theme`}
               >
-                <div className={`theme-card-art ${item.id}`}>
-                  <div className="theme-card-art-badge">
-                    <IconComp size={15} style={{ color: item.iconColor }} />
-                  </div>
-                  {active && (
-                    <div className="theme-card-active-pill">
-                      <IcoCheck size={11} />
-                      <span>ACTIVE</span>
-                    </div>
-                  )}
+                <div className="theme-pill-knob">
+                  <IconComp
+                    size={20}
+                    style={{
+                      color: item.iconColor,
+                      fill: item.iconFill || 'currentColor',
+                      stroke: item.iconColor,
+                    }}
+                  />
                 </div>
 
-                <div className="theme-card-meta">
-                  <div className="theme-card-name-row">
-                    <b className="theme-card-name">{item.name}</b>
+                <div className="theme-pill-meta">
+                  <div className="theme-pill-title-row">
+                    <b className="theme-pill-name">{item.name}</b>
+                    {active && (
+                      <span className="theme-pill-active-badge">
+                        <IcoCheck size={10} />
+                        <span>ACTIVE</span>
+                      </span>
+                    )}
                   </div>
-                  <span className="theme-card-sub">{item.sub}</span>
+                  <span className="theme-pill-sub">{item.sub}</span>
                 </div>
               </button>
             );

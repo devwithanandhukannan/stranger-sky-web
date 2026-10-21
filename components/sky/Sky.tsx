@@ -271,7 +271,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
       voiceReader: pref('voiceReader', false),
       haptics: pref('haptics', true),
       lite: pref('lite', false),
-      listMode: pref('list', false) || !hasWebGL(),
+      listMode: pref('list', false),
       locationGranted: !!savedLoc(),
       userLocation: savedLoc(),
       skyTheme: initialSkyTheme(),
@@ -340,8 +340,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
       if (dead || !hostRef.current || !canvasRef.current) return;
       try { engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world); engine.start(); }
       catch (err) {
-        console.warn('Could not start 3D sky engine:', err);
-        ui.set({ toast: '3D sky is unavailable on this device/browser. You can tap the List icon to browse thoughts.' });
+        console.warn('Could not start sky engine:', err);
       }
     })();
     return () => { dead = true; engine?.dispose(); };

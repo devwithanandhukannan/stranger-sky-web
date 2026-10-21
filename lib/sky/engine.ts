@@ -121,7 +121,10 @@ function starLayer(max: number, par: number, size: [number, number], bright: num
 }
 
 export class SkyEngine {
-  private renderer: WebGLRenderer;
+  private renderer: WebGLRenderer | null = null;
+  private ctx2d: CanvasRenderingContext2D | null = null;
+  private is2d = false;
+  private stars2d: { x: number; y: number; r: number; a: number; par: number; phase: number }[] = [];
   private scene = new Scene();
   private camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
   private far: Points; private mid: Points;
@@ -149,6 +152,17 @@ export class SkyEngine {
   private lastSparkle = 0;
   private cleanup: (() => void)[] = [];
   constructor(private canvas: HTMLCanvasElement, private host: HTMLElement, private state: WorldState, private ui: Store, private world: World) {
+    for (let i = 0; i < 220; i++) {
+      this.stars2d.push({
+        x: (Math.random() - 0.5) * SPAN,
+        y: (Math.random() - 0.5) * SPAN,
+        r: 0.8 + Math.random() * 1.8,
+        a: 0.3 + Math.random() * 0.7,
+        par: i < 70 ? 0.15 : i < 150 ? 0.35 : 0.6,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+
     try {
       this.renderer = new WebGLRenderer({
         canvas,
@@ -159,6 +173,7 @@ export class SkyEngine {
         depth: false,
         failIfMajorPerformanceCaveat: false,
       });
+      this.renderer.setClearColor(0x000000, 0);
     } catch {
       try {
         this.renderer = new WebGLRenderer({
@@ -170,11 +185,18 @@ export class SkyEngine {
           depth: false,
           failIfMajorPerformanceCaveat: false,
         });
+        this.renderer.setClearColor(0x000000, 0);
       } catch {
-        this.renderer = new WebGLRenderer({ canvas, alpha: true });
+        try {
+          this.renderer = new WebGLRenderer({ canvas, alpha: true });
+          this.renderer.setClearColor(0x000000, 0);
+        } catch {
+          this.renderer = null;
+          this.is2d = true;
+          this.ctx2d = canvas.getContext('2d');
+        }
       }
     }
-    this.renderer.setClearColor(0x000000, 0);
     this.theme = resolveTheme(ui.get().skyTheme);
 
     const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
@@ -236,8 +258,10 @@ export class SkyEngine {
   dispose() {
     this.stop(); this.unsub(); this.cleanup.forEach((f) => f());
     this.labels.forEach((l) => l.remove()); this.lanternEl.remove(); this.meteorEl.remove();
-    this.scene.traverse((o) => { const m = o as Mesh; m.geometry?.dispose?.(); (m.material as { dispose?: () => void } | undefined)?.dispose?.(); });
-    this.renderer.dispose(); this.renderer.forceContextLoss();
+    if (this.renderer) {
+      this.scene.traverse((o) => { const m = o as Mesh; m.geometry?.dispose?.(); (m.material as { dispose?: () => void } | undefined)?.dispose?.(); });
+      this.renderer.dispose(); this.renderer.forceContextLoss();
+    }
   }
   setLite(on: boolean) { this.lockedLow = on; this.setQuality(on ? 'low' : this.quality === 'low' ? 'balanced' : this.quality); }
   spawn(x: number, y: number, kind: number, color: string, size: number, life: number, persistent = false) {
@@ -254,21 +278,30 @@ export class SkyEngine {
     this.quality = q;
     const s = QUALITY[q];
     this.dpr = Math.min(window.devicePixelRatio || 1, s.dpr);
-    this.renderer.setPixelRatio(this.dpr);
-    this.far.geometry.setDrawRange(0, s.far); this.mid.geometry.setDrawRange(0, s.mid);
-    this.nebula.forEach((m, i) => { m.visible = i < s.nebula; });
-    (this.far.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
-    (this.mid.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
+    if (this.renderer) {
+      this.renderer.setPixelRatio(this.dpr);
+      this.far.geometry.setDrawRange(0, s.far); this.mid.geometry.setDrawRange(0, s.mid);
+      this.nebula.forEach((m, i) => { m.visible = i < s.nebula; });
+      (this.far.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
+      (this.mid.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
+    }
     this.resize();
     if (this.ui.get().quality !== q) this.ui.set({ quality: q });
   }
   private resize() {
     const r = this.host.getBoundingClientRect();
     this.W = Math.max(1, Math.round(r.width)); this.H = Math.max(1, Math.round(r.height));
-    this.renderer.setSize(this.W, this.H, false);
-    const c = this.camera; c.left = -this.W / 2; c.right = this.W / 2; c.top = this.H / 2; c.bottom = -this.H / 2; c.updateProjectionMatrix();
-    for (const m of [this.far, this.mid]) (m.material as ShaderMaterial).uniforms.uDpr.value = this.dpr;
-    this.lightMat.uniforms.uDpr.value = this.dpr; this.fxMat.uniforms.uDpr.value = this.dpr;
+    if (this.renderer) {
+      this.renderer.setSize(this.W, this.H, false);
+      const c = this.camera; c.left = -this.W / 2; c.right = this.W / 2; c.top = this.H / 2; c.bottom = -this.H / 2; c.updateProjectionMatrix();
+      for (const m of [this.far, this.mid]) (m.material as ShaderMaterial).uniforms.uDpr.value = this.dpr;
+      this.lightMat.uniforms.uDpr.value = this.dpr; this.fxMat.uniforms.uDpr.value = this.dpr;
+    } else if (this.ctx2d) {
+      this.canvas.width = Math.round(this.W * this.dpr);
+      this.canvas.height = Math.round(this.H * this.dpr);
+      this.canvas.style.width = `${this.W}px`;
+      this.canvas.style.height = `${this.H}px`;
+    }
   }
   private applyTheme(t: Theme) {
     this.theme = t; this.tint = t.tint;
@@ -332,11 +365,17 @@ export class SkyEngine {
     const ku = (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase());
     const vis = () => { if (document.hidden) this.stop(); else if (!this.running) this.start(); };
     const ro = new ResizeObserver(() => this.resize()); ro.observe(this.host);
-    const lost = (e: Event) => { e.preventDefault(); this.ui.set({ listMode: true, toast: 'Your device could not keep the sky running. Switched to list view.' }); };
+    const lost = (e: Event) => {
+      e.preventDefault();
+      this.renderer = null;
+      this.is2d = true;
+      this.ctx2d = this.canvas.getContext('2d');
+      this.resize();
+    };
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); document.addEventListener('visibilitychange', vis);
-    this.canvas.addEventListener('webglcontextlost', lost);
-    this.cleanup.push(() => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); document.removeEventListener('visibilitychange', vis); this.canvas.removeEventListener('webglcontextlost', lost); ro.disconnect(); });
+    if (this.renderer) this.canvas.addEventListener('webglcontextlost', lost);
+    this.cleanup.push(() => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); document.removeEventListener('visibilitychange', vis); if (this.renderer) this.canvas.removeEventListener('webglcontextlost', lost); ro.disconnect(); });
   }
 
   private tap(sx: number, sy: number) {
@@ -409,18 +448,23 @@ export class SkyEngine {
     const fadeE = this.fade * this.fade * (3 - 2 * this.fade);
     const cam: [number, number] = [this.cam.x, this.cam.y];
 
-    for (const m of [this.far, this.mid]) { const u = (m.material as ShaderMaterial).uniforms; u.uCam.value = cam; u.uTime.value = time; }
-    const half = SPAN / 2;
-    for (const n of this.nebula) {
-      if (!n.visible) continue;
-      const d = n.userData; const mod = (v: number) => ((((v + half) % SPAN) + SPAN) % SPAN) - half;
-      n.position.set(mod(d.bx - this.cam.x * d.par), mod(d.by - this.cam.y * d.par), 0);
-    }
-    this.lightMat.uniforms.uCam.value = cam; this.lightMat.uniforms.uTime.value = time; this.lightMat.uniforms.uFade.value = fadeE;
-    this.fxMat.uniforms.uCam.value = cam;
+    if (this.renderer) {
+      for (const m of [this.far, this.mid]) { const u = (m.material as ShaderMaterial).uniforms; u.uCam.value = cam; u.uTime.value = time; }
+      const half = SPAN / 2;
+      for (const n of this.nebula) {
+        if (!n.visible) continue;
+        const d = n.userData; const mod = (v: number) => ((((v + half) % SPAN) + SPAN) % SPAN) - half;
+        n.position.set(mod(d.bx - this.cam.x * d.par), mod(d.by - this.cam.y * d.par), 0);
+      }
+      this.lightMat.uniforms.uCam.value = cam; this.lightMat.uniforms.uTime.value = time; this.lightMat.uniforms.uFade.value = fadeE;
+      this.fxMat.uniforms.uCam.value = cam;
 
-    this.writeLights(time, dt);
-    this.writeFx(dt, time);
+      this.writeLights(time, dt);
+      this.writeFx(dt, time);
+      this.renderer.render(this.scene, this.camera);
+    } else if (this.ctx2d) {
+      this.render2D(fadeE, time, dt);
+    }
     this.layoutLabels(time);
 
     if (this.theme.sparkle && now - this.lastSparkle > 1100 && this.quality !== 'low') {
@@ -428,8 +472,90 @@ export class SkyEngine {
       const w = this.toWorld(Math.random() * this.W, Math.random() * this.H);
       this.spawn(w.x, w.y, KIND_BURST, this.theme.nebula[Math.floor(Math.random() * 3)], 90, 1.2);
     }
-    this.renderer.render(this.scene, this.camera);
   };
+
+  private render2D(fade: number, time: number, dt: number) {
+    const ctx = this.ctx2d;
+    if (!ctx) return;
+    const w = this.W * this.dpr, h = this.H * this.dpr;
+    ctx.save();
+    ctx.clearRect(0, 0, w, h);
+    ctx.scale(this.dpr, this.dpr);
+
+    const half = SPAN / 2;
+    const mod = (v: number) => ((((v + half) % SPAN) + SPAN) % SPAN) - half;
+
+    const isLight = this.theme.mode === 'light';
+    const starRgb = isLight ? '80, 120, 200' : '230, 240, 255';
+    for (const s of this.stars2d) {
+      const sx = mod(s.x - this.cam.x * s.par) + this.W / 2;
+      const sy = mod(s.y - this.cam.y * s.par) + this.H / 2;
+      if (sx < -10 || sx > this.W + 10 || sy < -10 || sy > this.H + 10) continue;
+      const tw = s.a * (0.65 + 0.35 * Math.sin(time * 2.5 + s.phase));
+      ctx.fillStyle = `rgba(${starRgb},${tw.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const ease = 1 - Math.exp(-dt * 7);
+    const sel = this.ui.get().selected;
+    const inc = this.ui.get().incoming;
+    for (const l of this.state.lights.values()) {
+      if (l !== this.state.you) {
+        l.x += (l.tx - l.x) * ease;
+        l.y += (l.ty - l.y) * ease;
+      }
+      if (l.hidden) continue;
+      const p = this.toScreen(l.x, l.y);
+      if (p.x < -60 || p.x > this.W + 60 || p.y < -60 || p.y > this.H + 60) continue;
+
+      const isYou = l === this.state.you;
+      const mood = MOOD_COLORS[l.m % 8] || MOOD_COLORS[0];
+      const baseR = isYou ? 7 : l.near ? 5.5 : 4;
+
+      const glowR = isYou ? 24 : 15;
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
+      grad.addColorStop(0, mood);
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = isYou ? '#ffffff' : mood;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, baseR, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (isYou || l.sid === sel || inc.includes(l.sid)) {
+        const pulse = 10 + 6 * Math.sin(time * 4);
+        ctx.strokeStyle = mood;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    const s = this.ui.get();
+    if (s.meteor) {
+      const mp = this.toScreen(s.meteor.x, s.meteor.y);
+      ctx.fillStyle = '#bfe0ff';
+      ctx.beginPath();
+      ctx.arc(mp.x, mp.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (s.lanternDrift && this.lanternFx >= 0) {
+      const lp = this.toScreen(this.fxd.pos[this.lanternFx * 3], this.fxd.pos[this.lanternFx * 3 + 1]);
+      ctx.fillStyle = '#ffb35a';
+      ctx.beginPath();
+      ctx.arc(lp.x, lp.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
 
   private adapt(dtMs: number, now: number) {
     this.ema = this.ema * 0.94 + dtMs * 0.06;

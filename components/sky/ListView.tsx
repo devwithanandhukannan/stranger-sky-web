@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_BUSY } from '@/lib/sky/store';
 import { useSky } from './ctx';
-import { IcoPin, IcoSky, IcoRefresh, IcoSparkle, IcoIncognito, IcoX } from './icons';
+import { IcoPin, IcoRefresh, IcoSparkle, IcoIncognito, IcoX } from './icons';
 
 // The calm list view: for devices that struggle with WebGL or wanderers who prefer reading.
 export function ListView() {
@@ -98,16 +98,6 @@ export function ListView() {
               title="Hop to new lights"
             >
               Hop
-            </button>
-
-            <button
-              type="button"
-              className="btn sm list-return-sky-btn"
-              onClick={closeList}
-              title="Return to 3D Sky"
-            >
-              <IcoSky size={14} style={{ marginRight: 5 }} />
-              3D Sky
             </button>
           </div>
         </header>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup } from './icons';
+import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup, IcoPixelAlien } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -43,7 +43,7 @@ export function TopBar() {
           title="Drive to Interest Sky: Steer towards lights with matching interests and draw constellation links"
         >
           <span className="chip-spark" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={13} /></span>
-          <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interest Sky'}</span>
+          <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interest'}</span>
           <span className={`interest-switch ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
         </button>
 
@@ -145,7 +145,7 @@ export function Toast() {
       >
         <div className="dynamic-island-avatar">
           <div className="dynamic-island-orb" style={{ ['--mood-c' as string]: moodColor }}>
-            <IcoAge size={22} className="dynamic-island-person" />
+            <IcoPixelAlien size={22} className="dynamic-island-person" />
           </div>
           <span className="dynamic-island-radar" style={{ ['--mood-c' as string]: moodColor }} />
         </div>

@@ -334,13 +334,17 @@
 @media (max-width: 680px) {
   .top {
     flex-wrap: nowrap;
-    gap: 8px;
-    left: 12px;
-    right: 12px;
+    gap: 6px;
+    left: 10px;
+    right: 10px;
+    top: calc(10px + var(--safe-t));
   }
   .top > .row:first-child {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -351,14 +355,76 @@
     display: none;
   }
   .top > .row:last-child {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     flex-shrink: 0;
   }
 
-  /* Bottom-to-top toast on mobile */
+  /* Compact Galaxy Chip on mobile */
+  .top .chip {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 6px;
+    min-width: 0;
+    max-width: 52%;
+    flex-shrink: 1;
+  }
+  .top .chip span:first-of-type {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .top .chip .tiny {
+    font-size: 11px;
+    opacity: 0.8;
+    flex-shrink: 0;
+  }
+  .top .dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Compact Interest Drive Chip on mobile */
+  .interest-drive-chip {
+    padding: 6px 9px;
+    font-size: 11.5px;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .interest-drive-chip .chip-label {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .interest-switch {
+    height: 16px;
+    padding: 2px 6px;
+    font-size: 9px;
+    min-width: 26px;
+    border-radius: 999px;
+  }
+
+  /* Compact Top Bar Action Icons on mobile */
+  .top .icon {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    font-size: 17px;
+  }
+  .top .icon svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+  /* Top-down toast on mobile (Apple Dynamic Island / Notification Banner) */
   .toast {
-    top: auto !important;
-    bottom: calc(84px + var(--safe-b, 0px)) !important;
-    animation: toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    top: calc(14px + var(--safe-t, 0px)) !important;
+    bottom: auto !important;
+    animation: toastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .toast:hover {
     transform: translateX(-50%);
@@ -368,11 +434,11 @@
     padding: 3px;
   }
 
-  /* Bottom-to-top Apple Dynamic Island style pulse call toast on mobile */
+  /* Top-down Apple Dynamic Island style pulse call toast on mobile */
   .toast-dynamic-island {
-    top: auto !important;
-    bottom: calc(82px + var(--safe-b, 0px)) !important;
-    animation: dynamicIslandSlideUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    top: calc(14px + var(--safe-t, 0px)) !important;
+    bottom: auto !important;
+    animation: dynamicIslandPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both !important;
     padding: 8px 10px 8px 12px;
     gap: 10px;
     min-width: 0;
@@ -405,7 +471,6 @@
     width: 17px;
     height: 17px;
   }
-}
 
 @keyframes toastSlideUp {
   0% {
@@ -432,7 +497,11 @@
 @keyframes toastSlideDown {
   0% {
     opacity: 0;
-    transform: translate(-50%, -14px) scale(0.96);
+    transform: translate(-50%, -28px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 2px) scale(1.01);
   }
   100% {
     opacity: 1;
@@ -535,15 +604,19 @@
   transform: scale(1.05);
 }
 
-/* Tablet & Mobile: Preserve existing bottom sheet UI */
+/* Tablet & Mobile: Bottom sheet UI with authentic slide-up animation */
 @media (max-width: 820px) {
   .modal {
     align-items: flex-end;
     padding: 0;
+    animation: modalBackdropFade 0.28s ease-out both;
   }
   .modal:has(.sheet.small) {
     align-items: center;
     padding: 16px;
+  }
+  .modal:has(.sheet.small) .sheet.small {
+    animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .sheet {
     width: min(560px, 100%);
@@ -556,7 +629,7 @@
     border-bottom: 0;
     padding: 18px 16px calc(18px + var(--safe-b));
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.65);
-    animation: up .28s cubic-bezier(.2,.8,.2,1);
+    animation: sheetSlideUp 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .sheet.tall {
     min-height: 55dvh;
@@ -569,7 +642,33 @@
     border-top-right-radius: 24px;
   }
 }
-@keyframes up { from { transform: translateY(30px); opacity: 0; } }
+
+@keyframes sheetSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes up {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modalBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 .peek {
   position: fixed;
@@ -1964,17 +2063,6 @@
   border-radius: 10px;
 }
 
-.list-return-sky-btn {
-  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
-  color: #ffffff !important;
-  border: none;
-  font-weight: 600;
-  box-shadow: 0 4px 14px -2px rgba(59, 130, 246, 0.4);
-}
-.list-return-sky-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px -2px rgba(59, 130, 246, 0.5);
-}
 
 .list-empty-state {
   text-align: center;
@@ -3671,176 +3759,274 @@ a.settings-legal-btn:focus {
   flex-shrink: 0;
 }
 
-.theme-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+/* ==========================================================================
+   Atmosphere Theme Pill Buttons (Inspired by Tactile Day/Night Pill Toggles)
+   ========================================================================== */
+.theme-pill-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
 }
 
-.theme-btn {
-  /* legacy alias fallback */
-  cursor: pointer;
+@media (min-width: 520px) {
+  .theme-pill-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
 }
 
-.theme-card {
+.theme-pill-btn {
   position: relative;
   display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 8px 8px 12px 8px;
+  align-items: center;
+  gap: 13px;
+  min-height: 58px;
+  border-radius: 9999px;
+  padding: 6px 14px 6px 7px;
   text-align: left;
   cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
   width: 100%;
-  min-width: 0;
   outline: none;
   font-family: inherit;
   color: inherit;
-}
-
-.theme-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.45);
-}
-
-.theme-card.active {
-  background: rgba(14, 165, 233, 0.07);
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4), 0 12px 28px -6px rgba(14, 165, 233, 0.25);
-}
-
-/* Atmospheric preview art window */
-.theme-card-art {
-  height: 76px;
-  width: 100%;
-  border-radius: 11px;
-  position: relative;
   overflow: hidden;
-  margin-bottom: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-  transition: transform 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-.theme-card:hover .theme-card-art {
-  transform: scale(1.015);
+.theme-pill-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
 }
 
-/* Atmospheric background art per theme */
-.theme-card-art.auto {
-  background: linear-gradient(135deg, #090d1f 0%, #1a1638 35%, #701a75 70%, #d97706 100%);
-}
-
-.theme-card-art.day {
-  background: linear-gradient(145deg, #0284c7 0%, #38bdf8 55%, #bae6fd 100%);
-}
-
-.theme-card-art.evening {
-  background: linear-gradient(145deg, #240c35 0%, #6b1442 40%, #e11d48 75%, #fb923c 100%);
-}
-
-.theme-card-art.midnight {
-  background: 
-    radial-gradient(circle at 75% 25%, rgba(99, 102, 241, 0.35) 0%, transparent 60%),
-    linear-gradient(145deg, #030712 0%, #0a0e1c 55%, #111827 100%);
-}
-
-/* Subtle atmosphere overlay */
-.theme-card-art::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
-  pointer-events: none;
-}
-
-/* Theme icon badge */
-.theme-card-art-badge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+/* Circular Cream Knob from Image 2 */
+.theme-pill-knob {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: #fff8ee;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
   z-index: 2;
 }
 
-/* Active indicator pill */
-.theme-card-active-pill {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(14, 165, 233, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.theme-pill-btn:hover .theme-pill-knob {
+  transform: scale(1.06);
+  box-shadow: 
+    0 6px 14px rgba(0, 0, 0, 0.38),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
+}
+
+.theme-pill-btn.active .theme-pill-knob {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
+}
+
+/* Theme 1: Daylight Sky - Soft Azure with Stepped Rings (Image 2 Top Button) */
+.theme-pill-btn.day {
+  background: radial-gradient(
+    circle at 29px 50%,
+    #d1e6fd 0 25px,
+    #a8d1fa 26px 42px,
+    #7bbaf7 43px 62px,
+    #54a3f4 63px 86px,
+    #3b8ef0 87px 114px,
+    #257ee8 115px 100%
+  );
+  border: 1.5px solid rgba(123, 186, 247, 0.7);
+}
+
+.theme-pill-btn.day .theme-pill-name {
+  color: #0b2545;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.theme-pill-btn.day .theme-pill-sub {
+  color: #1e4268;
+}
+
+.theme-pill-btn.day .theme-pill-active-badge {
+  background: #0b2545;
   color: #ffffff;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  font-size: 9.5px;
-  font-weight: 750;
-  letter-spacing: 0.05em;
-  display: inline-flex;
-  align-items: center;
-  gap: 3.5px;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.45);
-  z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* Typography metadata */
-.theme-card-meta {
-  padding: 0 4px;
+.theme-pill-btn.day.active {
+  box-shadow: 
+    0 0 0 2.5px #0284c7,
+    0 12px 28px -4px rgba(2, 132, 199, 0.35);
+}
+
+/* Theme 2: Dark Space - Deep Obsidian with Stepped Charcoal Rings (Image 2 Bottom Button) */
+.theme-pill-btn.midnight {
+  background: radial-gradient(
+    circle at 29px 50%,
+    #363b46 0 25px,
+    #272b34 26px 42px,
+    #1b1e24 43px 62px,
+    #121419 63px 86px,
+    #0c0d10 87px 114px,
+    #050607 115px 100%
+  );
+  border: 1.5px solid rgba(75, 85, 99, 0.6);
+}
+
+.theme-pill-btn.midnight .theme-pill-name {
+  color: #f8fafc;
+}
+
+.theme-pill-btn.midnight .theme-pill-sub {
+  color: #94a3b8;
+}
+
+.theme-pill-btn.midnight .theme-pill-active-badge {
+  background: rgba(56, 189, 248, 0.95);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.theme-pill-btn.midnight.active {
+  box-shadow: 
+    0 0 0 2.5px #38bdf8,
+    0 12px 28px -4px rgba(14, 165, 233, 0.45);
+}
+
+/* Theme 3: Sunset Twilight - Warm Rose/Coral Sunset */
+.theme-pill-btn.evening {
+  background: radial-gradient(
+    circle at 29px 50%,
+    #fed7aa 0 25px,
+    #fb7185 26px 42px,
+    #e11d48 43px 62px,
+    #9f1239 63px 86px,
+    #581c87 87px 114px,
+    #240c35 115px 100%
+  );
+  border: 1.5px solid rgba(251, 113, 133, 0.65);
+}
+
+.theme-pill-btn.evening .theme-pill-name {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.theme-pill-btn.evening .theme-pill-sub {
+  color: #fecdd3;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.theme-pill-btn.evening .theme-pill-active-badge {
+  background: #e11d48;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.theme-pill-btn.evening.active {
+  box-shadow: 
+    0 0 0 2.5px #fb7185,
+    0 12px 28px -4px rgba(225, 29, 72, 0.45);
+}
+
+/* Theme 4: Auto Sync - Celestial Dynamic Indigo */
+.theme-pill-btn.auto {
+  background: radial-gradient(
+    circle at 29px 50%,
+    #e0e7ff 0 25px,
+    #a5b4fc 26px 42px,
+    #6366f1 43px 62px,
+    #4338ca 63px 86px,
+    #2e1065 87px 114px,
+    #0f172a 115px 100%
+  );
+  border: 1.5px solid rgba(165, 180, 252, 0.65);
+}
+
+.theme-pill-btn.auto .theme-pill-name {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.theme-pill-btn.auto .theme-pill-sub {
+  color: #c7d2fe;
+}
+
+.theme-pill-btn.auto .theme-pill-active-badge {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.theme-pill-btn.auto.active {
+  box-shadow: 
+    0 0 0 2.5px #818cf8,
+    0 12px 28px -4px rgba(99, 102, 241, 0.45);
+}
+
+/* Pill Typography Metadata */
+.theme-pill-meta {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
+  flex: 1;
+  z-index: 2;
 }
 
-.theme-card-name-row {
+.theme-pill-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
 }
 
-.theme-card-name {
+.theme-pill-name {
   font-size: 13.5px;
-  font-weight: 600;
-  color: #f8fafc;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  transition: color 0.15s ease;
+  line-height: 1.25;
 }
 
-.theme-card.active .theme-card-name {
-  color: #38bdf8;
-}
-
-.theme-card-sub {
+.theme-pill-sub {
   font-size: 11px;
-  line-height: 1.35;
-  color: #94a3b8;
-  font-weight: 400;
+  line-height: 1.3;
+  font-weight: 450;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
+
+.theme-pill-active-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+/* Fallback aliases for backward compatibility */
+.theme-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.theme-card { display: none; }
 
 .sound-tone-grid {
   display: grid;
@@ -3938,23 +4124,24 @@ a.settings-legal-btn:focus {
     font-size: 11px;
     line-height: 1.4;
   }
-  .theme-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .theme-pill-grid {
+    gap: 8px;
+  }
+  .theme-pill-btn {
+    min-height: 54px;
+    padding: 5px 12px 5px 6px;
     gap: 10px;
   }
-  .theme-card {
-    padding: 7px 7px 10px 7px;
+  .theme-pill-knob {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
   }
-  .theme-card-art {
-    height: 66px;
-    margin-bottom: 8px;
-  }
-  .theme-card-name {
+  .theme-pill-name {
     font-size: 13px;
   }
-  .theme-card-sub {
+  .theme-pill-sub {
     font-size: 10.5px;
-    line-height: 1.3;
   }
   .sound-tone-grid {
     grid-template-columns: 1fr;
@@ -3962,8 +4149,8 @@ a.settings-legal-btn:focus {
 }
 
 @media (max-width: 380px) {
-  .theme-grid {
-    grid-template-columns: 1fr;
+  .theme-pill-grid {
+    gap: 8px;
   }
 }
 
