@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { ReportForm } from './Sheets';
-import { IcoPin, IcoBond, IcoIncognito, IcoSparkle, IcoLock } from './icons';
+import { IcoPin, IcoBond, IcoIncognito, IcoSparkle, IcoLock, IcoShieldAlert, IcoX } from './icons';
 
 
 export function PlanetSheet() {
@@ -13,12 +13,17 @@ export function PlanetSheet() {
   const sound = useUI(ui, (s) => s.sound);
   const messageSound = useUI(ui, (s) => s.messageSound);
   const isIncognito = useUI(ui, (s) => s.isIncognito);
-  const end = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
   const n = p?.msgs.length ?? 0;
 
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    if (bodyRef.current) {
+      bodyRef.current.scrollTo({
+        top: bodyRef.current.scrollHeight,
+        behavior: n > 1 ? 'smooth' : 'auto',
+      });
+    }
   }, [n, p?.typing]);
 
   if (!p) return null;
@@ -30,6 +35,11 @@ export function PlanetSheet() {
     if (!t || p.ended) return;
     setText('');
     setErr('');
+    setTimeout(() => {
+      if (bodyRef.current) {
+        bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+      }
+    }, 20);
     const e = await world.send(t);
     if (e) {
       setText(t);
@@ -85,12 +95,18 @@ export function PlanetSheet() {
               )}
             </div>
             <div className="planet-thought ellipsis">
-              {p.t ? `“${p.t}”` : 'A quiet wandering soul'}
+              {p.typing ? (
+                <span className="planet-typing-indicator" style={{ color: 'var(--accent)', fontWeight: 500 }}>typing…</span>
+              ) : p.t ? (
+                `“${p.t}”`
+              ) : (
+                'A quiet wandering soul'
+              )}
             </div>
           </div>
           <div className="planet-actions">
             <button
-              className="planet-btn-ghost"
+              className="planet-btn-icon"
               onClick={() => {
                 const next = !messageSound;
                 ui.set({ messageSound: next });
@@ -98,7 +114,6 @@ export function PlanetSheet() {
               }}
               title={messageSound && sound ? 'Mute message sound' : 'Unmute message sound'}
               aria-label={messageSound && sound ? 'Mute message sound' : 'Unmute message sound'}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, padding: '6px 8px' }}
             >
               {messageSound && sound ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -106,22 +121,33 @@ export function PlanetSheet() {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.6 }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
               )}
             </button>
-            <button className="planet-btn-ghost" onClick={() => setMenu(menu ? '' : 'report')} title="Report">
-              Report
+            <button
+              className="planet-btn-icon"
+              onClick={() => setMenu(menu ? '' : 'report')}
+              title="Report user"
+              aria-label="Report user"
+            >
+              <IcoShieldAlert size={15} />
             </button>
-            <button className="planet-btn-leave" onClick={close}>
-              {p.ended ? 'Close' : 'Leave'}
+            <button
+              className="planet-btn-leave"
+              onClick={close}
+              title={p.ended ? 'Close planet' : 'Leave planet'}
+              aria-label={p.ended ? 'Close planet' : 'Leave planet'}
+            >
+              <IcoX size={13} />
+              <span>{p.ended ? 'Close' : 'Leave'}</span>
             </button>
           </div>
         </header>
 
         {menu === 'report' ? (
-          <div className="planet-body">
+          <div className="planet-body" ref={bodyRef}>
             <ReportForm onCancel={() => setMenu('')} onSubmit={async (r, d) => { await world.report(p.sid, r, d); setMenu(''); }} />
           </div>
         ) : (
           <>
-            <div className="planet-body" aria-live="polite">
+            <div className="planet-body" ref={bodyRef} aria-live="polite">
               {isIncognito ? (
                 <div className="planet-privacy-pill" style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -169,8 +195,6 @@ export function PlanetSheet() {
                   <p>{p.ended === 'blocked' ? 'This planet has closed.' : 'This planet has gently drifted away into the night sky.'}</p>
                 </div>
               )}
-
-              <div ref={end} />
             </div>
 
             {!p.ended && (
@@ -209,6 +233,15 @@ export function PlanetSheet() {
                     maxLength={400}
                     placeholder="Say something kind to this stranger…"
                     aria-label="Message"
+                    onFocus={() => {
+                      if (typeof window !== 'undefined') window.scrollTo(0, 0);
+                      setTimeout(() => {
+                        if (bodyRef.current) {
+                          bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+                        }
+                        if (typeof window !== 'undefined') window.scrollTo(0, 0);
+                      }, 100);
+                    }}
                     onChange={(e) => {
                       setText(e.target.value);
                       const now = Date.now();

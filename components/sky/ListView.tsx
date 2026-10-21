@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_BUSY } from '@/lib/sky/store';
 import { useSky } from './ctx';
-import { IcoPin, IcoSky, IcoRefresh, IcoSparkle, IcoIncognito } from './icons';
+import { IcoPin, IcoSky, IcoRefresh, IcoSparkle, IcoIncognito, IcoX } from './icons';
 
 // The calm list view: for devices that struggle with WebGL or wanderers who prefer reading.
 export function ListView() {
@@ -17,19 +17,54 @@ export function ListView() {
   const count = Math.max(0, (census.counts[galaxy] ?? 0) - 1);
   const myInterests = useUI(ui, (s) => s.userInterests);
 
+  const closeList = () => {
+    ui.set({ listMode: false });
+    try {
+      localStorage.setItem('list', '0');
+    } catch {}
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeList();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   useEffect(() => {
     void world.feed();
   }, [world, galaxy]);
 
   return (
-    <main className="listview" data-ui>
+    <main
+      className="listview"
+      data-ui
+      role="dialog"
+      aria-label="Thoughts nearby"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeList();
+      }}
+    >
       <div className="listview-panel">
         <header className="list-head">
-          <div className="list-head-info">
-            <h1 className="list-title">Thoughts nearby</h1>
-            <p className="list-sub">
-              {currentGalaxy?.name || 'Sky'} · {galaxy === 'neighbours' ? '≤ 100 km radius' : `${count} wandering lights`}
-            </p>
+          <div className="list-head-top">
+            <div className="list-head-info">
+              <h1 className="list-title">Thoughts nearby</h1>
+              <p className="list-sub">
+                {currentGalaxy?.name || 'Sky'} · {galaxy === 'neighbours' ? '≤ 100 km' : count === 1 ? '1 wanderer' : `${count} wanderers`}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="icon list-close-btn"
+              onClick={closeList}
+              aria-label="Close thoughts nearby"
+              title="Close"
+            >
+              <IcoX size={15} />
+            </button>
           </div>
 
           <div className="list-actions">
@@ -50,7 +85,7 @@ export function ListView() {
               type="button"
               className="btn ghost sm"
               onClick={() => void world.feed()}
-              title="Refresh thoughts nearby"
+              title="Refresh thoughts"
             >
               <IcoRefresh size={13} style={{ marginRight: 4 }} />
               Refresh
@@ -60,7 +95,7 @@ export function ListView() {
               type="button"
               className="btn ghost sm"
               onClick={() => world.hop()}
-              title="Hop to another part of the sky"
+              title="Hop to new lights"
             >
               Hop
             </button>
@@ -68,13 +103,8 @@ export function ListView() {
             <button
               type="button"
               className="btn sm list-return-sky-btn"
-              onClick={() => {
-                ui.set({ listMode: false });
-                try {
-                  localStorage.setItem('list', '0');
-                } catch {}
-              }}
-              title="Switch back to interactive 3D Sky canvas"
+              onClick={closeList}
+              title="Return to 3D Sky"
             >
               <IcoSky size={14} style={{ marginRight: 5 }} />
               3D Sky
@@ -85,45 +115,25 @@ export function ListView() {
         {!near.length ? (
           <div className="list-empty-state">
             <div className="list-empty-icon">
-              <IcoSparkle size={26} style={{ color: 'var(--accent)' }} />
+              <IcoSparkle size={24} style={{ color: 'var(--accent)' }} />
             </div>
-            <h3 className="list-empty-title">The sky is quiet here</h3>
+            <h3 className="list-empty-title">The sky is quiet</h3>
             <p className="list-empty-text">
-              No thoughts are floating within orbit right now. Tap <strong>Refresh</strong> to scan for wanderers, or <strong>Hop</strong> to drift toward another cluster of lights.
+              No thoughts nearby right now.
             </p>
             <div className="list-empty-actions">
               <button
                 type="button"
                 className="btn sm"
-                onClick={() => void world.feed()}
-              >
-                <IcoRefresh size={14} style={{ marginRight: 6 }} />
-                Refresh Nearby
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
                 onClick={() => world.hop()}
               >
-                Hop to Wander
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => {
-                  ui.set({ listMode: false });
-                  try {
-                    localStorage.setItem('list', '0');
-                  } catch {}
-                }}
-              >
-                <IcoSky size={14} style={{ marginRight: 6 }} />
-                Open 3D Canvas
+                Hop to new lights
               </button>
             </div>
           </div>
         ) : (
-          <ul className="list-cards">
+          <>
+            <ul className="list-cards">
             {near.map((n) => {
               const isEcho = !!(n.f & F_ECHO);
               const isBusy = !!(n.f & F_BUSY);
@@ -197,7 +207,17 @@ export function ListView() {
               );
             })}
           </ul>
-        )}
+          <div className="list-footer-action" style={{ textAlign: 'center', marginTop: 14 }}>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => world.hop()}
+            >
+              Hop to another area
+            </button>
+          </div>
+        </>
+      )}
       </div>
     </main>
   );

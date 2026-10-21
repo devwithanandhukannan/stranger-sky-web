@@ -301,28 +301,31 @@ export function MapSheet() {
         <div className="interest-drive-info">
           <div className="interest-drive-title-row">
             <span className="interest-drive-spark" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={13} /></span>
-            <b style={{ fontSize: 14.5, color: 'var(--ink)' }}>Interest Sky Drive</b>
+            <b className="interest-drive-title">Interest Sky Drive</b>
           </div>
-          <p className="tiny muted" style={{ margin: '3px 0 0', lineHeight: 1.4 }}>
+          <p className="interest-drive-desc">
             Draw constellation links and steer toward online wanderers sharing your interests.
           </p>
         </div>
         <button
           type="button"
-          className={`interest-drive-banner-btn${interestDrive ? ' on' : ''}`}
+          className={`interest-drive-toggle${interestDrive ? ' on' : ''}`}
           onClick={() => world.toggleInterestDrive()}
-          aria-label="Toggle Interest Sky Drive"
+          aria-label={interestDrive ? 'Turn off Interest Sky Drive' : 'Turn on Interest Sky Drive'}
+          title="Toggle Interest Sky Drive"
         >
-          <span className="switch-status">{interestDrive ? 'ACTIVE' : 'OFF'}</span>
-          <span className={`interest-switch ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
+          <span className="toggle-state-label">{interestDrive ? 'ACTIVE' : 'OFF'}</span>
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
         </button>
       </div>
 
       {/* My Current Interests */}
       <div className="sheet-card" style={{ marginTop: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <b style={{ fontSize: 13.5, color: 'var(--ink)' }}>My Interests</b>
-          <span className="tiny muted">{userInterests.length}/8 tags</span>
+        <div className="sheet-card-header">
+          <b className="sheet-card-title">My Interests</b>
+          <span className="sheet-counter-pill">{userInterests.length}/8 tags</span>
         </div>
 
         {/* Input to add custom interest */}
@@ -343,8 +346,7 @@ export function MapSheet() {
           />
           <button
             type="button"
-            className="btn sm"
-            style={{ minHeight: 38, padding: '0 16px', flexShrink: 0 }}
+            className="btn sm interest-add-btn"
             disabled={!newTag.trim()}
             onClick={() => handleAddInterest(newTag)}
           >
@@ -353,15 +355,16 @@ export function MapSheet() {
         </div>
 
         {/* User's existing tags */}
-        <div className="interest-tags-container" style={{ marginTop: 10 }}>
+        <div className="interest-tags-container">
           {userInterests.length === 0 ? (
-            <div className="tiny muted italic" style={{ padding: '6px 0' }}>
+            <div className="interest-empty-hint">
               No interests added yet. Add tags above to light up connections in One Sky.
             </div>
           ) : (
             userInterests.map((tag) => (
-              <span key={tag} className="interest-tag-pill shared active">
-                <span>#{tag}</span>
+              <span key={tag} className="interest-tag-pill mine">
+                <span className="tag-hash">#</span>
+                <span className="tag-text">{tag}</span>
                 <button
                   type="button"
                   className="interest-tag-remove"
@@ -378,16 +381,16 @@ export function MapSheet() {
 
       {/* What all current user interests are in the live sky */}
       <div className="sheet-card" style={{ marginTop: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <b style={{ fontSize: 13.5, color: 'var(--ink)' }}>Live Sky Interests</b>
-          <span className="tiny muted">{activeInterests.length} active topics</span>
+        <div className="sheet-card-header">
+          <b className="sheet-card-title">Live Sky Interests</b>
+          <span className="sheet-counter-pill">{activeInterests.length} active topics</span>
         </div>
-        <p className="tiny muted" style={{ margin: '0 0 10px', lineHeight: 1.45 }}>
+        <p className="sheet-card-subtitle">
           What current lights in the sky are into. Tap any interest to drive towards matching strangers:
         </p>
 
         {activeInterests.length === 0 ? (
-          <div className="tiny muted italic" style={{ padding: '8px 0', textAlign: 'center' }}>
+          <div className="interest-empty-hint">
             No public interests posted yet. Be the first to share one above!
           </div>
         ) : (
@@ -399,17 +402,16 @@ export function MapSheet() {
                 <button
                   key={item.tag}
                   type="button"
-                  className={`interest-tag-pill clickable${isSelected ? ' selected' : ''}${isMine ? ' shared' : ''}`}
+                  className={`interest-tag-pill clickable${isSelected ? ' selected' : ''}${isMine ? ' mine' : ''}`}
                   onClick={() => {
                     world.driveToInterest(item.tag);
                     ui.set({ toast: `Steered toward #${item.tag} in One Sky` });
                   }}
                   title={`Drive to lights interested in #${item.tag}`}
                 >
-                  <span className="pill-hash">#</span>
-
-                  <span className="pill-name">{item.tag}</span>
-                  <span className="pill-count">{item.count}</span>
+                  <span className="tag-hash">#</span>
+                  <span className="tag-text">{item.tag}</span>
+                  <span className="tag-count">{item.count}</span>
                 </button>
               );
             })}
@@ -419,18 +421,18 @@ export function MapSheet() {
 
       {/* Universe Realms Selector (One Sky & Neighbours) */}
       <div className="sheet-card" style={{ marginTop: 14, marginBottom: 12 }}>
-        <b style={{ fontSize: 13.5, color: 'var(--ink)', display: 'block', marginBottom: 10 }}>Sky Realms</b>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <b className="sheet-card-title" style={{ display: 'block', marginBottom: 12 }}>Sky Realms</b>
+        <div className="realms-grid">
           <button
             type="button"
             className={`galaxy-card${cur !== 'neighbours' ? ' active' : ''}`}
             onClick={() => void handleSwitchSky('night')}
           >
-            <div className="row" style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span className="galaxy-card-orb" style={{ background: '#7aa2ff', boxShadow: '0 0 12px #7aa2ff' }} />
+            <div className="galaxy-card-top">
+              <span className="galaxy-card-orb one-sky" />
               {cur !== 'neighbours' && <span className="galaxy-card-badge">Current</span>}
             </div>
-            <b className="galaxy-card-name" style={{ marginTop: 6 }}>One Sky</b>
+            <b className="galaxy-card-name">One Sky</b>
             <span className="galaxy-card-count">{Math.max(0, (census.counts['night'] ?? 1) - 1)} online</span>
           </button>
 
@@ -439,14 +441,13 @@ export function MapSheet() {
             className={`galaxy-card neighbours-card${cur === 'neighbours' ? ' active' : ''}`}
             onClick={() => void handleSwitchSky('neighbours')}
           >
-            <div className="row" style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span className="galaxy-card-orb" style={{ background: '#0071e3', boxShadow: '0 0 12px rgba(0, 113, 227, 0.5)' }} />
+            <div className="galaxy-card-top">
+              <span className="galaxy-card-orb neighbours" />
               {cur === 'neighbours' && <span className="galaxy-card-badge neighbours-badge">Current</span>}
             </div>
-            <b className="galaxy-card-name" style={{ marginTop: 6 }}>Neighbours</b>
+            <b className="galaxy-card-name">Neighbours</b>
             <span className="galaxy-card-count">≤ 100 km physical radius</span>
           </button>
-
         </div>
       </div>
 
@@ -621,35 +622,31 @@ export function SettingsSheet() {
           {[
             {
               id: 'auto',
-              name: 'Auto (Time)',
-              sub: `Syncs with clock (${getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset' : 'Dark'})`,
+              name: 'Auto Sync',
+              sub: `Syncs with clock (${getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset' : 'Dark Space'})`,
               icon: IcoClock,
               iconColor: '#7aa2ff',
-              preview: 'linear-gradient(135deg, #dce8fd 0%, #ff9aa8 50%, #050818 100%)',
             },
             {
               id: 'day',
-              name: 'White / Day',
-              sub: 'Bright sky & stars (06:00–17:00)',
+              name: 'Daylight Sky',
+              sub: 'Luminous azure & sunlight (06:00–17:00)',
               icon: IcoSun,
-              iconColor: '#eab308',
-              preview: 'linear-gradient(135deg, #dce8fd 0%, #9dbef2 100%)',
+              iconColor: '#fbbf24',
             },
             {
               id: 'evening',
-              name: 'Evening / Sunset',
-              sub: 'Golden rose twilight (17:00–20:30)',
+              name: 'Sunset Twilight',
+              sub: 'Golden rose & violet horizon (17:00–20:30)',
               icon: IcoSunset,
               iconColor: '#ff6584',
-              preview: 'linear-gradient(135deg, #181035 0%, #7a304e 100%)',
             },
             {
               id: 'midnight',
               name: 'Dark Space',
-              sub: 'Obsidian & cosmos (20:30–06:00)',
+              sub: 'Obsidian cosmos & stars (20:30–06:00)',
               icon: IcoMoon,
               iconColor: '#93c5fd',
-              preview: 'linear-gradient(135deg, #050818 0%, #0f183d 100%)',
             },
           ].map((item) => {
             const IconComp = item.icon;
@@ -658,7 +655,7 @@ export function SettingsSheet() {
               <button
                 key={item.id}
                 type="button"
-                className={`theme-btn${active ? ' active' : ''}`}
+                className={`theme-card${active ? ' active' : ''}`}
                 onClick={() => {
                   ui.set({ skyTheme: item.id });
                   try {
@@ -671,16 +668,25 @@ export function SettingsSheet() {
                   } catch {}
                   applyThemeCss(resolveTheme(item.id));
                 }}
+                aria-label={`Select ${item.name} theme`}
               >
-                <div className="theme-btn-preview" style={{ background: item.preview }}>
-                  <IconComp size={16} style={{ color: item.id === 'day' ? '#1e3a8a' : item.iconColor }} />
-                </div>
-                <div className="theme-btn-text">
-                  <div className="theme-btn-title">
-                    <span>{item.name}</span>
-                    {active && <IcoCheck size={13} style={{ color: '#0071e3', flexShrink: 0 }} />}
+                <div className={`theme-card-art ${item.id}`}>
+                  <div className="theme-card-art-badge">
+                    <IconComp size={15} style={{ color: item.iconColor }} />
                   </div>
-                  <div className="tiny muted theme-btn-sub">{item.sub}</div>
+                  {active && (
+                    <div className="theme-card-active-pill">
+                      <IcoCheck size={11} />
+                      <span>ACTIVE</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="theme-card-meta">
+                  <div className="theme-card-name-row">
+                    <b className="theme-card-name">{item.name}</b>
+                  </div>
+                  <span className="theme-card-sub">{item.sub}</span>
                 </div>
               </button>
             );

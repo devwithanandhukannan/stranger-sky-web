@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { IcoSparkle, IcoIncognito, IcoX, IcoCheck } from './icons';
+import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -108,6 +108,10 @@ export function Toast() {
   const isPulse = typeof t === 'object' && t?.type === 'pulse';
   const message = typeof t === 'string' ? t : t.message;
   const pulseSid = typeof t === 'object' ? t.sid : undefined;
+  const title = typeof t === 'object' && t.title ? t.title : 'Someone nearby';
+  const subtitle = typeof t === 'object' && t.subtitle ? t.subtitle : 'Sent you a pulse';
+  const mood = typeof t === 'object' && typeof t.mood === 'number' ? t.mood : 0;
+  const moodColor = MOOD_COLORS[mood] || '#7aa2ff';
 
   const handleAccept = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -126,53 +130,80 @@ export function Toast() {
     }
   };
 
-  return (
-    <div
-      className={`toast ${isPulse ? 'toast-pulse' : ''}`}
-      role="status"
-      data-ui
-      onClick={() => {
-        if (!isPulse) ui.set({ toast: null });
-      }}
-      title={isPulse ? undefined : 'Click to dismiss'}
-    >
-      <i className={`toast-dot ${isPulse ? 'pulse-glow' : ''}`} />
-      <span className="toast-text">{message}</span>
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    ui.set({ toast: null });
+  };
 
-      {isPulse && (
-        <div className="toast-actions">
+  if (isPulse) {
+    return (
+      <div
+        className="toast-dynamic-island"
+        role="alertdialog"
+        aria-label="Incoming pulse notification"
+        data-ui
+      >
+        <div className="dynamic-island-avatar">
+          <div className="dynamic-island-orb" style={{ ['--mood-c' as string]: moodColor }}>
+            <IcoAge size={22} className="dynamic-island-person" />
+          </div>
+          <span className="dynamic-island-radar" style={{ ['--mood-c' as string]: moodColor }} />
+        </div>
+
+        <div className="dynamic-island-info">
+          <span className="dynamic-island-title">{title}</span>
+          <span className="dynamic-island-sub">{subtitle}</span>
+        </div>
+
+        <div className="dynamic-island-actions">
           <button
             type="button"
-            className="toast-btn toast-btn-accept"
-            aria-label="Accept pulse"
-            title="Accept pulse"
-            onClick={handleAccept}
-          >
-            <IcoCheck size={14} />
-            <span>Accept</span>
-          </button>
-          <button
-            type="button"
-            className="toast-btn toast-btn-decline"
+            className="dynamic-island-btn decline"
             aria-label="Decline pulse"
-            title="Decline pulse"
+            title="Decline"
             onClick={handleDecline}
           >
-            <IcoX size={13} />
-            <span>Decline</span>
+            <IcoPhoneHangup size={18} />
+          </button>
+          <button
+            type="button"
+            className="dynamic-island-btn accept"
+            aria-label="Accept pulse"
+            title="Accept"
+            onClick={handleAccept}
+          >
+            <IcoPhoneCall size={18} />
+          </button>
+          <button
+            type="button"
+            className="dynamic-island-close"
+            aria-label="Dismiss notification"
+            title="Dismiss"
+            onClick={handleClose}
+          >
+            <IcoX size={12} />
           </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
+  return (
+    <div
+      className="toast"
+      role="status"
+      data-ui
+      onClick={() => ui.set({ toast: null })}
+      title="Click to dismiss"
+    >
+      <i className="toast-dot" />
+      <span className="toast-text">{message}</span>
       <button
         type="button"
         className="toast-close-btn"
         aria-label="Dismiss notification"
         title="Dismiss notification"
-        onClick={(e) => {
-          e.stopPropagation();
-          ui.set({ toast: null });
-        }}
+        onClick={handleClose}
       >
         <IcoX size={14} />
       </button>

@@ -140,11 +140,25 @@ export class NetWorld implements World {
     });
     s.on('warp', (p) => { if (st.you) { st.you.x = st.you.tx = p.x; st.you.y = st.you.ty = p.y; st.warpedAt = performance.now(); } });
 
-    s.on('pulse:in', (p: { sid: string }) => {
+    s.on('pulse:in', (p: { sid: string; i?: number; m?: number }) => {
       const cur = ui.get().incoming;
       if (!cur.includes(p.sid)) ui.set({ incoming: [...cur, p.sid] });
       sfx.receive(); buzz(25, ui.get().haptics);
-      this.toast({ message: 'Someone nearby sent you a pulse', type: 'pulse', sid: p.sid }, 12000);
+      const nearLight = ui.get().near.find((n) => n.sid === p.sid);
+      const mood = p.m ?? nearLight?.m ?? 0;
+      const subtitle = nearLight?.distKm != null && nearLight.distKm > 0
+        ? `Sent you a pulse · ${Math.round(nearLight.distKm)} km away`
+        : nearLight?.t
+        ? `Sent you a pulse · “${nearLight.t.slice(0, 24)}”`
+        : 'Sent you a pulse';
+      this.toast({
+        message: 'Someone nearby sent you a pulse',
+        type: 'pulse',
+        sid: p.sid,
+        title: 'Someone nearby',
+        subtitle,
+        mood,
+      }, 12000);
     });
     s.on('pulse:sent', () => { sfx.pulse(); buzz(15, ui.get().haptics); this.toast('Pulse sent. If they pulse back, a planet opens.'); });
     s.on('pulse:busy', () => this.toast('That light is in a conversation right now.'));

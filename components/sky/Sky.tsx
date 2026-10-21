@@ -365,14 +365,14 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
   return (
     <Ctx.Provider value={ctx}>
       <div className={`sky-root${lite ? ' lite' : ''}`} data-theme={activeTheme.mode}>
-        {!listMode && <div ref={hostRef} className="stage"><canvas ref={canvasRef} aria-label="Night sky of lights. Use the list view for a text version." /></div>}
-        {listMode && <ListView />}
+        <div ref={hostRef} className="stage"><canvas ref={canvasRef} aria-label="Night sky of lights. Use the list view for a text version." /></div>
         <TopBar />
         <Announcement />
         <Warp />
         {!listMode && !hasLight && !planet && <p className="hint" aria-hidden>Drag to drift · tap a light to read it</p>}
         <LightSheet />
         <Dock />
+        {listMode && <ListView />}
         {panel === 'thought' && <ThoughtSheet />}
         {panel === 'lanterns' && <LanternSheet />}
         {panel === 'bonds' && <BondsSheet />}

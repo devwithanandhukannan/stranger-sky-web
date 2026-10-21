@@ -41,6 +41,9 @@ export type ToastItem =
       message: string;
       type?: 'default' | 'pulse';
       sid?: string;
+      title?: string;
+      subtitle?: string;
+      mood?: number;
     };
 
 export type UI = {

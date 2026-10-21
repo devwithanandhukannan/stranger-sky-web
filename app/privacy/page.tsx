@@ -2,7 +2,7 @@ export const metadata = { title: 'Privacy · Lumen' };
 export default function Privacy() {
   return (
     <main className="page"><article className="card" style={{ width: 'min(640px,100%)', border: 'none' }}>
-      <h1>Privacy, in plain words</h1>
+      <h1>Privacy</h1>
       <ul className="muted" style={{ lineHeight: 1.7 }}>
         <li><b>What we keep:</b> your email (for login), first name, date of birth (to check 18+), and what you choose to do: lanterns you release, people you keep in touch with, blocks and reports.</li>
         <li><b>What we do not keep:</b> planet chats. They exist only while both of you are there and are gone afterwards. We do not collect photos, contacts, or exact location.</li>

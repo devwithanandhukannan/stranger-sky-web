@@ -37,8 +37,8 @@ export const THEMES: Record<string, Theme> = {
   },
   day: {
     id: 'day',
-    name: 'White / Daylight',
-    subtitle: 'Luminous sky & celestial daylight',
+    name: 'Daylight Sky',
+    subtitle: 'Luminous azure & celestial daylight',
     mode: 'light',
     top: '#244888',
     bottom: '#92bcf6',

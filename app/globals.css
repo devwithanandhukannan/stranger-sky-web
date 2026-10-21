@@ -8,10 +8,10 @@
   --glass-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
   --glass-shadow-hover: 0 16px 36px -4px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.16);
   --line: rgba(255, 255, 255, 0.08); --accent: #0071e3; --danger: #ff453a;
-  --modal-backdrop: rgba(0, 0, 0, 0.78);
-  --sheet-bg: rgba(18, 18, 22, 0.94);
-  --sheet-card-bg: rgba(255, 255, 255, 0.04);
-  --sheet-card-border: rgba(255, 255, 255, 0.06);
+  --modal-backdrop: rgba(3, 6, 16, 0.75);
+  --sheet-bg: rgba(13, 17, 32, 0.94);
+  --sheet-card-bg: rgba(255, 255, 255, 0.045);
+  --sheet-card-border: rgba(255, 255, 255, 0.08);
   --r: 20px; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
   --sky-top: #000000; --sky-bottom: #09090b;
   color-scheme: dark;
@@ -21,19 +21,19 @@
 :root[data-theme="light"],
 [data-theme="light"],
 .sky-root[data-theme="light"] {
-  --bg: #eaf1fc; --bg2: #d8e5f8; --ink: #070f26; --ink2: #1e2e4f; --ink3: #425b82;
-  --glass: rgba(255, 255, 255, 0.92);
-  --glass-bg: rgba(255, 255, 255, 0.94);
-  --glass-bg-hover: rgba(255, 255, 255, 0.98);
-  --glass-border: rgba(140, 170, 220, 0.35);
-  --glass-border-hover: rgba(100, 140, 210, 0.5);
-  --glass-shadow: 0 10px 30px -4px rgba(18, 42, 105, 0.12), inset 0 1px 1px rgba(255, 255, 255, 1);
-  --glass-shadow-hover: 0 16px 36px -4px rgba(18, 42, 105, 0.18), 0 0 20px rgba(90, 130, 215, 0.2), inset 0 1px 1px rgba(255, 255, 255, 1);
-  --line: rgba(70, 110, 190, 0.16); --accent: #0071e3; --danger: #e11d48;
-  --modal-backdrop: rgba(15, 23, 42, 0.55);
-  --sheet-bg: #ffffff;
-  --sheet-card-bg: rgba(240, 246, 255, 0.92);
-  --sheet-card-border: rgba(140, 170, 220, 0.35);
+  --bg: #eaf1fc; --bg2: #d8e5f8; --ink: #0f172a; --ink2: #334155; --ink3: #64748b;
+  --glass: rgba(255, 255, 255, 0.88);
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-bg-hover: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(140, 180, 255, 0.35);
+  --glass-border-hover: rgba(140, 180, 255, 0.5);
+  --glass-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  --glass-shadow-hover: 0 16px 36px -4px rgba(15, 23, 42, 0.22), 0 0 20px rgba(90, 130, 215, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  --line: rgba(0, 0, 0, 0.08); --accent: #0071e3; --danger: #e11d48;
+  --modal-backdrop: rgba(15, 23, 42, 0.65);
+  --sheet-bg: #fdf8f2;
+  --sheet-card-bg: rgba(0, 0, 0, 0.04);
+  --sheet-card-border: rgba(0, 0, 0, 0.08);
   --sky-top: #244888; --sky-bottom: #92bcf6;
   color-scheme: light;
 }
@@ -51,9 +51,9 @@
   --glass-shadow-hover: 0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 170, 200, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.28);
   --line: rgba(255, 170, 200, 0.12); --accent: #ff85a1; --danger: #ff6b81;
   --modal-backdrop: rgba(14, 6, 22, 0.82);
-  --sheet-bg: #180e28;
-  --sheet-card-bg: rgba(255, 255, 255, 0.055);
-  --sheet-card-border: transparent;
+  --sheet-bg: rgba(22, 14, 34, 0.94);
+  --sheet-card-bg: rgba(255, 255, 255, 0.045);
+  --sheet-card-border: rgba(255, 255, 255, 0.08);
   --sky-top: #181035; --sky-bottom: #7a304e;
   color-scheme: dark;
 }
@@ -70,9 +70,9 @@
   --glass-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
   --glass-shadow-hover: 0 16px 36px -4px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.16);
   --line: rgba(255, 255, 255, 0.08); --accent: #0071e3; --danger: #ff453a;
-  --sheet-bg: rgba(18, 18, 22, 0.94);
-  --sheet-card-bg: rgba(255, 255, 255, 0.04);
-  --sheet-card-border: rgba(255, 255, 255, 0.06);
+  --sheet-bg: rgba(13, 17, 32, 0.94);
+  --sheet-card-bg: rgba(255, 255, 255, 0.045);
+  --sheet-card-border: rgba(255, 255, 255, 0.08);
   --sky-top: #000000; --sky-bottom: #09090b;
   color-scheme: dark;
 }
