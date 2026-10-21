@@ -139,7 +139,7 @@ export function Toast() {
       <i className={`toast-dot ${isPulse ? 'pulse-glow' : ''}`} />
       <span className="toast-text">{message}</span>
 
-      {isPulse ? (
+      {isPulse && (
         <div className="toast-actions">
           <button
             type="button"
@@ -162,19 +162,20 @@ export function Toast() {
             <span>Decline</span>
           </button>
         </div>
-      ) : (
-        <button
-          type="button"
-          className="toast-close-btn"
-          aria-label="Dismiss notification"
-          onClick={(e) => {
-            e.stopPropagation();
-            ui.set({ toast: null });
-          }}
-        >
-          <IcoX size={14} />
-        </button>
       )}
+
+      <button
+        type="button"
+        className="toast-close-btn"
+        aria-label="Dismiss notification"
+        title="Dismiss notification"
+        onClick={(e) => {
+          e.stopPropagation();
+          ui.set({ toast: null });
+        }}
+      >
+        <IcoX size={14} />
+      </button>
     </div>
   );
 }
