@@ -148,9 +148,32 @@ export class SkyEngine {
   private prevUI: { planet: boolean; incoming: number; selected: string | null; warp: number; theme: string; census: string } = { planet: false, incoming: 0, selected: null, warp: 0, theme: '', census: '' };
   private lastSparkle = 0;
   private cleanup: (() => void)[] = [];
-
   constructor(private canvas: HTMLCanvasElement, private host: HTMLElement, private state: WorldState, private ui: Store, private world: World) {
-    this.renderer = new WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'high-performance', stencil: false, depth: false });
+    try {
+      this.renderer = new WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: false,
+        powerPreference: 'high-performance',
+        stencil: false,
+        depth: false,
+        failIfMajorPerformanceCaveat: false,
+      });
+    } catch {
+      try {
+        this.renderer = new WebGLRenderer({
+          canvas,
+          alpha: true,
+          antialias: false,
+          powerPreference: 'default',
+          stencil: false,
+          depth: false,
+          failIfMajorPerformanceCaveat: false,
+        });
+      } catch {
+        this.renderer = new WebGLRenderer({ canvas, alpha: true });
+      }
+    }
     this.renderer.setClearColor(0x000000, 0);
     this.theme = resolveTheme(ui.get().skyTheme);
 

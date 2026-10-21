@@ -23,7 +23,10 @@ const hasWebGL = () => {
   try {
     if (typeof window === 'undefined') return true;
     const c = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    return !!(
+      window.WebGLRenderingContext &&
+      (c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl'))
+    );
   } catch {
     return false;
   }
@@ -336,7 +339,10 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
       const { SkyEngine } = await import('@/lib/sky/engine');
       if (dead || !hostRef.current || !canvasRef.current) return;
       try { engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world); engine.start(); }
-      catch { ui.set({ listMode: true, toast: 'Could not start the sky on this device. Showing the list view.' }); }
+      catch (err) {
+        console.warn('Could not start 3D sky engine:', err);
+        ui.set({ toast: '3D sky is unavailable on this device/browser. You can tap the List icon to browse thoughts.' });
+      }
     })();
     return () => { dead = true; engine?.dispose(); };
   }, [listMode, state, ui, world]);
