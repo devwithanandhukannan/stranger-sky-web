@@ -35,6 +35,14 @@ export type BanInfo = {
   message?: string;
 };
 
+export type ToastItem =
+  | string
+  | {
+      message: string;
+      type?: 'default' | 'pulse';
+      sid?: string;
+    };
+
 export type UI = {
   status: 'idle' | 'connecting' | 'live' | 'offline' | 'kicked' | 'full' | 'denied';
   denied: string;
@@ -46,7 +54,7 @@ export type UI = {
   meteor: { id: string; x: number; y: number; until: number } | null; meteorPrompt: string | null;
   census: { counts: Record<string, number>; total: number };
   announcement: string; skyTheme: string;
-  panel: Panel; lanternDrift: boolean; inboxTick: number; toast: string | null;
+  panel: Panel; lanternDrift: boolean; inboxTick: number; toast: ToastItem | null;
   listMode: boolean; sound: boolean; messageSound: boolean; messageTone: string; voiceReader: boolean; haptics: boolean; lite: boolean; quality: QualityName; warp: number;
   reportSid: string | null;
   locationGranted: boolean;

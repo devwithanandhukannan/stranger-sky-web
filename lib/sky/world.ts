@@ -7,6 +7,7 @@ export interface World {
   move(x: number, y: number): void;
   thought(text: string, mood: number): Promise<string | null>;
   pulse(sid: string): void;
+  declinePulse(sid: string): void;
   travel(galaxy: string): Promise<string | null>;
   addGalaxy(name: string, color?: string): Promise<{ ok?: boolean; galaxy?: import('./store').Galaxy; error?: string }>;
   hop(): void;

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { IcoSparkle, IcoIncognito, IcoX } from './icons';
+import { IcoSparkle, IcoIncognito, IcoX, IcoCheck } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -101,30 +101,80 @@ export function Dock() {
 }
 
 export function Toast() {
-  const { ui } = useSky();
+  const { ui, world } = useSky();
   const t = useUI(ui, (s) => s.toast);
   if (!t) return null;
+
+  const isPulse = typeof t === 'object' && t?.type === 'pulse';
+  const message = typeof t === 'string' ? t : t.message;
+  const pulseSid = typeof t === 'object' ? t.sid : undefined;
+
+  const handleAccept = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (pulseSid) {
+      world.pulse(pulseSid);
+    }
+    ui.set({ toast: null });
+  };
+
+  const handleDecline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (pulseSid) {
+      world.declinePulse(pulseSid);
+    } else {
+      ui.set({ toast: null });
+    }
+  };
+
   return (
     <div
-      className="toast"
+      className={`toast ${isPulse ? 'toast-pulse' : ''}`}
       role="status"
       data-ui
-      onClick={() => ui.set({ toast: null })}
-      title="Click to dismiss"
+      onClick={() => {
+        if (!isPulse) ui.set({ toast: null });
+      }}
+      title={isPulse ? undefined : 'Click to dismiss'}
     >
-      <i className="toast-dot" />
-      <span className="toast-text">{t}</span>
-      <button
-        type="button"
-        className="toast-close-btn"
-        aria-label="Dismiss notification"
-        onClick={(e) => {
-          e.stopPropagation();
-          ui.set({ toast: null });
-        }}
-      >
-        <IcoX size={14} />
-      </button>
+      <i className={`toast-dot ${isPulse ? 'pulse-glow' : ''}`} />
+      <span className="toast-text">{message}</span>
+
+      {isPulse ? (
+        <div className="toast-actions">
+          <button
+            type="button"
+            className="toast-btn toast-btn-accept"
+            aria-label="Accept pulse"
+            title="Accept pulse"
+            onClick={handleAccept}
+          >
+            <IcoCheck size={14} />
+            <span>Accept</span>
+          </button>
+          <button
+            type="button"
+            className="toast-btn toast-btn-decline"
+            aria-label="Decline pulse"
+            title="Decline pulse"
+            onClick={handleDecline}
+          >
+            <IcoX size={13} />
+            <span>Decline</span>
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="toast-close-btn"
+          aria-label="Dismiss notification"
+          onClick={(e) => {
+            e.stopPropagation();
+            ui.set({ toast: null });
+          }}
+        >
+          <IcoX size={14} />
+        </button>
+      )}
     </div>
   );
 }

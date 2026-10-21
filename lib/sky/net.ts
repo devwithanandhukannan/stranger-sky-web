@@ -3,7 +3,7 @@ import type { Socket } from 'socket.io-client';
 import { API } from '../api';
 import { getToken, getIncognitoSession } from '../auth';
 import { sfx, buzz, speakMessage } from './audio';
-import { type NearItem, type Store, type Planet, type Galaxy } from './store';
+import { type NearItem, type Store, type Planet, type Galaxy, type ToastItem } from './store';
 import type { WorldState } from './state';
 import type { World } from './world';
 
@@ -22,10 +22,12 @@ export class NetWorld implements World {
 
   constructor(private state: WorldState, private ui: Store) {}
 
-  private toast(msg: string) {
+  private toast(msg: ToastItem, duration = 3500) {
     this.ui.set({ toast: msg });
     if (this.toastTimer) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.ui.set({ toast: null }), 3500);
+    if (duration > 0) {
+      this.toastTimer = setTimeout(() => this.ui.set({ toast: null }), duration);
+    }
   }
   private flushNear() {
     if (this.flushQueued) return;
@@ -142,7 +144,7 @@ export class NetWorld implements World {
       const cur = ui.get().incoming;
       if (!cur.includes(p.sid)) ui.set({ incoming: [...cur, p.sid] });
       sfx.receive(); buzz(25, ui.get().haptics);
-      this.toast('Someone nearby sent you a pulse');
+      this.toast({ message: 'Someone nearby sent you a pulse', type: 'pulse', sid: p.sid }, 12000);
     });
     s.on('pulse:sent', () => { sfx.pulse(); buzz(15, ui.get().haptics); this.toast('Pulse sent. If they pulse back, a planet opens.'); });
     s.on('pulse:busy', () => this.toast('That light is in a conversation right now.'));
@@ -155,7 +157,7 @@ export class NetWorld implements World {
         prompt: p.prompt, msgs: [], typing: false, kept: false, ended: null, prompts: [],
         distKm: p.distKm ?? null,
       };
-      ui.set({ planet, panel: null, selected: null, ring: null, incoming: ui.get().incoming.filter(() => false) });
+      ui.set({ planet, panel: null, selected: null, ring: null, incoming: ui.get().incoming.filter(() => false), toast: null });
       sfx.open(); buzz([30, 40, 30], ui.get().haptics);
     });
     s.on('planet:msg', (m: { t: string; ts: number }) => {
@@ -231,6 +233,20 @@ export class NetWorld implements World {
     return r.error || 'error';
   }
   pulse(sid: string) { this.s?.emit('pulse', { sid }); }
+  declinePulse(sid: string) {
+    const inc = this.ui.get().incoming.filter((id) => id !== sid);
+    const curToast = this.ui.get().toast;
+    const isPulseToast = typeof curToast === 'object' && curToast?.type === 'pulse' && curToast.sid === sid;
+    buzz(12, this.ui.get().haptics);
+    this.ui.set({
+      incoming: inc,
+      ...(isPulseToast ? { toast: null } : {}),
+    });
+    if (isPulseToast && this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
   async travel(galaxy: string) {
     if (!this.s) return 'offline';
     const r = await ack<{ ok?: boolean; error?: string }>(this.s, 'travel', { galaxy });

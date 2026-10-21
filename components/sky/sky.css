@@ -118,6 +118,85 @@
   color: #ffffff;
 }
 
+.toast.toast-pulse {
+  cursor: default;
+  padding: 8px 14px 8px 18px;
+  gap: 12px;
+}
+.toast.toast-pulse:hover {
+  transform: translateX(-50%);
+  filter: none;
+}
+
+.toast-dot.pulse-glow {
+  background: #38bdf8;
+  box-shadow: 0 0 10px 2px rgba(56, 189, 248, 0.75);
+  animation: pulseDotActive 1.4s ease-in-out infinite;
+}
+
+@keyframes pulseDotActive {
+  0%, 100% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.85); }
+  50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 6px 1px rgba(56, 189, 248, 0.4); }
+}
+
+.toast-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 2px;
+}
+
+.toast-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  line-height: 1;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.toast-btn:active {
+  transform: scale(0.95);
+}
+
+.toast-btn-accept {
+  background: rgba(34, 197, 94, 0.22);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+}
+
+.toast-btn-accept:hover {
+  background: rgba(34, 197, 94, 0.35);
+  color: #ffffff;
+  border-color: rgba(74, 222, 128, 0.7);
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.45);
+  transform: translateY(-1px);
+}
+
+.toast-btn-decline {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.toast-btn-decline:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.65);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
 
 @media (max-width: 680px) {
   .toast {
@@ -125,6 +204,31 @@
   }
   .toast-close-btn {
     display: none;
+  }
+  .toast.toast-pulse {
+    padding: 7px 12px 7px 14px;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .toast-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .toast.toast-pulse {
+    padding: 6px 10px 6px 12px;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .toast-btn span {
+    display: none;
+  }
+  .toast-btn {
+    padding: 6px;
+    border-radius: 50%;
   }
 }
 
@@ -2292,6 +2396,34 @@
   background: rgba(0, 0, 0, 0.05);
   border-radius: 50%;
 }
+[data-theme="light"] .toast.toast-pulse {
+  background: #ffffff !important;
+  border: 1px solid rgba(140, 170, 220, 0.45) !important;
+}
+[data-theme="light"] .toast-btn-accept {
+  background: rgba(34, 197, 94, 0.14) !important;
+  color: #15803d !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+  box-shadow: none !important;
+}
+[data-theme="light"] .toast-btn-accept:hover {
+  background: rgba(34, 197, 94, 0.24) !important;
+  color: #0f5128 !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3) !important;
+}
+[data-theme="light"] .toast-btn-decline {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #b91c1c !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  box-shadow: none !important;
+}
+[data-theme="light"] .toast-btn-decline:hover {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #7f1d1d !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25) !important;
+}
 
 /* ==========================================================================
    Evening / Sunset Twilight Adaptations
@@ -2455,6 +2587,28 @@
 [data-theme="evening"] .toast-dot {
   background: #ff6584;
   box-shadow: 0 0 12px #ff6584;
+}
+[data-theme="evening"] .toast-btn-accept {
+  background: rgba(74, 222, 128, 0.2) !important;
+  color: #86efac !important;
+  border: 1px solid rgba(134, 239, 172, 0.4) !important;
+}
+[data-theme="evening"] .toast-btn-accept:hover {
+  background: rgba(74, 222, 128, 0.35) !important;
+  color: #ffffff !important;
+  border-color: #86efac !important;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.45) !important;
+}
+[data-theme="evening"] .toast-btn-decline {
+  background: rgba(244, 63, 94, 0.2) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+}
+[data-theme="evening"] .toast-btn-decline:hover {
+  background: rgba(244, 63, 94, 0.32) !important;
+  color: #ffffff !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.45) !important;
 }
 
 /* ==========================================================================

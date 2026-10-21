@@ -317,7 +317,13 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
     const iv = setInterval(update, 20_000);
     return () => clearInterval(iv);
   }, [skyTheme]);
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => ui.set({ toast: null }), 3600); return () => clearTimeout(t); }, [toast, ui]);
+  useEffect(() => {
+    if (!toast) return;
+    const isPulse = typeof toast === 'object' && toast?.type === 'pulse';
+    const duration = isPulse ? 12000 : 3600;
+    const t = setTimeout(() => ui.set({ toast: null }), duration);
+    return () => clearTimeout(t);
+  }, [toast, ui]);
   useEffect(() => {
     if (status === 'denied') { if (denied === 'email_not_verified') router.replace('/login'); else if (denied === 'no_profile') router.replace('/welcome'); }
   }, [status, denied, router]);
