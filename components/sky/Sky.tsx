@@ -281,6 +281,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
   const [world] = useState<World>(() => new NetWorld(state, ui));
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<SkyEngine | null>(null);
 
   const status = useUI(ui, (s) => s.status);
   const denied = useUI(ui, (s) => s.denied);
@@ -331,20 +332,43 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
     if (status === 'denied') { if (denied === 'email_not_verified') router.replace('/login'); else if (denied === 'no_profile') router.replace('/welcome'); }
   }, [status, denied, router]);
 
-  // the Three.js engine is loaded on demand and only runs when the sky is visible
+  // the Three.js engine is loaded on demand and stays initialized
   useEffect(() => {
-    if (listMode || !hostRef.current || !canvasRef.current) return;
-    let engine: SkyEngine | null = null, dead = false;
+    if (!hostRef.current || !canvasRef.current) return;
+    let dead = false;
     (async () => {
       const { SkyEngine } = await import('@/lib/sky/engine');
       if (dead || !hostRef.current || !canvasRef.current) return;
-      try { engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world); engine.start(); }
-      catch (err) {
+      try {
+        const engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world);
+        engineRef.current = engine;
+        if (!ui.get().listMode) {
+          engine.start();
+        }
+      } catch (err) {
         console.warn('Could not start sky engine:', err);
       }
     })();
-    return () => { dead = true; engine?.dispose(); };
-  }, [listMode, state, ui, world]);
+    return () => {
+      dead = true;
+      if (engineRef.current) {
+        engineRef.current.dispose();
+        engineRef.current = null;
+      }
+    };
+  }, [state, ui, world]);
+
+  // Pause or resume rendering when switching between sky and list view
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (listMode) {
+      engine.stop();
+    } else {
+      engine.start();
+      engine.resize();
+    }
+  }, [listMode]);
 
   const ctx: SkyCtx = { ui, world, state, getToken, onSignOut, onDeleted };
 

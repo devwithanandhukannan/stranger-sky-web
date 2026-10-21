@@ -246,10 +246,20 @@ export class SkyEngine {
     this.bind();
     this.unsub = ui.subscribe(() => this.onUI());
     this.onUI();
+    if (this.state.you) {
+      this.cam.x = this.state.you.x;
+      this.cam.y = this.state.you.y;
+    }
   }
 
   // ----- public -----
   start() {
+    if (this.state.you) {
+      this.cam.x = this.state.you.x;
+      this.cam.y = this.state.you.y;
+    }
+    this.fade = 1;
+    this.resize();
     if (this.running) return;
     this.running = true; this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
@@ -260,7 +270,7 @@ export class SkyEngine {
     this.labels.forEach((l) => l.remove()); this.lanternEl.remove(); this.meteorEl.remove();
     if (this.renderer) {
       this.scene.traverse((o) => { const m = o as Mesh; m.geometry?.dispose?.(); (m.material as { dispose?: () => void } | undefined)?.dispose?.(); });
-      this.renderer.dispose(); this.renderer.forceContextLoss();
+      this.renderer.dispose();
     }
   }
   setLite(on: boolean) { this.lockedLow = on; this.setQuality(on ? 'low' : this.quality === 'low' ? 'balanced' : this.quality); }
@@ -288,7 +298,7 @@ export class SkyEngine {
     this.resize();
     if (this.ui.get().quality !== q) this.ui.set({ quality: q });
   }
-  private resize() {
+  resize() {
     const r = this.host.getBoundingClientRect();
     this.W = Math.max(1, Math.round(r.width)); this.H = Math.max(1, Math.round(r.height));
     if (this.renderer) {
