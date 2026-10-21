@@ -2307,6 +2307,9 @@
 [data-theme="light"] .location-prompt-sub {
   color: #475569;
 }
+[data-theme="light"] .location-prompt-sub strong {
+  color: #0f172a;
+}
 [data-theme="light"] .location-privacy-box {
   background: rgba(241, 245, 255, 0.85);
   border-color: rgba(140, 170, 220, 0.28);
