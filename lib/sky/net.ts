@@ -124,12 +124,14 @@ export class NetWorld implements World {
         st.you.t = myThought;
         if (!ui.get().thought) ui.set({ thought: myThought });
       }
-      for (const r of g.roster) st.add(r);
+      for (const r of g.roster) {
+        if (!(r.f & 8)) st.add(r);
+      }
       for (const sid of g.hide) { const l = st.bySid.get(sid); if (l) l.hidden = true; }
       st.warpedAt = performance.now();
       ui.set({ galaxy: g.galaxy, near: [], selected: null, census: g.census, status: 'live', warp: ui.get().warp + 1, incoming: [] });
     });
-    s.on('roster:add', (r) => { st.add(r); });
+    s.on('roster:add', (r) => { if (!(r.f & 8)) st.add(r); });
     s.on('roster:interests', (p: { i: number; sid: string; interests: string[] }) => {
       const l = st.bySid.get(p.sid) || st.lights.get(p.i);
       if (l) l.interests = p.interests;
