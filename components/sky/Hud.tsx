@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup } from './icons';
+import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoGlobe, IcoRadar, IcoAlien } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -20,31 +20,37 @@ export { Ico, ICONS };
 
 export function TopBar() {
   const { ui, world } = useSky();
-  const galaxy = useUI(ui, (s) => s.galaxy), galaxies = useUI(ui, (s) => s.galaxies);
+  const galaxy = useUI(ui, (s) => s.galaxy);
   const census = useUI(ui, (s) => s.census), sound = useUI(ui, (s) => s.sound), status = useUI(ui, (s) => s.status);
   const interestDrive = useUI(ui, (s) => s.interestDrive);
   const selectedInterest = useUI(ui, (s) => s.selectedInterest);
   const isIncognito = useUI(ui, (s) => s.isIncognito);
-  const g = galaxies.find((x) => x.slug === galaxy);
+  const userCount = Math.max(1, (census.counts[galaxy] ?? census.total ?? 1));
   return (
     <header className="top" data-ui>
       <div className="row" style={{ gap: 8 }}>
-        <button className="chip" onClick={() => ui.set({ panel: 'map' })} aria-label="Open galaxy and interest map">
-          <i className="dot" style={{ background: g?.color || '#9fb0ff', boxShadow: `0 0 10px ${g?.color || '#9fb0ff'}` }} />
-          <span>{g?.name || 'Sky'}</span>
-          <span className="tiny">{galaxy === 'neighbours' ? '≤ 100 km' : `${Math.max(0, (census.counts[galaxy] ?? 0) - 1)} here`}</span>
+        <button
+          className="chip sky-realm-chip user-count-chip"
+          onClick={() => ui.set({ panel: 'map' })}
+          aria-label={`Users in sky: ${userCount}`}
+          title="Users in sky"
+        >
+          <span className="chip-icon">
+            <IcoAlien size={16} />
+          </span>
+          <span className="chip-count">{userCount}</span>
         </button>
 
-        {/* Separate Interest Sky Drive Toggle Switch (ON / OFF) */}
+        {/* Minimal Interest Sky Drive Toggle */}
         <button
           className={`interest-drive-chip${interestDrive ? ' active' : ''}`}
           onClick={() => world.toggleInterestDrive()}
           aria-label="Toggle Interest Sky Drive"
           title="Drive to Interest Sky: Steer towards lights with matching interests and draw constellation links"
         >
-          <span className="chip-spark" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={13} /></span>
+          <span className="chip-icon-sparkle"><IcoSparkle size={13} /></span>
           <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interest'}</span>
-          <span className={`interest-switch ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
+          <span className={`chip-status-tag ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
         </button>
 
         {isIncognito && (
@@ -108,10 +114,16 @@ export function Toast() {
   const isPulse = typeof t === 'object' && t?.type === 'pulse';
   const message = typeof t === 'string' ? t : t.message;
   const pulseSid = typeof t === 'object' ? t.sid : undefined;
-  const title = typeof t === 'object' && t.title ? t.title : 'Someone nearby';
+  
+  let thought = typeof t === 'object' && t.thought ? t.thought : '';
+  const title = typeof t === 'object' && t.title ? t.title : 'Stranger nearby';
   const subtitle = typeof t === 'object' && t.subtitle ? t.subtitle : 'Sent you a pulse';
-  const mood = typeof t === 'object' && typeof t.mood === 'number' ? t.mood : 0;
-  const moodColor = MOOD_COLORS[mood] || '#7aa2ff';
+
+  // Extract thought from subtitle if not explicitly present
+  if (!thought && typeof t === 'object' && t.subtitle) {
+    const match = t.subtitle.match(/“([^”]+)”/);
+    if (match) thought = match[1];
+  }
 
   const handleAccept = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -138,48 +150,43 @@ export function Toast() {
   if (isPulse) {
     return (
       <div
-        className="toast-dynamic-island"
+        className="pulse-toast-banner"
         role="alertdialog"
         aria-label="Incoming pulse notification"
         data-ui
       >
-        <div className="dynamic-island-avatar">
-          <div className="dynamic-island-orb" style={{ ['--mood-c' as string]: moodColor }} />
-          <span className="dynamic-island-radar" style={{ ['--mood-c' as string]: moodColor }} />
+        <div className="pulse-toast-content">
+          <div className="pulse-toast-thought">
+            {thought ? `“${thought}”` : 'Someone sent you a pulse'}
+          </div>
+          <div className="pulse-toast-stranger">
+            {title || 'Stranger nearby'} {thought ? '· Sent you a pulse' : ''}
+          </div>
         </div>
 
-        <div className="dynamic-island-info">
-          <span className="dynamic-island-title">{title}</span>
-          <span className="dynamic-island-sub">{subtitle}</span>
-        </div>
-
-        <div className="dynamic-island-actions">
+        <div className="pulse-toast-actions">
           <button
             type="button"
-            className="dynamic-island-btn decline"
-            aria-label="Decline pulse"
-            title="Decline"
+            className="pulse-toast-btn decline"
             onClick={handleDecline}
           >
-            <IcoPhoneHangup size={18} />
+            Decline
           </button>
           <button
             type="button"
-            className="dynamic-island-btn accept"
-            aria-label="Accept pulse"
-            title="Accept"
+            className="pulse-toast-btn accept"
             onClick={handleAccept}
           >
-            <IcoPhoneCall size={18} />
+            Accept
           </button>
           <button
             type="button"
-            className="dynamic-island-close"
+            className="pulse-toast-close"
             aria-label="Dismiss notification"
             title="Dismiss"
             onClick={handleClose}
           >
-            <IcoX size={12} />
+            <IcoX size={14} />
           </button>
         </div>
       </div>
@@ -194,7 +201,6 @@ export function Toast() {
       onClick={() => ui.set({ toast: null })}
       title="Click to dismiss"
     >
-      <i className="toast-dot" />
       <span className="toast-text">{message}</span>
       <button
         type="button"
@@ -203,7 +209,7 @@ export function Toast() {
         title="Dismiss notification"
         onClick={handleClose}
       >
-        <IcoX size={14} />
+        <IcoX size={13} />
       </button>
     </div>
   );

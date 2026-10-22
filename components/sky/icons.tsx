@@ -558,6 +558,27 @@ export const IcoPhoneHangup: FC<IconProps> = ({ size = 18, ...props }) => (
   </svg>
 );
 
+export const IcoAlien: FC<IconProps> = ({ size = 16, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...props.style }}
+    {...props}
+  >
+    <path d="M12 2C6.5 2 3.2 6.5 3.2 11.5c0 4.2 3.8 8.8 8.8 10.5 5-1.7 8.8-6.3 8.8-10.5C20.8 6.5 17.5 2 12 2Z" />
+    <ellipse cx="8.5" cy="11.5" rx="1.6" ry="2.6" transform="rotate(-15 8.5 11.5)" fill="currentColor" stroke="none" />
+    <ellipse cx="15.5" cy="11.5" rx="1.6" ry="2.6" transform="rotate(15 15.5 11.5)" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="17.2" r="0.75" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export const IcoPixelAlien: FC<IconProps> = ({ size = 22, ...props }) => (
   <svg
     width={size}
@@ -573,6 +594,40 @@ export const IcoPixelAlien: FC<IconProps> = ({ size = 22, ...props }) => (
   </svg>
 );
 
+export const IcoTrash: FC<IconProps> = ({ size = 15, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...props.style }}
+    {...props}
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
 
-
-
+export const IcoBan: FC<IconProps> = ({ size = 15, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...props.style }}
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+);

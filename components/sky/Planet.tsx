@@ -85,7 +85,10 @@ export function PlanetSheet() {
         <button
           type="button"
           className="planet-docked-close"
-          onClick={close}
+          onClick={(e) => {
+            e.stopPropagation();
+            close();
+          }}
           title="Leave connection"
           aria-label="Leave connection"
         >
@@ -115,26 +118,24 @@ export function PlanetSheet() {
               <span className="planet-mood-tag" style={{ color, borderColor: `${color}45`, background: `${color}18` }}>
                 {moodName}
               </span>
-              {typeof p.distKm === 'number' && (
-                <span className="planet-dist-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <IcoPin size={11} /> ~{p.distKm} km away
-                </span>
-              )}
             </div>
             <div className="planet-thought ellipsis">
               {p.typing ? (
                 <span className="planet-typing-indicator" style={{ color: 'var(--accent)', fontWeight: 500 }}>typing…</span>
-              ) : p.t ? (
-                `“${p.t}”`
               ) : (
-                'A quiet wandering soul'
+                <>
+                  <span className="planet-thought-text">{p.t ? `“${p.t}”` : 'A quiet wandering soul'}</span>
+                  {typeof p.distKm === 'number' && (
+                    <span className="planet-dist-text" title={`${p.distKm} km away`}> · ~{p.distKm} km away</span>
+                  )}
+                </>
               )}
             </div>
           </div>
           <div className="planet-actions">
             <button
               type="button"
-              className="planet-btn-icon"
+              className="planet-btn-icon planet-btn-minimize"
               onClick={() => ui.set({ planetMinimized: true })}
               title="View sky & thread"
               aria-label="Minimize to sky view"

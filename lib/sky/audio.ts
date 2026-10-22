@@ -400,6 +400,7 @@ export const sfx = {
   pulse: () => { tone(659.25, 0.7, 0.35); tone(987.77, 0.9, 0.2, 'sine', 0.08); },
   receive: () => { tone(880, 1.2, 0.3); tone(1318.5, 1.4, 0.15, 'sine', 0.12); },
   open: () => { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone(f, 1.3, 0.28, 'sine', i * 0.09)); },
+  close: () => { [783.99, 659.25, 523.25, 392].forEach((f, i) => tone(f, 1.1, 0.2, 'sine', i * 0.08)); },
   msg: () => playMsgReceived('pop'),
   msgSent: (toneName?: string) => playMsgSent(toneName),
   msgReceived: (toneName?: string) => playMsgReceived(toneName),

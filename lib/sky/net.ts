@@ -194,19 +194,19 @@ export class NetWorld implements World {
       const cur = ui.get().incoming;
       if (!cur.includes(p.sid)) ui.set({ incoming: [...cur, p.sid] });
       sfx.receive(); buzz(25, ui.get().haptics);
-      const nearLight = ui.get().near.find((n) => n.sid === p.sid);
-      const mood = p.m ?? nearLight?.m ?? 0;
-      const subtitle = nearLight?.distKm != null && nearLight.distKm > 0
-        ? `Sent you a pulse · ${Math.round(nearLight.distKm)} km away`
-        : nearLight?.t
-        ? `Sent you a pulse · “${nearLight.t.slice(0, 24)}”`
-        : 'Sent you a pulse';
+      const nearItem = ui.get().near.find((n) => n.sid === p.sid);
+      const light = st.bySid.get(p.sid);
+      const mood = p.m ?? nearItem?.m ?? light?.m ?? 0;
+      const thought = nearItem?.t || light?.t || '';
+      const distance = typeof nearItem?.distKm === 'number' && nearItem.distKm > 0 ? `~${Math.round(nearItem.distKm)} km away` : '';
+      const strangerText = distance ? `Stranger nearby · ${distance}` : 'Stranger nearby';
       this.toast({
         message: 'Someone nearby sent you a pulse',
         type: 'pulse',
         sid: p.sid,
-        title: 'Someone nearby',
-        subtitle,
+        title: strangerText,
+        thought,
+        subtitle: 'Sent you a pulse',
         mood,
       }, 12000);
     });
@@ -221,14 +221,20 @@ export class NetWorld implements World {
         prompt: p.prompt, msgs: [], typing: false, kept: false, ended: null, prompts: [],
         distKm: p.distKm ?? null,
       };
-      ui.set({ planet, planetMinimized: true, panel: null, selected: null, ring: null, incoming: ui.get().incoming.filter(() => false), toast: null });
+      if (this.toastTimer) {
+        clearTimeout(this.toastTimer);
+        this.toastTimer = null;
+      }
+      ui.set({
+        planet,
+        planetMinimized: false,
+        panel: null,
+        selected: null,
+        ring: null,
+        incoming: [],
+        toast: null,
+      });
       sfx.open(); buzz([30, 40, 30], ui.get().haptics);
-      setTimeout(() => {
-        const cur = ui.get();
-        if (cur.planet && cur.planetMinimized) {
-          ui.set({ planetMinimized: false });
-        }
-      }, 2500);
     });
     s.on('planet:msg', (m: { t: string; ts: number }) => {
       this.patchPlanet((p) => ({ msgs: [...p.msgs, { mine: false, t: m.t, ts: m.ts }].slice(-200), typing: false }));
@@ -246,7 +252,13 @@ export class NetWorld implements World {
     });
     s.on('planet:prompt', (p: { q: string }) => this.patchPlanet((pl) => ({ prompts: [...pl.prompts, p.q].slice(-5) })));
     s.on('planet:kept', () => this.patchPlanet(() => ({ kept: true })));
-    s.on('planet:end', (p: { reason: string }) => this.patchPlanet(() => ({ ended: p.reason })));
+    s.on('planet:end', (p: { reason: string }) => {
+      sfx.close();
+      this.patchPlanet(() => ({ ended: p.reason }));
+      if (this.ui.get().planetMinimized) {
+        this.ui.set({ planet: null, planetMinimized: false, incoming: [] });
+      }
+    });
 
     s.on('bond:new', (b) => {
       ui.set({ bonds: [...ui.get().bonds.filter((x) => x.id !== b.id), b] });
@@ -302,7 +314,14 @@ export class NetWorld implements World {
     if (r.ok) { this.ui.set({ thought: text, mood }); if (this.state.you) { this.state.you.t = text; this.state.you.m = mood; } return null; }
     return r.error || 'error';
   }
-  pulse(sid: string) { this.s?.emit('pulse', { sid }); }
+  pulse(sid: string) {
+    const curPlanet = this.ui.get().planet;
+    if (curPlanet && curPlanet.sid === sid && !curPlanet.ended) {
+      this.ui.set({ planetMinimized: false, selected: null, toast: null });
+      return;
+    }
+    this.s?.emit('pulse', { sid });
+  }
   declinePulse(sid: string) {
     const inc = this.ui.get().incoming.filter((id) => id !== sid);
     const curToast = this.ui.get().toast;
@@ -373,17 +392,33 @@ export class NetWorld implements World {
     }
     this.s?.emit('planet:keep');
   }
-  leave() { this.s?.emit('planet:leave'); this.ui.set({ planet: null }); }
+  leave() {
+    this.s?.emit('planet:leave');
+    this.ui.set({
+      planet: null,
+      planetMinimized: false,
+      selected: null,
+      incoming: [],
+    });
+  }
   async block(sid: string) {
     if (!this.s) return false;
     const r = await ack<{ ok?: boolean }>(this.s, 'block', { sid });
-    if (r.ok) this.toast('Blocked. You will not see each other again.');
+    if (r.ok) {
+      if (this.ui.get().planet?.sid === sid) {
+        this.ui.set({ planet: null, planetMinimized: false, incoming: [], selected: null });
+      }
+      this.toast('Blocked. You will not see each other again.');
+    }
     return !!r.ok;
   }
   async report(sid: string, reason: string, details: string) {
     if (!this.s) return false;
     const r = await ack<{ ok?: boolean; banned?: boolean }>(this.s, 'report', { sid, reason, details });
     if (r.ok) {
+      if (this.ui.get().planet?.sid === sid) {
+        this.ui.set({ planet: null, planetMinimized: false, incoming: [], selected: null });
+      }
       this.toast('Report submitted. The user was immediately disconnected and suspended.');
     }
     return !!r.ok;

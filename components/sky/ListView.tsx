@@ -13,7 +13,12 @@ export function ListView() {
   const galaxy = useUI(ui, (s) => s.galaxy);
   const census = useUI(ui, (s) => s.census);
 
-  const currentGalaxy = galaxies.find((g) => g.slug === galaxy);
+  // Active Sky Realms: Only One Sky and Neighbours (Near Me)
+  const realmOptions = [
+    galaxies.find((g) => g.slug === 'night') || { slug: 'night', name: 'One Sky' },
+    galaxies.find((g) => g.slug === 'neighbours') || { slug: 'neighbours', name: 'Neighbours (Near Me)' },
+  ];
+  const currentRealm = realmOptions.find((g) => g.slug === galaxy) || realmOptions[0];
   const count = Math.max(0, (census.counts[galaxy] ?? 0) - 1);
   const myInterests = useUI(ui, (s) => s.userInterests);
 
@@ -52,7 +57,7 @@ export function ListView() {
             <div className="list-head-info">
               <h1 className="list-title">Thoughts nearby</h1>
               <p className="list-sub">
-                {currentGalaxy?.name || 'Sky'} · {galaxy === 'neighbours' ? '≤ 100 km' : count === 1 ? '1 wanderer' : `${count} wanderers`}
+                {currentRealm.name} · {galaxy === 'neighbours' ? '≤ 100 km' : count === 1 ? '1 wanderer' : `${count} wanderers`}
               </p>
             </div>
 
@@ -70,11 +75,11 @@ export function ListView() {
           <div className="list-actions">
             <select
               className="field sm list-galaxy-select"
-              value={galaxy}
+              value={galaxy === 'neighbours' ? 'neighbours' : 'night'}
               onChange={(e) => void world.travel(e.target.value)}
-              aria-label="Galaxy"
+              aria-label="Sky realm"
             >
-              {galaxies.map((g) => (
+              {realmOptions.map((g) => (
                 <option key={g.slug} value={g.slug}>
                   {g.name}
                 </option>
@@ -132,19 +137,12 @@ export function ListView() {
 
               return (
                 <li key={n.sid} className="list-card-item">
-                  <i
-                    className="dot list-item-dot"
-                    style={{
-                      background: moodColor,
-                      boxShadow: `0 0 12px ${moodColor}`,
-                    }}
-                  />
                   <div className="list-card-body">
                     <p className="list-card-thought">
                       {n.t || 'Quiet. No thought shared.'}
                     </p>
                     <div className="list-card-meta">
-                      <span className="list-card-mood">{MOOD_NAMES[n.m] || 'calm'}</span>
+                      <span className="list-card-mood" style={{ color: moodColor }}>{MOOD_NAMES[n.m] || 'calm'}</span>
                       {n.isIncognito && (
                         <span className="top-incognito-badge" style={{ fontSize: 10.5, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <IcoIncognito size={11} /> Ignoto

@@ -32,6 +32,8 @@ export function LanternSheet() {
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
   const [reporting, setReporting] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [busyDelete, setBusyDelete] = useState(false);
 
   const call = useCallback(async <T,>(m: string, p: string, b?: unknown): Promise<T | null> => {
     setErr('');
@@ -92,12 +94,18 @@ export function LanternSheet() {
   };
 
   const deleteLantern = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this lantern? It will be removed from the sky permanently.')) return;
-    const res = await call('DELETE', `/${id}`);
-    if (res) {
-      setOk('Lantern deleted and removed from the sky.');
-      setSelectedItem(null);
-      void load();
+    setBusyDelete(true);
+    try {
+      const res = await call('DELETE', `/${id}`);
+      if (res) {
+        ui.set({ toast: 'Lantern deleted and removed from the sky.' });
+        setOk('Lantern deleted and removed from the sky.');
+        setSelectedItem(null);
+        setDeletingId(null);
+        void load();
+      }
+    } finally {
+      setBusyDelete(false);
     }
   };
 
@@ -173,14 +181,36 @@ export function LanternSheet() {
           )}
           <div className="row" style={{ gap: 8, margin: 0 }}>
             {!it.caught && (
-              <button
-                type="button"
-                className="btn-ghost-action"
-                style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}
-                onClick={() => deleteLantern(it.id)}
-              >
-                Delete lantern
-              </button>
+              deletingId === it.id ? (
+                <div className="row" style={{ gap: 6, margin: 0, alignItems: 'center' }}>
+                  <span className="tiny" style={{ color: '#f87171', fontWeight: 600 }}>Delete permanently?</span>
+                  <button
+                    type="button"
+                    className="btn danger sm"
+                    disabled={busyDelete}
+                    onClick={() => void deleteLantern(it.id)}
+                  >
+                    {busyDelete ? 'Deleting…' : 'Delete'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost sm"
+                    disabled={busyDelete}
+                    onClick={() => setDeletingId(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-ghost-action"
+                  style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}
+                  onClick={() => setDeletingId(it.id)}
+                >
+                  Delete lantern
+                </button>
+              )
             )}
             <button className="btn-ghost-action" style={{ color: '#f87171' }} onClick={() => setReporting(it.id)}>
               Report
@@ -214,6 +244,7 @@ export function LanternSheet() {
             onClick={() => {
               setTab(t);
               setSelectedItem(null);
+              setDeletingId(null);
               setOk('');
               setErr('');
             }}
@@ -240,83 +271,134 @@ export function LanternSheet() {
           {/* SECTION: NEW */}
           <div className="lantern-sec-title">NEW</div>
 
-          {answeredList.length > 0 ? (
-            answeredList.map((it) => (
-              <div key={it.id} className="inbox-card special">
-                <div className="orb-amber" />
-                <div className="inbox-card-info">
-                  <h3 className="inbox-card-title">A stranger answered your lantern</h3>
-                  <p className="inbox-card-sub italic">
-                    “{it.thread[it.thread.length - 1]?.body || it.body}”
-                  </p>
+          <div className="inbox-cards-scroll">
+            {answeredList.length > 0 && (
+              answeredList.map((it) => (
+                <div key={'ans-' + it.id} className="inbox-card special">
+                  <div className="orb-amber" />
+                  <div className="inbox-card-info">
+                    <h3 className="inbox-card-title">A stranger answered your lantern</h3>
+                    <p className="inbox-card-sub italic">
+                      “{it.thread[it.thread.length - 1]?.body || it.body}”
+                    </p>
+                  </div>
+                  <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
+                    Read
+                  </button>
                 </div>
-                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
-                  Read
-                </button>
-              </div>
-            ))
-          ) : inbox.held.length > 0 ? (
-            inbox.held.map((it) => (
-              <div key={it.id} className="inbox-card special">
-                <div className="orb-amber" />
-                <div className="inbox-card-info">
-                  <h3 className="inbox-card-title">A lantern you caught</h3>
-                  <p className="inbox-card-sub italic">“{it.body}”</p>
+              ))
+            )}
+
+            {inbox.held.length > 0 && (
+              inbox.held.map((it) => (
+                <div key={'held-' + it.id} className="inbox-card special">
+                  <div className="orb-amber" />
+                  <div className="inbox-card-info">
+                    <h3 className="inbox-card-title">A lantern you caught</h3>
+                    <p className="inbox-card-sub italic">“{it.body}”</p>
+                  </div>
+                  <button className="btn-ivory" onClick={() => setSelectedItem({ ...it, caught: true })}>
+                    Read
+                  </button>
                 </div>
-                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
-                  Read
-                </button>
-              </div>
-            ))
-          ) : drift ? (
-            <div className="inbox-card special">
-              <div className="orb-amber" />
-              <div className="inbox-card-info">
-                <h3 className="inbox-card-title">A lantern is drifting by</h3>
-                <p className="inbox-card-sub">Someone let a thought go into the sky · tap to catch</p>
-              </div>
-              <button className="btn-ivory" onClick={doCatch}>
-                Catch
-              </button>
-            </div>
-          ) : (
-            <div className="inbox-card">
-              <div className="orb-amber" style={{ opacity: 0.65 }} />
-              <div className="inbox-card-info">
-                <h3 className="inbox-card-title">No new answers yet</h3>
-                <p className="inbox-card-sub">Release a lantern and wait for a wanderer to answer.</p>
-              </div>
-              <button className="btn-ivory" onClick={() => setTab('release')}>
-                Release
-              </button>
-            </div>
-          )}
+              ))
+            )}
+
+            {!answeredList.length && !inbox.held.length && (
+              drift ? (
+                <div className="inbox-card special">
+                  <div className="orb-amber" />
+                  <div className="inbox-card-info">
+                    <h3 className="inbox-card-title">A lantern is drifting by</h3>
+                    <p className="inbox-card-sub">Someone let a thought go into the sky · tap to catch</p>
+                  </div>
+                  <button className="btn-ivory" onClick={doCatch}>
+                    Catch
+                  </button>
+                </div>
+              ) : (
+                <div className="inbox-card">
+                  <div className="orb-amber" style={{ opacity: 0.65 }} />
+                  <div className="inbox-card-info">
+                    <h3 className="inbox-card-title">No new answers yet</h3>
+                    <p className="inbox-card-sub">Release a lantern and wait for a wanderer to answer.</p>
+                  </div>
+                  <button className="btn-ivory" onClick={() => setTab('release')}>
+                    Release
+                  </button>
+                </div>
+              )
+            )}
+          </div>
 
           {/* SECTION: KEPT IN TOUCH */}
-          <div className="lantern-sec-title">KEPT IN TOUCH</div>
+          <div className="lantern-sec-header">
+            <div className="lantern-sec-title-row">
+              <span className="lantern-sec-title">KEPT IN TOUCH</span>
+              {bonds.length > 0 && (
+                <span className="bonds-count-chip">{bonds.length}</span>
+              )}
+            </div>
+            {bonds.length > 0 && (
+              <button
+                type="button"
+                className="bonds-view-all-btn"
+                onClick={() => ui.set({ panel: 'bonds' })}
+              >
+                View all ({bonds.length}) →
+              </button>
+            )}
+          </div>
 
           {bonds.length > 0 ? (
-            bonds.map((b) => (
-              <div key={b.id} className="inbox-card">
-                <div className={b.online ? 'orb-green' : 'orb-purple'} />
-                <div className="inbox-card-info">
-                  <h3 className="inbox-card-title">{b.name}</h3>
-                  <p className="inbox-card-sub">{b.online ? 'in the sky now' : 'away'}</p>
-                </div>
+            <div className="bonds-horizontal-rail">
+              {[...bonds]
+                .sort((a, b) => (a.online === b.online ? 0 : a.online ? -1 : 1))
+                .map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className={`bond-rail-item${b.online ? ' online' : ' away'}`}
+                    onClick={() => {
+                      if (b.online) {
+                        world.callBond(b.id);
+                        ui.set({ panel: null });
+                      } else {
+                        ui.set({ toast: `${b.name} is away right now.` });
+                      }
+                    }}
+                    title={b.online ? `Say hi to ${b.name} (Online)` : `${b.name} (Away)`}
+                  >
+                    <div className="bond-rail-avatar-wrap">
+                      <div className={b.online ? 'bond-orb-green' : 'bond-orb-purple'}>
+                        <span className="bond-initial">{b.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span className={`bond-presence-indicator ${b.online ? 'live' : 'idle'}`} />
+                    </div>
+                    <span className="bond-rail-name">{b.name}</span>
+                    <span className={`bond-rail-status ${b.online ? 'online' : 'away'}`}>
+                      {b.online ? 'Say hi' : 'away'}
+                    </span>
+                  </button>
+                ))}
+
+              {bonds.length > 4 && (
                 <button
-                  className="btn-ivory"
-                  disabled={!b.online}
-                  onClick={() => {
-                    world.callBond(b.id);
-                    ui.set({ panel: null });
-                  }}
+                  type="button"
+                  className="bond-rail-item view-more"
+                  onClick={() => ui.set({ panel: 'bonds' })}
+                  title="View all connections"
                 >
-                  Say hi
+                  <div className="bond-rail-avatar-wrap more">
+                    <span className="more-count">+{bonds.length}</span>
+                  </div>
+                  <span className="bond-rail-name">All</span>
+                  <span className="bond-rail-status">Manage</span>
                 </button>
-              </div>
-            ))
+              )}
+            </div>
           ) : (
-            <div className="inbox-card">
+            <div className="inbox-card empty-bonds-card">
               <div className="orb-purple" style={{ opacity: 0.55 }} />
               <div className="inbox-card-info">
                 <h3 className="inbox-card-title">No kept bonds yet</h3>
@@ -436,48 +518,74 @@ export function LanternSheet() {
         </div>
       ) : (
         <ul className="list lans" style={{ padding: 0 }}>
-          {!inbox.sent.length && !inbox.held.length && (
+          {!inbox.sent.length ? (
             <p className="muted" style={{ textAlign: 'center', padding: '24px 0' }}>
-              Nothing yet. Release a lantern or catch one in the sky.
+              No lanterns released yet. Release a lantern into the sky to see it here.
             </p>
-          )}
-          {inbox.held.map((it) => (
-            <div key={'h' + it.id} className="inbox-card" style={{ cursor: 'pointer' }} onClick={() => setSelectedItem({ ...it, caught: true })}>
-              <div className="orb-amber" />
-              <div className="inbox-card-info">
-                <h3 className="inbox-card-title">Lantern you caught</h3>
-                <p className="inbox-card-sub italic">“{it.body}”</p>
-              </div>
-              <button className="btn-ivory" onClick={(e) => { e.stopPropagation(); setSelectedItem({ ...it, caught: true }); }}>
-                Open
-              </button>
-            </div>
-          ))}
-          {inbox.sent.map((it) => (
-            <div key={'s' + it.id} className={`inbox-card${it.thread.length > 0 ? ' special' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setSelectedItem(it)}>
-              <div className="orb-amber" />
-              <div className="inbox-card-info">
-                <h3 className="inbox-card-title">
-                  {it.thread.length > 0 ? 'Stranger answered' : 'Released by you'}
-                </h3>
-                <p className="inbox-card-sub italic">“{it.body}”</p>
-              </div>
-              <div className="row" style={{ gap: 8, margin: 0 }} onClick={(e) => e.stopPropagation()}>
-                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
-                  Open
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost-action"
-                  style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', padding: '6px 12px' }}
-                  onClick={() => deleteLantern(it.id)}
-                  title="Delete this lantern"
+          ) : (
+            inbox.sent.map((it) => (
+              <div
+                key={'s' + it.id}
+                className={`inbox-card${it.thread.length > 0 ? ' special' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSelectedItem(it)}
+              >
+                <div className="orb-amber" />
+                <div className="inbox-card-info">
+                  <h3 className="inbox-card-title">
+                    {it.thread.length > 0 ? 'Stranger answered' : 'Released by you'}
+                  </h3>
+                  <p className="inbox-card-sub italic">“{it.body}”</p>
+                </div>
+                <div
+                  className="row"
+                  style={{ gap: 8, margin: 0, alignItems: 'center' }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Delete
-                </button>
+                  {deletingId === it.id ? (
+                    <div className="row" style={{ gap: 6, margin: 0, alignItems: 'center' }}>
+                      <span className="tiny" style={{ color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        Delete?
+                      </span>
+                      <button
+                        type="button"
+                        className="btn danger sm"
+                        style={{ minHeight: 28, padding: '4px 10px', fontSize: 12 }}
+                        disabled={busyDelete}
+                        onClick={() => void deleteLantern(it.id)}
+                      >
+                        {busyDelete ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        style={{ minHeight: 28, padding: '4px 10px', fontSize: 12 }}
+                        disabled={busyDelete}
+                        onClick={() => setDeletingId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
+                        Open
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost-action"
+                        style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', padding: '6px 12px' }}
+                        onClick={() => setDeletingId(it.id)}
+                        title="Delete this lantern"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </ul>
       )}
 

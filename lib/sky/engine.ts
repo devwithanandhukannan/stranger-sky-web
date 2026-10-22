@@ -567,7 +567,7 @@ export class SkyEngine {
       const s = this.ui.get();
       let targetX = you.x;
       let targetY = you.y;
-      const peerSid = s.planet?.sid || (s.incoming.length > 0 ? s.incoming[s.incoming.length - 1] : null);
+      const peerSid = (s.planet && !s.planet.ended) ? s.planet.sid : null;
       if (peerSid) {
         const other = this.state.bySid.get(peerSid) || Array.from(this.state.lights.values()).find((l) => l.sid === peerSid);
         if (other && !other.hidden) {
@@ -923,21 +923,15 @@ export class SkyEngine {
     let peerName = 'a stranger';
     let isConnected = false;
 
-    if (s.planet && s.planet.sid) {
+    if (s.planet && s.planet.sid && !s.planet.ended) {
       targetSid = s.planet.sid;
       peerName = (s.planet.known && s.planet.with?.name) ? s.planet.with.name : 'a stranger';
       isConnected = true;
-    } else if (s.incoming.length > 0) {
-      targetSid = s.incoming[s.incoming.length - 1];
-      peerName = 'a stranger';
-    } else if (s.selected) {
-      targetSid = s.selected;
-      peerName = 'a stranger';
     }
 
     const targetLight = targetSid ? (this.state.bySid.get(targetSid) || Array.from(this.state.lights.values()).find((l) => l.sid === targetSid)) : null;
 
-    if (!you || !targetLight || targetLight === you || targetLight.hidden) {
+    if (!you || !targetSid || !targetLight || targetLight === you || targetLight.hidden) {
       this.threadConnectedSid = null;
       this.threadProgress = 0;
       if (this.threadSvg.style.opacity !== '0') {

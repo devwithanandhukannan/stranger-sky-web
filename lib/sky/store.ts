@@ -43,6 +43,7 @@ export type ToastItem =
       sid?: string;
       title?: string;
       subtitle?: string;
+      thought?: string;
       mood?: number;
     };
 

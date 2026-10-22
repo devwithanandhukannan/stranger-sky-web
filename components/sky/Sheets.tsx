@@ -4,7 +4,7 @@ import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_NEW, F_VET, F_BUSY, type Near
 import { useSky } from './ctx';
 import { setSound, sfx, speakMessage } from '@/lib/sky/audio';
 import { api, API } from '@/lib/api';
-import { IcoPin, IcoCalendar, IcoAge, IcoBond, IcoChat, IcoChime, IcoCrystal, IcoBell, IcoClock, IcoSun, IcoSunset, IcoMoon, IcoCheck, IcoSparkle, IcoIncognito, IcoShieldAlert, IcoX } from './icons';
+import { IcoPin, IcoCalendar, IcoAge, IcoBond, IcoChat, IcoChime, IcoCrystal, IcoBell, IcoClock, IcoSun, IcoSunset, IcoMoon, IcoCheck, IcoSparkle, IcoIncognito, IcoShieldAlert, IcoX, IcoGlobe, IcoRadar, IcoPhoneCall, IcoTrash, IcoBan } from './icons';
 
 import { resolveTheme, getTimeBasedThemeId, applyThemeCss, getThemeScheduleDescription } from '@/lib/sky/themes';
 
@@ -248,6 +248,7 @@ export function LightSheet() {
       </div>
       <div className="row peek-actions">
         <button className="btn" disabled={!n && !pulsed} onClick={() => world.pulse(sid)}>{pulsed ? 'Pulse back' : 'Send a pulse'}</button>
+        {pulsed && <button className="btn ghost" onClick={() => { world.declinePulse(sid); ui.set({ selected: null }); }}>Decline</button>}
         {!(n && n.f & F_ECHO) && <button className="btn ghost" onClick={() => ui.set({ panel: 'report', reportSid: sid })}>Report</button>}
         {!(n && n.f & F_ECHO) && <button className="btn ghost" onClick={async () => { await world.block(sid); ui.set({ selected: null }); }}>Block</button>}
         <button className="icon" onClick={() => ui.set({ selected: null })} aria-label="Close"><IcoX size={15} /></button>
@@ -336,10 +337,12 @@ export function MapSheet() {
 
   return (
     <Sheet title="One Sky · Interests & Universe" onClose={() => ui.set({ panel: null })} tall className="universe-sheet">
-      <p className="galaxy-sheet-desc">
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 5 }}><IcoSparkle size={13} /></span>
-        {census.total} lights drifting across One Sky. Add your interests to steer and connect through the cosmos.
-      </p>
+      <div className="galaxy-sheet-desc">
+        <span className="galaxy-sheet-desc-icon"><IcoSparkle size={14} /></span>
+        <span>
+          {census.total} {census.total === 1 ? 'light' : 'lights'} drifting across One Sky. Add your interests to steer and connect through the cosmos.
+        </span>
+      </div>
 
       {/* Interest Sky Drive ON / OFF Toggle Banner */}
       <div className="interest-drive-banner-card">
@@ -474,7 +477,9 @@ export function MapSheet() {
             onClick={() => void handleSwitchSky('night')}
           >
             <div className="galaxy-card-top">
-              <span className="galaxy-card-orb one-sky" />
+              <span className="galaxy-card-icon one-sky">
+                <IcoGlobe size={16} />
+              </span>
               {cur !== 'neighbours' && <span className="galaxy-card-badge">Current</span>}
             </div>
             <b className="galaxy-card-name">One Sky</b>
@@ -487,7 +492,9 @@ export function MapSheet() {
             onClick={() => void handleSwitchSky('neighbours')}
           >
             <div className="galaxy-card-top">
-              <span className="galaxy-card-orb neighbours" />
+              <span className="galaxy-card-icon neighbours">
+                <IcoRadar size={16} />
+              </span>
               {cur === 'neighbours' && <span className="galaxy-card-badge neighbours-badge">Current</span>}
             </div>
             <b className="galaxy-card-name">Neighbours</b>
@@ -505,6 +512,8 @@ export function BondsSheet() {
   const { ui, world, getToken } = useSky();
   const bonds = useUI(ui, (s) => s.bonds);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'online'>('all');
 
   const remove = async (id: string, block: boolean) => {
     const target = bonds.find((b) => b.id === id);
@@ -528,20 +537,102 @@ export function BondsSheet() {
     }
   };
 
+  const filteredBonds = bonds.filter((b) => {
+    if (filter === 'online' && !b.online) return false;
+    if (search.trim() && !b.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
+    return true;
+  });
+
+  const onlineCount = bonds.filter((b) => b.online).length;
+
   return (
-    <Sheet title="Kept in touch" onClose={() => ui.set({ panel: null })}>
-      {!bonds.length && <p className="muted">When you and a stranger both choose to keep in touch, they appear here with their name. Nobody is added without both saying yes.</p>}
-      <ul className="list">
-        {bonds.map((b) => (
-          <li key={b.id}>
-            <i className="dot" style={{ background: b.online ? '#79e6b6' : '#4a5278', boxShadow: b.online ? '0 0 10px #79e6b6' : 'none' }} />
-            <div style={{ flex: 1 }}><b>{b.name}</b><div className="tiny">{b.online ? 'in the sky now' : 'away'}</div></div>
-            <button className="btn" disabled={!b.online || busyId === b.id} onClick={() => { world.callBond(b.id); ui.set({ panel: null }); }}>Call</button>
-            <button className="btn ghost" disabled={busyId === b.id} onClick={() => void remove(b.id, false)}>Remove</button>
-            <button className="btn danger" disabled={busyId === b.id} onClick={() => void remove(b.id, true)}>Block</button>
-          </li>
-        ))}
-      </ul>
+    <Sheet title="Kept in touch" onClose={() => ui.set({ panel: null })} className="bonds-sheet">
+      {!bonds.length ? (
+        <p className="muted" style={{ padding: '8px 0', lineHeight: 1.5 }}>
+          When you and a stranger both choose to keep in touch, they appear here with their name. Nobody is added without both saying yes.
+        </p>
+      ) : (
+        <>
+          <div className="bonds-filter-bar">
+            {bonds.length >= 4 && (
+              <input
+                type="text"
+                className="field sm bonds-search-input"
+                placeholder="Search connections…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            )}
+            <div className="bonds-tabs-row">
+              <button
+                type="button"
+                className={`bonds-tab-pill${filter === 'all' ? ' on' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All ({bonds.length})
+              </button>
+              <button
+                type="button"
+                className={`bonds-tab-pill${filter === 'online' ? ' on' : ''}`}
+                onClick={() => setFilter('online')}
+              >
+                Online ({onlineCount})
+              </button>
+            </div>
+          </div>
+
+          {filteredBonds.length === 0 ? (
+            <p className="muted" style={{ padding: '24px 0', textAlign: 'center' }}>
+              No matching connections found.
+            </p>
+          ) : (
+            <ul className="bonds-list">
+              {filteredBonds.map((b) => (
+                <li key={b.id} className="bonds-item">
+                  <div className="bonds-item-info">
+                    <b className="bonds-item-name">{b.name}</b>
+                    <span className={`bonds-item-status ${b.online ? 'online' : 'away'}`}>
+                      {b.online ? 'in the sky now' : 'away'}
+                    </span>
+                  </div>
+                  <div className="bonds-item-actions">
+                    <button
+                      type="button"
+                      className="btn sm bonds-btn-call"
+                      disabled={!b.online || busyId === b.id}
+                      onClick={() => { world.callBond(b.id); ui.set({ panel: null }); }}
+                      title={b.online ? `Call ${b.name}` : `${b.name} is away`}
+                      aria-label={`Call ${b.name}`}
+                    >
+                      <IcoPhoneCall size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost sm bonds-btn-remove"
+                      disabled={busyId === b.id}
+                      onClick={() => void remove(b.id, false)}
+                      title={`Remove ${b.name}`}
+                      aria-label={`Remove ${b.name}`}
+                    >
+                      <IcoTrash size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn danger sm bonds-btn-block"
+                      disabled={busyId === b.id}
+                      onClick={() => void remove(b.id, true)}
+                      title={`Block ${b.name}`}
+                      aria-label={`Block ${b.name}`}
+                    >
+                      <IcoBan size={15} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </Sheet>
   );
 }
