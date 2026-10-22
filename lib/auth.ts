@@ -16,6 +16,10 @@ function init() {
   return ready;
 }
 
+if (typeof window !== 'undefined') {
+  void init();
+}
+
 export type AuthState = { email: string; verified: boolean } | null;
 
 export type IncognitoSession = { isIncognito: boolean; alias: string };

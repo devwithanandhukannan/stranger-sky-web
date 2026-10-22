@@ -14,7 +14,7 @@ import { BondsSheet, LightSheet, MapSheet, ReportSheet, SettingsSheet, ThoughtSh
 import { PlanetSheet } from './Planet';
 import { LanternSheet } from './Lanterns';
 import { ListView } from './ListView';
-import type { SkyEngine } from '@/lib/sky/engine';
+import { SkyEngine } from '@/lib/sky/engine';
 import { IcoPin, IcoShield, IcoGlobe, IcoRadar, IcoShieldAlert, IcoX } from './icons';
 
 
@@ -334,25 +334,19 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
     if (status === 'denied') { if (denied === 'email_not_verified') router.replace('/login'); else if (denied === 'no_profile') router.replace('/welcome'); }
   }, [status, denied, router]);
 
-  // the Three.js engine is loaded on demand and stays initialized
+  // the Three.js engine is initialized directly with zero network delay
   useEffect(() => {
     if (!hostRef.current || !canvasRef.current) return;
-    let dead = false;
-    (async () => {
-      const { SkyEngine } = await import('@/lib/sky/engine');
-      if (dead || !hostRef.current || !canvasRef.current) return;
-      try {
-        const engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world);
-        engineRef.current = engine;
-        if (!ui.get().listMode) {
-          engine.start();
-        }
-      } catch (err) {
-        console.warn('Could not start sky engine:', err);
+    try {
+      const engine = new SkyEngine(canvasRef.current, hostRef.current, state, ui, world);
+      engineRef.current = engine;
+      if (!ui.get().listMode) {
+        engine.start();
       }
-    })();
+    } catch (err) {
+      console.warn('Could not start sky engine:', err);
+    }
     return () => {
-      dead = true;
       if (engineRef.current) {
         engineRef.current.dispose();
         engineRef.current = null;

@@ -14,7 +14,33 @@ export class ApiError extends Error {
 let cfg: Promise<PublicConfig> | null = null;
 export function getConfig(): Promise<PublicConfig> {
   if (!cfg) {
-    cfg = fetch(`${API}/api/config`).then((r) => { if (!r.ok) throw new ApiError(r.status, 'config'); return r.json(); }).catch((e) => { cfg = null; throw e; });
+    let cached: PublicConfig | null = null;
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('lumen_public_config') : null;
+      if (raw) cached = JSON.parse(raw);
+    } catch { /* ignore */ }
+
+    if (cached?.firebase?.apiKey) {
+      // Re-fetch in background to keep config fresh, but return cached immediately
+      fetch(`${API}/api/config`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((fresh) => {
+          if (fresh?.firebase?.apiKey) {
+            try { localStorage.setItem('lumen_public_config', JSON.stringify(fresh)); } catch {}
+          }
+        })
+        .catch(() => {});
+      cfg = Promise.resolve(cached);
+      return cfg;
+    }
+
+    cfg = fetch(`${API}/api/config`)
+      .then((r) => { if (!r.ok) throw new ApiError(r.status, 'config'); return r.json(); })
+      .then((data: PublicConfig) => {
+        try { localStorage.setItem('lumen_public_config', JSON.stringify(data)); } catch {}
+        return data;
+      })
+      .catch((e) => { cfg = null; throw e; });
   }
   return cfg;
 }
