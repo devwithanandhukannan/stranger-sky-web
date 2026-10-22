@@ -6,7 +6,7 @@ import { createStore, initialUI, useUI } from '@/lib/sky/store';
 import { WorldState } from '@/lib/sky/state';
 import type { World } from '@/lib/sky/world';
 import { NetWorld } from '@/lib/sky/net';
-import { applyThemeCss, resolveTheme } from '@/lib/sky/themes';
+import { applyThemeCss, resetThemeCss, resolveTheme } from '@/lib/sky/themes';
 import { setSound, unlock } from '@/lib/sky/audio';
 import { Ctx, useSky, type SkyCtx } from './ctx';
 import { Announcement, Dock, IncomingCall, MeteorCard, Toast, TopBar, Warp } from './Hud';
@@ -16,6 +16,7 @@ import { LanternSheet } from './Lanterns';
 import { ListView } from './ListView';
 import { SkyEngine } from '@/lib/sky/engine';
 import { IcoPin, IcoShield, IcoGlobe, IcoRadar, IcoShieldAlert, IcoX } from './icons';
+import Logo from '@/components/Logo';
 
 
 const pref = (k: string, d: boolean) => { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch { return d; } };
@@ -247,7 +248,7 @@ function BanScreen({
         </div>
 
         <p className="ban-notice">
-          Like Omegle and safe community apps, Lumen enforces an instant-ban policy for explicit content, harassment, prohibited words, or safety reports. You cannot reconnect until the timer runs out.
+          To maintain a safe and respectful sanctuary, Stranger Sky enforces a strict zero-tolerance instant-suspension policy for explicit content, harassment, prohibited words, or safety reports. You cannot reconnect until the timer runs out.
         </p>
 
         <div className="stack">
@@ -321,7 +322,10 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
     };
     update();
     const iv = setInterval(update, 20_000);
-    return () => clearInterval(iv);
+    return () => {
+      clearInterval(iv);
+      resetThemeCss();
+    };
   }, [skyTheme]);
   useEffect(() => {
     if (!toast) return;
@@ -379,9 +383,11 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
   if (status === 'kicked' || status === 'full' || (status === 'denied' && denied.startsWith('account_'))) {
     return (
       <div className="page"><div className="card center">
-        <div className="logo" />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <Logo size={48} glow={true} />
+        </div>
         <h1>{status === 'full' ? 'The sky is full' : status === 'kicked' && denied === 'other_session' ? 'Opened somewhere else' : 'You are not in the sky'}</h1>
-        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Lumen is open in another tab or device. Only one at a time.' : 'Your session ended.'}</p>
+        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Stranger Sky is open in another tab or device. Only one at a time.' : 'Your session ended.'}</p>
         <div className="stack"><button className="btn" onClick={() => location.reload()}>Try again</button></div>
       </div></div>
     );

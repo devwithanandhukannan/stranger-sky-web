@@ -11,6 +11,32 @@ export class ApiError extends Error {
   constructor(public status: number, public code: string) { super(code); }
 }
 
+export const DEFAULT_CONFIG: PublicConfig = {
+  appName: 'Stranger Sky',
+  minAge: 18,
+  skyTheme: 'auto',
+  announcement: '',
+  galaxies: [
+    { slug: 'night', name: 'One Sky', color: '#9fb0ff' },
+    { slug: 'neighbours', name: 'Neighbours (Near Me)', color: '#38ef7d' },
+    { slug: 'music', name: 'Music', color: '#7aa2ff' },
+    { slug: 'cinema', name: 'Cinema', color: '#ff8fb1' },
+    { slug: 'games', name: 'Games', color: '#79e6b6' },
+    { slug: 'tech', name: 'Tech', color: '#7fdcff' },
+    { slug: 'travel', name: 'Travel', color: '#ffd27a' },
+    { slug: 'learn', name: 'Languages', color: '#c4a0ff' },
+    { slug: 'kerala', name: 'Kerala', color: '#ffb07a' },
+  ],
+  firebase: {
+    apiKey: 'AIzaSyAydMVet7JSq6S9zkZE0FOXN_5pUpIj9CU',
+    authDomain: 'stranger-social-41bc5.firebaseapp.com',
+    projectId: 'stranger-social-41bc5',
+    appId: '1:758529337031:web:48a255a0dfe0de557c40e2',
+    messagingSenderId: '758529337031',
+    storageBucket: 'stranger-social-41bc5.firebasestorage.app',
+  },
+};
+
 let cfg: Promise<PublicConfig> | null = null;
 export function getConfig(): Promise<PublicConfig> {
   if (!cfg) {
@@ -40,7 +66,11 @@ export function getConfig(): Promise<PublicConfig> {
         try { localStorage.setItem('lumen_public_config', JSON.stringify(data)); } catch {}
         return data;
       })
-      .catch((e) => { cfg = null; throw e; });
+      .catch((_e) => {
+        // Fallback gracefully to default config so UI & Auth don't crash when API is starting up
+        cfg = Promise.resolve(DEFAULT_CONFIG);
+        return DEFAULT_CONFIG;
+      });
   }
   return cfg;
 }

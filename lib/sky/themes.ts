@@ -143,3 +143,14 @@ export function applyThemeCss(t: Theme) {
   root.setAttribute('data-theme', mode);
   if (body) body.setAttribute('data-theme', mode);
 }
+
+export function resetThemeCss() {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const body = document.body;
+  root.removeAttribute('data-theme');
+  if (body) body.removeAttribute('data-theme');
+  root.style.removeProperty('--sky-top');
+  root.style.removeProperty('--sky-bottom');
+}
+

@@ -268,7 +268,7 @@ export function ReportForm({ onSubmit, onCancel, busy }: { onSubmit: (reason: st
       <div style={{ background: 'rgba(255, 60, 90, 0.12)', borderRadius: 14, padding: '10px 14px', margin: '4px 0' }}>
         <p className="tiny" style={{ color: '#ff9fb0', margin: 0, fontWeight: 550, lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
           <span style={{ display: 'inline-flex', flexShrink: 0, marginTop: 1 }}><IcoShieldAlert size={14} /></span>
-          <span><b>Zero Tolerance (Omegle-Style):</b> Reports immediately issue a temporary 24-hour ban or suspension and instantly sever socket connections.</span>
+          <span><b>Zero-Tolerance Enforcement:</b> Reports immediately issue an automated temporary suspension and instantly sever connections to protect the space.</span>
         </p>
       </div>
 

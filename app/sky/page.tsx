@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { clearIncognitoSession, getIncognitoSession, getToken, logOut, onAuth } from '@/lib/auth';
+import { resetThemeCss } from '@/lib/sky/themes';
 
 // 🚀 Eager Parallel Chunk Preloading:
 // Immediately prefetch the Sky bundle in parallel at module parse time
@@ -32,24 +33,21 @@ const Sky = dynamic(skyLoader, {
 
 export default function SkyPage() {
   const router = useRouter();
-  // Fast initial state: If guest or verified in this window, mount immediately
-  const [ok, setOk] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    if (getIncognitoSession()) return true;
-    try {
-      return sessionStorage.getItem('lumen_has_profile') === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [mounted, setMounted] = useState(false);
+  const [ok, setOk] = useState(false);
 
   useEffect(() => {
-    // Check if entered as an Ignoto / Incognito guest
-    const incognito = getIncognitoSession();
-    if (incognito) {
+    setMounted(true);
+    // Check if entered as an Ignoto / Incognito guest or has cached profile session
+    if (getIncognitoSession()) {
       setOk(true);
       return;
     }
+    try {
+      if (sessionStorage.getItem('lumen_has_profile') === '1') {
+        setOk(true);
+      }
+    } catch { /* ignore */ }
 
     let off = () => {}; let dead = false;
     onAuth(async (s) => {
@@ -90,9 +88,20 @@ export default function SkyPage() {
   const out = useCallback(() => {
     try { sessionStorage.removeItem('lumen_has_profile'); } catch {}
     clearIncognitoSession();
+    resetThemeCss();
     void logOut().then(() => router.replace('/login'));
   }, [router]);
 
-  if (!ok) return <SkyLoadingScreen />;
-  return <Sky getToken={(force?: boolean) => getToken(force)} onSignOut={out} onDeleted={() => { clearIncognitoSession(); router.replace('/'); }} />;
+  if (!mounted || !ok) return <SkyLoadingScreen />;
+  return (
+    <Sky
+      getToken={(force?: boolean) => getToken(force)}
+      onSignOut={out}
+      onDeleted={() => {
+        clearIncognitoSession();
+        resetThemeCss();
+        router.replace('/');
+      }}
+    />
+  );
 }

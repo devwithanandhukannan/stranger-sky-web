@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getConfig } from '@/lib/api';
 import { authMessage, getToken, logOut, onAuth, refreshUser, resendVerification, resetPassword, signIn, signInGoogle, signUp, setIncognitoSession, type AuthState } from '@/lib/auth';
+import { resetThemeCss } from '@/lib/sky/themes';
 import { IcoUser, IcoLock, IcoEye, IcoEyeOff, IcoIncognito, IcoGoogle } from '@/components/sky/icons';
+import Logo from '@/components/Logo';
 
 export default function Login() {
   const router = useRouter();
@@ -11,7 +13,7 @@ export default function Login() {
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [err, setErr] = useState(''), [info, setInfo] = useState(''), [busy, setBusy] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [guestAlias, setGuestAlias] = useState('');
-  const [auth, setAuth] = useState<AuthState>(null), [ready, setReady] = useState(false), [name, setName] = useState('Lumen');
+  const [auth, setAuth] = useState<AuthState>(null), [ready, setReady] = useState(false), [name, setName] = useState('Stranger Sky');
 
   const route = async () => {
     const t = await getToken(true); if (!t) return;
@@ -27,9 +29,12 @@ export default function Login() {
   };
 
   useEffect(() => {
+    resetThemeCss();
     let off = () => {}; let dead = false;
     getConfig().then((c) => setName(c.appName)).catch(() => {});
-    onAuth((s) => { if (dead) return; setAuth(s); setReady(true); if (s?.verified) void route(); }).then((u) => { off = u; }).catch(() => { setReady(true); setErr('Could not reach the server.'); });
+    onAuth((s) => { if (dead) return; setAuth(s); setReady(true); if (s?.verified) void route(); })
+      .then((u) => { off = u; })
+      .catch(() => { setReady(true); });
     return () => { dead = true; off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -42,13 +47,15 @@ export default function Login() {
     router.replace('/sky');
   };
 
-  if (!ready) return <main className="page"><div className="logo" /></main>;
+  if (!ready) return <main className="page"><Logo size={56} glow={true} /></main>;
 
   if (auth && !auth.verified) {
     return (
       <main className="page">
         <div className="card center">
-          <div className="logo" />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <Logo size={56} glow={true} />
+          </div>
           <h1>Check your email</h1>
           <p className="muted">We sent a verification link to <b>{auth.email}</b>. Open it, then tap the button below.</p>
           <div className="stack">
@@ -66,7 +73,9 @@ export default function Login() {
   return (
     <main className="page">
       <div className="card center">
-        <div className="logo" />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <Logo size={56} glow={true} />
+        </div>
         <h1 className="center">{mode === 'in' ? `Welcome back to ${name}` : `Join ${name}`}</h1>
         <p className="muted center" style={{ margin: '6px 0 0' }}>{mode === 'in' ? 'Sign in to enter the sky.' : 'You must be 18 or older.'}</p>
 

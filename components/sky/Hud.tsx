@@ -4,6 +4,7 @@ import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
 import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoGlobe, IcoRadar, IcoAlien } from './icons';
+import Logo from '@/components/Logo';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -224,7 +225,9 @@ export function IncomingCall() {
   return (
     <div className="modal" data-ui role="dialog" aria-label="Incoming">
       <div className="sheet small center">
-        <div className="logo" />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <Logo size={44} glow={true} />
+        </div>
         <h2>{ring.name}</h2>
         <p className="muted">wants to talk</p>
         <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>

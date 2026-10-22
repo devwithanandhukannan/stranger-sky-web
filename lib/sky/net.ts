@@ -46,10 +46,14 @@ export class NetWorld implements World {
     this.stopped = false;
     const { io } = await import('socket.io-client');
     if (this.stopped) return;
-    if (this.s) { this.s.close(); this.s = null; }
+    if (this.s) {
+      if (this.s.connected) return;
+      this.s.close();
+      this.s = null;
+    }
     this.ui.set({ status: 'connecting' });
     const s = io(API, {
-      transports: ['websocket'], reconnectionDelayMax: 8000,
+      transports: ['websocket', 'polling'], reconnectionDelayMax: 8000,
       auth: (cb) => {
         const inc = getIncognitoSession();
         if (inc) {

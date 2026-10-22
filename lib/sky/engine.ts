@@ -155,6 +155,8 @@ export class SkyEngine {
   private threadCorePath: SVGPathElement | null = null;
   private threadPulsePath: SVGPathElement | null = null;
   private threadSparkCircle: SVGCircleElement | null = null;
+  private threadUserRing: SVGCircleElement | null = null;
+  private threadTargetGlow: SVGCircleElement | null = null;
   private threadPeerLabel: HTMLDivElement | null = null;
   private threadConnectedSid: string | null = null;
   private threadProgress = 0;
@@ -269,7 +271,19 @@ export class SkyEngine {
       sparkCircle.setAttribute('class', 'sky-thread-spark');
       sparkCircle.setAttribute('r', '2.5');
       sparkCircle.style.opacity = '0';
+
+      const userRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      userRing.setAttribute('class', 'sky-thread-user-ring');
+      userRing.setAttribute('r', '22');
+      userRing.style.opacity = '0';
+
+      const targetGlow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      targetGlow.setAttribute('class', 'sky-thread-target-glow');
+      targetGlow.setAttribute('r', '28');
+      targetGlow.style.opacity = '0';
       
+      svg.appendChild(targetGlow);
+      svg.appendChild(userRing);
       svg.appendChild(glowPath);
       svg.appendChild(corePath);
       svg.appendChild(pulsePath);
@@ -281,6 +295,8 @@ export class SkyEngine {
       this.threadCorePath = corePath;
       this.threadPulsePath = pulsePath;
       this.threadSparkCircle = sparkCircle;
+      this.threadUserRing = userRing;
+      this.threadTargetGlow = targetGlow;
       
       const peerLbl = document.createElement('div');
       peerLbl.className = 'connected-peer-label';
@@ -360,6 +376,11 @@ export class SkyEngine {
       this.canvas.height = Math.round(this.H * this.dpr);
       this.canvas.style.width = `${this.W}px`;
       this.canvas.style.height = `${this.H}px`;
+    }
+    if (this.threadSvg) {
+      this.threadSvg.setAttribute('width', `${this.W}`);
+      this.threadSvg.setAttribute('height', `${this.H}`);
+      this.threadSvg.setAttribute('viewBox', `0 0 ${this.W} ${this.H}`);
     }
   }
   private applyTheme(t: Theme) {
@@ -927,6 +948,10 @@ export class SkyEngine {
       targetSid = s.planet.sid;
       peerName = (s.planet.known && s.planet.with?.name) ? s.planet.with.name : 'a stranger';
       isConnected = true;
+    } else if (s.selected) {
+      targetSid = s.selected;
+      peerName = 'a stranger';
+      isConnected = false;
     }
 
     const targetLight = targetSid ? (this.state.bySid.get(targetSid) || Array.from(this.state.lights.values()).find((l) => l.sid === targetSid)) : null;
@@ -940,6 +965,8 @@ export class SkyEngine {
       if (this.threadPeerLabel && this.threadPeerLabel.style.opacity !== '0') {
         this.threadPeerLabel.style.opacity = '0';
       }
+      if (this.threadUserRing) this.threadUserRing.style.opacity = '0';
+      if (this.threadTargetGlow) this.threadTargetGlow.style.opacity = '0';
       return;
     }
 
@@ -949,7 +976,7 @@ export class SkyEngine {
       this.threadProgress = 0;
     }
 
-    this.threadProgress = Math.min(1, this.threadProgress + dt * (isConnected ? 1.4 : 1.0));
+    this.threadProgress = Math.min(1, this.threadProgress + dt * (isConnected ? 2.2 : 2.0));
     const t = this.threadProgress;
 
     const p1 = this.toScreen(you.x, you.y);
@@ -959,9 +986,11 @@ export class SkyEngine {
     const dy = p2.y - p1.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 15 || p1.x < -150 || p1.x > this.W + 150 || p2.x < -150 || p2.x > this.W + 150) {
+    if (dist < 10 || p1.x < -200 || p1.x > this.W + 200 || p1.y < -200 || p1.y > this.H + 200 || p2.x < -200 || p2.x > this.W + 200 || p2.y < -200 || p2.y > this.H + 200) {
       this.threadSvg.style.opacity = '0';
       if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
+      if (this.threadUserRing) this.threadUserRing.style.opacity = '0';
+      if (this.threadTargetGlow) this.threadTargetGlow.style.opacity = '0';
       return;
     }
 
@@ -978,11 +1007,15 @@ export class SkyEngine {
       nx = -nx;
       ny = -ny;
     }
+    // If nearly vertical, ensure it consistently bows outward
+    if (Math.abs(ny) < 0.12 && nx > 0) {
+      nx = -nx;
+    }
 
     // Organic gentle cosmic string harmonic vibration
-    const wave = Math.sin(time * 2.2) * (Math.min(dist * 0.025, 4.5));
-    // Arc height (approx 16-18% of span, clamped gracefully)
-    const baseArch = Math.min(150, Math.max(30, dist * 0.17));
+    const wave = Math.sin(time * 2.2) * (Math.min(dist * 0.02, 3.5));
+    // Arc height (approx 22% of span for control point, bowing curve by ~11% of span)
+    const baseArch = Math.min(180, Math.max(36, dist * 0.22));
     const archHeight = baseArch + wave;
 
     const cx = mx + nx * archHeight;
@@ -1002,19 +1035,19 @@ export class SkyEngine {
 
     // Continuous flowing pulse along the thread
     if (this.threadPulsePath) {
-      const dashOffset = -(time * 110) % 180;
+      const dashOffset = -(time * 120) % 184;
       this.threadPulsePath.style.strokeDashoffset = `${dashOffset}px`;
     }
 
     // Traveling light spark particle
     if (this.threadSparkCircle) {
       if (t >= 0.95) {
-        const sparkT = (time * 0.38) % 1;
+        const sparkT = (time * 0.45) % 1;
         const sx = (1 - sparkT) * (1 - sparkT) * p1.x + 2 * (1 - sparkT) * sparkT * cx + sparkT * sparkT * p2.x;
         const sy = (1 - sparkT) * (1 - sparkT) * p1.y + 2 * (1 - sparkT) * sparkT * cy + sparkT * sparkT * p2.y;
         this.threadSparkCircle.setAttribute('cx', sx.toFixed(1));
         this.threadSparkCircle.setAttribute('cy', sy.toFixed(1));
-        this.threadSparkCircle.style.opacity = String(0.75 + 0.25 * Math.sin(time * 5));
+        this.threadSparkCircle.style.opacity = String(0.85 + 0.15 * Math.sin(time * 5));
       } else {
         this.threadSparkCircle.setAttribute('cx', currentEndX.toFixed(1));
         this.threadSparkCircle.setAttribute('cy', currentEndY.toFixed(1));
@@ -1022,14 +1055,26 @@ export class SkyEngine {
       }
     }
 
+    // Rings & halos on the two connected stars
+    if (this.threadUserRing) {
+      this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
+      this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
+      this.threadUserRing.style.opacity = String(Math.min(1, t * 1.2));
+    }
+    if (this.threadTargetGlow) {
+      this.threadTargetGlow.setAttribute('cx', p2.x.toFixed(1));
+      this.threadTargetGlow.setAttribute('cy', p2.y.toFixed(1));
+      this.threadTargetGlow.style.opacity = String(Math.min(1, Math.max(0, (t - 0.15) / 0.85)));
+    }
+
     this.threadSvg.style.opacity = '1';
 
     // Peer label below their star
     if (this.threadPeerLabel) {
-      if (t >= 0.6) {
+      if (t >= 0.5) {
         this.threadPeerLabel.textContent = peerName;
         this.threadPeerLabel.style.transform = `translate3d(${Math.round(p2.x)}px,${Math.round(p2.y + 26)}px,0)`;
-        this.threadPeerLabel.style.opacity = String(Math.min(1, (t - 0.6) / 0.4));
+        this.threadPeerLabel.style.opacity = String(Math.min(1, (t - 0.5) / 0.5));
       } else {
         this.threadPeerLabel.style.opacity = '0';
       }

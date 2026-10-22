@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, getConfig } from '@/lib/api';
 import { getToken, logOut, onAuth } from '@/lib/auth';
+import { resetThemeCss } from '@/lib/sky/themes';
 import { IcoUser, IcoCalendar } from '@/components/sky/icons';
+import Logo from '@/components/Logo';
 
 const MSG: Record<string, string> = {
-  underage: 'Lumen is for people 18 and older.', registration_closed: 'Sign-ups are closed for now.', content_not_allowed: 'Please choose a different name.',
+  underage: 'Stranger Sky is for people 18 and older.', registration_closed: 'Sign-ups are closed for now.', content_not_allowed: 'Please choose a different name.',
   invalid_input: 'Check your name and date of birth.',
 };
 
@@ -16,6 +18,7 @@ export default function Welcome() {
   const [name, setName] = useState(''), [dob, setDob] = useState(''), [ok, setOk] = useState(false), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [min, setMin] = useState(18), [ready, setReady] = useState(false);
 
   useEffect(() => {
+    resetThemeCss();
     getConfig().then((c) => setMin(c.minAge)).catch(() => {});
     let off = () => {};
     onAuth(async (s) => {
@@ -36,10 +39,13 @@ export default function Welcome() {
     } catch (x) { setErr(MSG[(x as Error).message] || 'Something went wrong. Please try again.'); setBusy(false); }
   };
   const today = new Date().toISOString().slice(0, 10);
-  if (!ready) return <main className="page"><div className="logo" /></main>;
+  if (!ready) return <main className="page"><Logo size={56} glow={true} /></main>;
   return (
     <main className="page">
-      <form className="card" onSubmit={submit}>
+      <form className="card center" onSubmit={submit}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <Logo size={56} glow={true} />
+        </div>
         <h1>Before you enter</h1>
         <p className="muted" style={{ margin: '6px 0 0' }}>No photos, no bio. Just a first name and your birthday.</p>
         <div className="stack">

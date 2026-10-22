@@ -17,7 +17,7 @@ function init() {
 }
 
 if (typeof window !== 'undefined') {
-  void init();
+  void init().catch(() => {});
 }
 
 export type AuthState = { email: string; verified: boolean } | null;

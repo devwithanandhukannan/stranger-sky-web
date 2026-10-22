@@ -1271,24 +1271,24 @@
   pointer-events: none;
   z-index: 2;
   overflow: visible;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.4s ease;
 }
 
 .sky-thread-glow {
   fill: none;
-  stroke: rgba(120, 215, 255, 0.32);
-  stroke-width: 4.5px;
+  stroke: rgba(120, 215, 255, 0.45);
+  stroke-width: 4px;
   stroke-linecap: round;
   filter: blur(2.5px);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .sky-thread-core {
   fill: none;
-  stroke: rgba(200, 245, 255, 0.92);
-  stroke-width: 1.25px;
+  stroke: rgba(235, 248, 255, 0.96);
+  stroke-width: 1.4px;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 5px rgba(120, 210, 255, 0.8));
+  filter: drop-shadow(0 0 6px rgba(160, 230, 255, 0.85));
 }
 
 .sky-thread-pulse {
@@ -1296,13 +1296,31 @@
   stroke: #ffffff;
   stroke-width: 1.8px;
   stroke-linecap: round;
-  stroke-dasharray: 20 160;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 14px rgba(120, 220, 255, 0.85));
+  stroke-dasharray: 24 160;
+  filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 12px rgba(120, 220, 255, 0.9));
 }
 
 .sky-thread-spark {
   fill: #ffffff;
-  filter: drop-shadow(0 0 6px #7ce8ff) drop-shadow(0 0 12px #ffffff);
+  filter: drop-shadow(0 0 6px #7ce8ff) drop-shadow(0 0 10px #ffffff);
+}
+
+.sky-thread-user-ring {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.65));
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.sky-thread-target-glow {
+  fill: rgba(100, 220, 255, 0.22);
+  stroke: rgba(160, 238, 255, 0.75);
+  stroke-width: 1px;
+  filter: drop-shadow(0 0 18px rgba(90, 215, 255, 0.95)) blur(0.5px);
+  pointer-events: none;
+  transition: opacity 0.35s ease;
 }
 
 .connected-peer-label {
@@ -1310,15 +1328,16 @@
   left: 0;
   top: 0;
   translate: -50% 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: #ffd9a0;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95), 0 0 4px #000000;
+  color: #ffcf88;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   white-space: nowrap;
   letter-spacing: 0.02em;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.35s ease;
   z-index: 3;
 }
 
@@ -3621,7 +3640,7 @@
   background: #ffffff;
   border-color: var(--accent);
 }
-[data-theme="light"] .card {
+.sky-root[data-theme="light"] .card {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(140, 170, 220, 0.3);
   color: #0f172a;
