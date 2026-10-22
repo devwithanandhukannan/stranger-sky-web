@@ -67,6 +67,7 @@ export type UI = {
   interestDrive: boolean;
   selectedInterest: string | null;
   isIncognito: boolean;
+  planetMinimized: boolean;
 };
 
 export const initialUI: UI = {
@@ -81,6 +82,7 @@ export const initialUI: UI = {
   interestDrive: false,
   selectedInterest: null,
   isIncognito: false,
+  planetMinimized: false,
 };
 
 export function createStore<T extends object>(init: T) {

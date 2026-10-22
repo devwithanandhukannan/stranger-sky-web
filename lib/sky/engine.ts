@@ -15,7 +15,7 @@ const QUALITY: Record<QualityName, QSpec> = {
   low: { dpr: 1, far: 260, mid: 130, nebula: 2, twinkle: 0.4, fps: 30, labels: 4 },
 };
 const ORDER: QualityName[] = ['high', 'balanced', 'low'];
-const MAX_LIGHTS = 1100, MAX_FX = 64, SPAN = 2400, MAX_SPEED = 150;
+const MAX_LIGHTS = 1100, MAX_FX = 64, SPAN = 4000, MAX_SPEED = 150;
 const KIND_RING = 0, KIND_BURST = 1, KIND_METEOR = 2, KIND_LANTERN = 3;
 
 const hex = (h: string) => new Color(h);
@@ -150,6 +150,14 @@ export class SkyEngine {
   private unsub: () => void;
   private prevUI: { planet: boolean; incoming: number; selected: string | null; warp: number; theme: string; census: string } = { planet: false, incoming: 0, selected: null, warp: 0, theme: '', census: '' };
   private lastSparkle = 0;
+  private threadSvg: SVGSVGElement | null = null;
+  private threadGlowPath: SVGPathElement | null = null;
+  private threadCorePath: SVGPathElement | null = null;
+  private threadPulsePath: SVGPathElement | null = null;
+  private threadSparkCircle: SVGCircleElement | null = null;
+  private threadPeerLabel: HTMLDivElement | null = null;
+  private threadConnectedSid: string | null = null;
+  private threadProgress = 0;
   private cleanup: (() => void)[] = [];
   constructor(private canvas: HTMLCanvasElement, private host: HTMLElement, private state: WorldState, private ui: Store, private world: World) {
     for (let i = 0; i < 220; i++) {
@@ -241,6 +249,46 @@ export class SkyEngine {
     this.lanternEl = document.createElement('div'); this.lanternEl.className = 'lbl special'; this.lanternEl.textContent = 'a lantern is drifting by'; host.appendChild(this.lanternEl);
     this.meteorEl = document.createElement('div'); this.meteorEl.className = 'lbl special'; this.meteorEl.textContent = 'shooting star · tap to catch'; host.appendChild(this.meteorEl);
 
+    // Celestial connection thread SVG & peer label
+    if (typeof document !== 'undefined') {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'sky-threads');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.style.opacity = '0';
+      
+      const glowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      glowPath.setAttribute('class', 'sky-thread-glow');
+      
+      const corePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      corePath.setAttribute('class', 'sky-thread-core');
+      
+      const pulsePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pulsePath.setAttribute('class', 'sky-thread-pulse');
+
+      const sparkCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      sparkCircle.setAttribute('class', 'sky-thread-spark');
+      sparkCircle.setAttribute('r', '2.5');
+      sparkCircle.style.opacity = '0';
+      
+      svg.appendChild(glowPath);
+      svg.appendChild(corePath);
+      svg.appendChild(pulsePath);
+      svg.appendChild(sparkCircle);
+      host.appendChild(svg);
+      
+      this.threadSvg = svg;
+      this.threadGlowPath = glowPath;
+      this.threadCorePath = corePath;
+      this.threadPulsePath = pulsePath;
+      this.threadSparkCircle = sparkCircle;
+      
+      const peerLbl = document.createElement('div');
+      peerLbl.className = 'connected-peer-label';
+      peerLbl.textContent = 'a stranger';
+      host.appendChild(peerLbl);
+      this.threadPeerLabel = peerLbl;
+    }
+
     this.applyTheme(this.theme);
     this.setQuality(this.quality);
     this.bind();
@@ -268,6 +316,7 @@ export class SkyEngine {
   dispose() {
     this.stop(); this.unsub(); this.cleanup.forEach((f) => f());
     this.labels.forEach((l) => l.remove()); this.lanternEl.remove(); this.meteorEl.remove();
+    this.threadSvg?.remove(); this.threadPeerLabel?.remove();
     if (this.renderer) {
       this.scene.traverse((o) => { const m = o as Mesh; m.geometry?.dispose?.(); (m.material as { dispose?: () => void } | undefined)?.dispose?.(); });
       this.renderer.dispose();
@@ -333,7 +382,17 @@ export class SkyEngine {
   }
   private onUI() {
     const s = this.ui.get(), p = this.prevUI, you = this.state.you;
-    if (s.warp !== p.warp) { p.warp = s.warp; this.fade = 0; if (you) { this.cam.x = you.x; this.cam.y = you.y; } this.fxN = 0; this.lanternFx = -1; this.meteorFx = -1; }
+    if (s.warp !== p.warp) {
+      p.warp = s.warp;
+      this.fade = 0;
+      if (you) { this.cam.x = you.x; this.cam.y = you.y; }
+      this.fxN = 0;
+      this.lanternFx = -1;
+      this.meteorFx = -1;
+      this.lanternAge = 0;
+      this.lanternCooldown = 3;
+      this.lanternOpacity = 0;
+    }
     const resolved = resolveTheme(s.skyTheme);
     if (resolved.id !== this.theme.id || s.skyTheme !== p.theme) {
       p.theme = s.skyTheme;
@@ -347,9 +406,50 @@ export class SkyEngine {
     if (s.lite !== this.lockedLow) this.setLite(s.lite);
   }
   private lanternFx = -1; private meteorFx = -1;
+  private lanternPos = { x: 0, y: 0 };
+  private lanternVel = { x: 0, y: 0 };
+  private lanternAge = 0;
+  private lanternDuration = 38;
+  private lanternCooldown = 0;
+  private lanternOpacity = 0;
 
-  private toWorld(sx: number, sy: number) { return { x: this.cam.x + (sx - this.W / 2), y: this.cam.y - (sy - this.H / 2) }; }
-  private toScreen(x: number, y: number) { return { x: this.W / 2 + (x - this.cam.x), y: this.H / 2 - (y - this.cam.y) }; }
+  private wrap(v: number, span = this.state.bound * 2): number {
+    const half = span / 2;
+    return ((((v + half) % span) + span) % span) - half;
+  }
+
+  private spawnLanternDrift() {
+    const you = this.state.you;
+    const baseCamX = you ? you.x : this.cam.x;
+    const baseCamY = you ? you.y : this.cam.y;
+    const fromLeft = Math.random() < 0.5;
+    const spawnOffsetX = fromLeft ? -(this.W * 0.45 + 120) : (this.W * 0.45 + 120);
+    const spawnOffsetY = (Math.random() - 0.5) * (this.H * 0.6);
+    this.lanternPos = {
+      x: this.wrap(baseCamX + spawnOffsetX),
+      y: this.wrap(baseCamY + spawnOffsetY),
+    };
+    this.lanternVel = {
+      x: (fromLeft ? 1 : -1) * (10 + Math.random() * 8),
+      y: (Math.random() - 0.5) * 6,
+    };
+    this.lanternAge = 0;
+    this.lanternDuration = 34 + Math.random() * 10;
+    this.lanternOpacity = 0;
+    this.lanternFx = this.spawn(this.lanternPos.x, this.lanternPos.y, KIND_LANTERN, '#ffb35a', 90, 1e9, true);
+  }
+
+  private toWorld(sx: number, sy: number) {
+    return {
+      x: this.wrap(this.cam.x + (sx - this.W / 2)),
+      y: this.wrap(this.cam.y - (sy - this.H / 2)),
+    };
+  }
+  private toScreen(x: number, y: number) {
+    const dx = this.wrap(x - this.cam.x);
+    const dy = this.wrap(y - this.cam.y);
+    return { x: this.W / 2 + dx, y: this.H / 2 - dy };
+  }
 
   private bind() {
     const el = this.canvas.parentElement || this.host;
@@ -392,7 +492,11 @@ export class SkyEngine {
     const s = this.ui.get();
     if (s.panel || s.planet) { /* sheets are open: ignore sky taps */ }
     if (s.meteor) { const m = this.toScreen(s.meteor.x, s.meteor.y); if (Math.hypot(m.x - sx, m.y - sy) < 46) { void this.world.catchMeteor(s.meteor.id); return; } }
-    if (s.lanternDrift && this.lanternFx >= 0) { const l = this.toScreen(this.fxd.pos[this.lanternFx * 3], this.fxd.pos[this.lanternFx * 3 + 1]); if (Math.hypot(l.x - sx, l.y - sy) < 44) { this.ui.set({ panel: 'lanterns' }); return; } }
+    if (s.lanternDrift && this.lanternFx >= 0 && this.lanternOpacity > 0.15) {
+      const bob = Math.sin(performance.now() * 0.001 * 0.9) * 4;
+      const l = this.toScreen(this.lanternPos.x, this.lanternPos.y + bob);
+      if (Math.hypot(l.x - sx, l.y - sy) < 44) { this.ui.set({ panel: 'lanterns' }); return; }
+    }
     let best: Light | null = null, bd = 30;
     for (const l of this.state.lights.values()) {
       if (l.hidden || l === this.state.you) continue;
@@ -419,7 +523,7 @@ export class SkyEngine {
     let vx = 0, vy = 0;
     if (kx || ky) { const n = Math.hypot(kx, ky); vx = (kx / n) * speedCap; vy = (ky / n) * speedCap; this.waypoint = null; }
     else if (tx !== null && ty !== null) {
-      const dx = tx - you.x, dy = ty - you.y, d = Math.hypot(dx, dy);
+      const dx = this.wrap(tx - you.x), dy = this.wrap(ty - you.y), d = Math.hypot(dx, dy);
       if (d < 4) {
         vx = 0; vy = 0;
         if (!(p.down && p.drag)) this.waypoint = null;
@@ -430,9 +534,21 @@ export class SkyEngine {
       }
     }
     const b = this.state.bound;
-    you.x = Math.max(-b, Math.min(b, you.x + vx * dt)); you.y = Math.max(-b, Math.min(b, you.y + vy * dt));
+    const span = b * 2;
+    let nx = you.x + vx * dt;
+    let ny = you.y + vy * dt;
+    if (nx > b) { nx -= span; you.x -= span; this.cam.x -= span; }
+    else if (nx < -b) { nx += span; you.x += span; this.cam.x += span; }
+
+    if (ny > b) { ny -= span; you.y -= span; this.cam.y -= span; }
+    else if (ny < -b) { ny += span; you.y += span; this.cam.y += span; }
+
+    you.x = nx; you.y = ny;
     you.tx = you.x; you.ty = you.y;
-    if (Math.hypot(you.x - this.lastSent.x, you.y - this.lastSent.y) > 0.5) { this.lastSent = { x: you.x, y: you.y }; this.world.move(you.x, you.y); }
+    if (Math.hypot(this.wrap(you.x - this.lastSent.x), this.wrap(you.y - this.lastSent.y)) > 0.5) {
+      this.lastSent = { x: you.x, y: you.y };
+      this.world.move(you.x, you.y);
+    }
   }
 
   private loop = (now: number) => {
@@ -448,10 +564,24 @@ export class SkyEngine {
     const you = this.state.you;
     if (you) {
       const k = 1 - Math.exp(-dt * 4);
-      const dx = you.x - this.cam.x, dy = you.y - this.cam.y;
+      const s = this.ui.get();
+      let targetX = you.x;
+      let targetY = you.y;
+      const peerSid = s.planet?.sid || (s.incoming.length > 0 ? s.incoming[s.incoming.length - 1] : null);
+      if (peerSid) {
+        const other = this.state.bySid.get(peerSid) || Array.from(this.state.lights.values()).find((l) => l.sid === peerSid);
+        if (other && !other.hidden) {
+          const otherRelX = you.x + this.wrap(other.x - you.x);
+          const otherRelY = you.y + this.wrap(other.y - you.y);
+          targetX = you.x * 0.65 + otherRelX * 0.35;
+          targetY = you.y * 0.65 + otherRelY * 0.35;
+        }
+      }
+      const dx = this.wrap(targetX - this.cam.x);
+      const dy = this.wrap(targetY - this.cam.y);
       if (Math.hypot(dx, dy) > 0.05) {
-        this.cam.x += dx * k;
-        this.cam.y += dy * k;
+        this.cam.x = this.wrap(this.cam.x + dx * k);
+        this.cam.y = this.wrap(this.cam.y + dy * k);
       }
     }
     this.fade = Math.min(1, this.fade + dt * 0.7);
@@ -476,6 +606,7 @@ export class SkyEngine {
       this.render2D(fadeE, time, dt);
     }
     this.layoutLabels(time);
+    this.updateConnectionThread(time, dt);
 
     if (this.theme.sparkle && now - this.lastSparkle > 1100 && this.quality !== 'low') {
       this.lastSparkle = now;
@@ -511,16 +642,24 @@ export class SkyEngine {
     const ease = 1 - Math.exp(-dt * 7);
     const sel = this.ui.get().selected;
     const inc = this.ui.get().incoming;
+    const halfW = this.W / 2 + 100;
+    const halfH = this.H / 2 + 100;
+
     for (const l of this.state.lights.values()) {
       if (l !== this.state.you) {
-        l.x += (l.tx - l.x) * ease;
-        l.y += (l.ty - l.y) * ease;
+        const dtx = this.wrap(l.tx - l.x);
+        const dty = this.wrap(l.ty - l.y);
+        l.x = this.wrap(l.x + dtx * ease);
+        l.y = this.wrap(l.y + dty * ease);
       }
       if (l.hidden) continue;
-      const p = this.toScreen(l.x, l.y);
-      if (p.x < -60 || p.x > this.W + 60 || p.y < -60 || p.y > this.H + 60) continue;
 
       const isYou = l === this.state.you;
+      const relX = this.wrap(l.x - this.cam.x);
+      const relY = this.wrap(l.y - this.cam.y);
+      if (!isYou && (Math.abs(relX) > halfW || Math.abs(relY) > halfH)) continue;
+
+      const p = { x: this.W / 2 + relX, y: this.H / 2 - relY };
       const mood = MOOD_COLORS[l.m % 8] || MOOD_COLORS[0];
       const baseR = isYou ? 7 : l.near ? 5.5 : 4;
 
@@ -556,12 +695,18 @@ export class SkyEngine {
       ctx.arc(mp.x, mp.y, 8, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (s.lanternDrift && this.lanternFx >= 0) {
-      const lp = this.toScreen(this.fxd.pos[this.lanternFx * 3], this.fxd.pos[this.lanternFx * 3 + 1]);
-      ctx.fillStyle = '#ffb35a';
-      ctx.beginPath();
-      ctx.arc(lp.x, lp.y, 7, 0, Math.PI * 2);
-      ctx.fill();
+    if (s.lanternDrift && this.lanternFx >= 0 && this.lanternOpacity > 0.02) {
+      const bob = Math.sin(time * 0.9) * 4;
+      const lp = this.toScreen(this.lanternPos.x, this.lanternPos.y + bob);
+      if (lp.x >= -40 && lp.x <= this.W + 40 && lp.y >= -40 && lp.y <= this.H + 40) {
+        ctx.save();
+        ctx.globalAlpha = this.lanternOpacity;
+        ctx.fillStyle = '#ffb35a';
+        ctx.beginPath();
+        ctx.arc(lp.x, lp.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     ctx.restore();
@@ -581,19 +726,37 @@ export class SkyEngine {
     const userInterests = this.ui.get().userInterests || [];
     const selectedInterest = this.ui.get().selectedInterest?.toLowerCase();
     const ease = 1 - Math.exp(-dt * 7);
+
     let n = 0;
+    const margin = 180;
+    const halfW = this.W / 2 + margin;
+    const halfH = this.H / 2 + margin;
+
     for (const l of st.lights.values()) {
-      if (l !== st.you) { l.x += (l.tx - l.x) * ease; l.y += (l.ty - l.y) * ease; }
+      if (l !== st.you) {
+        const dtx = this.wrap(l.tx - l.x);
+        const dty = this.wrap(l.ty - l.y);
+        l.x = this.wrap(l.x + dtx * ease);
+        l.y = this.wrap(l.y + dty * ease);
+      }
       if (l.hidden || n >= MAX_LIGHTS) continue;
+
+      const isYou = l === st.you;
+      const relX = this.wrap(l.x - this.cam.x);
+      const relY = this.wrap(l.y - this.cam.y);
+
+      // Viewport culling: only process and draw lights within or near screen
+      if (!isYou && (Math.abs(relX) > halfW || Math.abs(relY) > halfH)) continue;
+
       const f = l.f, mood = MOOD_RGB[l.m % 8] || MOOD_RGB[0];
       let kind = 0, size = 40, bright = l.near ? 0.95 : 0.58;
-      if (l === st.you) { kind = 4; size = 66; bright = 1.1; }
+      if (isYou) { kind = 4; size = 66; bright = 1.1; }
       else if (f & F_ECHO) { kind = 3; size = 32; bright = 0.7; }
       else if (f & F_BUSY) { kind = 5; size = 40; bright = 0.7; }
       else if (f & F_NEW) { kind = 1; size = 46; }
       else if (f & F_VET) { kind = 2; size = 54; }
 
-      const isMatchingInterest = l !== st.you && l.interests && l.interests.length > 0 && (
+      const isMatchingInterest = !isYou && l.interests && l.interests.length > 0 && (
         (selectedInterest && l.interests.some((tag) => tag.toLowerCase() === selectedInterest)) ||
         (userInterests.length > 0 && userInterests.some((myTag) => l.interests!.some((theirTag) => theirTag.toLowerCase() === myTag.toLowerCase())))
       );
@@ -602,11 +765,22 @@ export class SkyEngine {
         size = Math.round(size * 1.35);
       }
 
-      if (l.sid === sel) bright = 1.3 + 0.2 * Math.sin(time * 6);
+      const connectedSid = this.ui.get().planet?.sid;
+      if (connectedSid && l.sid === connectedSid) {
+        bright = 1.45 + 0.25 * Math.sin(time * 5);
+        size = Math.round(size * 1.35);
+      } else if (l.sid === sel) bright = 1.3 + 0.2 * Math.sin(time * 6);
       else if (inc.includes(l.sid)) bright = 1.1 + 0.4 * Math.sin(time * 5);
-      g.pos[n * 3] = l.x; g.pos[n * 3 + 1] = l.y; g.pos[n * 3 + 2] = 0;
-      g.size[n] = size; g.kind[n] = kind; g.bright[n] = bright;
-      g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]); g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]); g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
+
+      g.pos[n * 3] = this.cam.x + relX;
+      g.pos[n * 3 + 1] = this.cam.y + relY;
+      g.pos[n * 3 + 2] = 0;
+      g.size[n] = size;
+      g.kind[n] = kind;
+      g.bright[n] = bright;
+      g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]);
+      g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]);
+      g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
       n++;
     }
     const geo = this.lights.geometry; geo.setDrawRange(0, n);
@@ -617,12 +791,51 @@ export class SkyEngine {
     const s = this.ui.get(), d = this.fxd;
     // persistent things: meteor and lantern
     if (s.meteor && Date.now() > s.meteor.until) this.ui.set({ meteor: null });
-    const wantMeteor = !!this.ui.get().meteor, wantLantern = s.lanternDrift;
+    const wantMeteor = !!this.ui.get().meteor;
+    const wantLantern = !!s.lanternDrift;
+
     if (wantMeteor && this.meteorFx < 0) this.meteorFx = this.spawn(s.meteor!.x, s.meteor!.y, KIND_METEOR, '#bfe0ff', 150, 1e9, true);
     if (!wantMeteor && this.meteorFx >= 0) { this.kill(this.meteorFx); this.meteorFx = -1; }
-    if (wantLantern && this.lanternFx < 0) this.lanternFx = this.spawn(0, 0, KIND_LANTERN, '#ffb35a', 90, 1e9, true);
-    if (!wantLantern && this.lanternFx >= 0) { this.kill(this.lanternFx); this.lanternFx = -1; }
-    if (this.lanternFx >= 0) { const i = this.lanternFx; d.pos[i * 3] = this.cam.x + Math.sin(time * 0.13) * this.W * 0.3; d.pos[i * 3 + 1] = this.cam.y + this.H * 0.18 + Math.sin(time * 0.5) * 14; }
+
+    if (wantLantern) {
+      if (this.lanternFx < 0) {
+        if (this.lanternCooldown > 0) {
+          this.lanternCooldown -= dt;
+        } else {
+          this.spawnLanternDrift();
+        }
+      } else {
+        this.lanternAge += dt;
+        this.lanternPos.x += this.lanternVel.x * dt;
+        this.lanternPos.y += this.lanternVel.y * dt;
+
+        // Smooth fade-in (first 3.5s) and fade-out (last 5s)
+        const fadeIn = Math.min(1, this.lanternAge / 3.5);
+        const fadeOut = Math.max(0, Math.min(1, (this.lanternDuration - this.lanternAge) / 5.0));
+        this.lanternOpacity = fadeIn * fadeOut;
+
+        const i = this.lanternFx;
+        const bob = Math.sin(time * 0.9) * 4;
+        d.pos[i * 3] = this.lanternPos.x;
+        d.pos[i * 3 + 1] = this.lanternPos.y + bob;
+        d.size[i] = 90 * Math.max(0.01, this.lanternOpacity);
+
+        if (this.lanternAge >= this.lanternDuration) {
+          this.kill(this.lanternFx);
+          this.lanternFx = -1;
+          this.lanternOpacity = 0;
+          this.lanternCooldown = 14 + Math.random() * 12;
+        }
+      }
+    } else {
+      if (this.lanternFx >= 0) {
+        this.kill(this.lanternFx);
+        this.lanternFx = -1;
+      }
+      this.lanternOpacity = 0;
+      this.lanternCooldown = 0;
+    }
+
     if (this.meteorFx >= 0 && this.ui.get().meteor) { const m = this.ui.get().meteor!; const i = this.meteorFx; d.pos[i * 3] = m.x; d.pos[i * 3 + 1] = m.y; }
     for (let i = 0; i < this.fxN; i++) {
       const L = this.fxLife[i];
@@ -647,7 +860,9 @@ export class SkyEngine {
     const cands: { l: Light; d: number }[] = [];
     if (you) for (const l of st.lights.values()) {
       if (l.hidden || !l.t || (!l.near && l !== you)) continue;
-      cands.push({ l, d: l === you ? -1 : (l.x - you.x) ** 2 + (l.y - you.y) ** 2 });
+      const dx = this.wrap(l.x - you.x);
+      const dy = this.wrap(l.y - you.y);
+      cands.push({ l, d: l === you ? -1 : dx * dx + dy * dy });
     }
     cands.sort((a, b) => a.d - b.d);
     const placed: { x: number; y: number }[] = [];
@@ -657,12 +872,12 @@ export class SkyEngine {
       if (n >= Math.min(spec.labels, this.labels.length)) break;
       const p = this.toScreen(c.l.x, c.l.y);
       if (p.x < -60 || p.x > this.W + 60 || p.y < -20 || p.y > this.H + 20) continue;
-      if (placed.some((q) => Math.abs(q.x - p.x) < 150 && Math.abs(q.y - p.y) < 34)) continue;
+      if (placed.some((q) => Math.abs(q.x - p.x) < 160 && Math.abs(q.y - p.y) < 38)) continue;
       placed.push(p);
       const el = this.labels[n], cache = this.labelCache[n];
       const dist = Math.sqrt(Math.max(0, c.d)), op = c.l === you ? 0.7 : Math.max(0.15, Math.min(1, 1.25 - dist / R));
-      const lx = Math.max(88, Math.min(this.W - 88, p.x));
-      const tf = `translate3d(${Math.round(lx)}px,${Math.round(p.y - 22)}px,0)`, ops = op.toFixed(2);
+      const lx = Math.max(110, Math.min(this.W - 110, p.x));
+      const tf = `translate3d(${Math.round(lx)}px,${Math.round(p.y - 24)}px,0)`, ops = op.toFixed(2);
       if (cache.text !== c.l.t) { el.textContent = c.l.t; cache.text = c.l.t; }
       if (cache.tf !== tf) { el.style.transform = tf; cache.tf = tf; }
       if (cache.op !== ops) { el.style.opacity = ops; cache.op = ops; }
@@ -672,13 +887,154 @@ export class SkyEngine {
     }
     for (; n < this.labels.length; n++) { const cache = this.labelCache[n]; if (cache.op !== '0') { this.labels[n].style.opacity = '0'; cache.op = '0'; cache.text = ''; } }
     const s = this.ui.get();
-    this.place(this.lanternEl, s.lanternDrift && this.lanternFx >= 0 ? { x: this.fxd.pos[this.lanternFx * 3], y: this.fxd.pos[this.lanternFx * 3 + 1] } : null, time);
+    const bob = Math.sin(time * 0.9) * 4;
+    this.place(
+      this.lanternEl,
+      s.lanternDrift && this.lanternFx >= 0 && this.lanternOpacity > 0.05
+        ? { x: this.lanternPos.x, y: this.lanternPos.y + bob }
+        : null,
+      time,
+      this.lanternOpacity
+    );
     this.place(this.meteorEl, s.meteor ? { x: s.meteor.x, y: s.meteor.y } : null, time);
   }
-  private place(el: HTMLElement, w: { x: number; y: number } | null, time: number) {
-    if (!w) { if (el.style.opacity !== '0') el.style.opacity = '0'; return; }
+  private place(el: HTMLElement, w: { x: number; y: number } | null, time: number, alpha = 1) {
+    if (!w || alpha <= 0.02) { if (el.style.opacity !== '0') el.style.opacity = '0'; return; }
     const p = this.toScreen(w.x, w.y);
+    if (p.x < -120 || p.x > this.W + 120 || p.y < -120 || p.y > this.H + 120) {
+      if (el.style.opacity !== '0') el.style.opacity = '0';
+      return;
+    }
     el.style.transform = `translate3d(${Math.round(p.x)}px,${Math.round(p.y + 30)}px,0)`;
-    el.style.opacity = String(0.65 + 0.3 * Math.sin(time * 2));
+    const pulse = 0.65 + 0.3 * Math.sin(time * 2);
+    el.style.opacity = String((pulse * alpha).toFixed(2));
+  }
+
+  private updateConnectionThread(time: number, dt: number) {
+    if (!this.threadSvg || !this.threadCorePath) return;
+    const s = this.ui.get();
+    const you = this.state.you;
+
+    let targetSid: string | null = null;
+    let peerName = 'a stranger';
+    let isConnected = false;
+
+    if (s.planet && s.planet.sid) {
+      targetSid = s.planet.sid;
+      peerName = (s.planet.known && s.planet.with?.name) ? s.planet.with.name : 'a stranger';
+      isConnected = true;
+    } else if (s.incoming.length > 0) {
+      targetSid = s.incoming[s.incoming.length - 1];
+      peerName = 'a stranger';
+    } else if (s.selected) {
+      targetSid = s.selected;
+      peerName = 'a stranger';
+    }
+
+    const targetLight = targetSid ? (this.state.bySid.get(targetSid) || Array.from(this.state.lights.values()).find((l) => l.sid === targetSid)) : null;
+
+    if (!you || !targetLight || targetLight === you || targetLight.hidden) {
+      this.threadConnectedSid = null;
+      this.threadProgress = 0;
+      if (this.threadSvg.style.opacity !== '0') {
+        this.threadSvg.style.opacity = '0';
+      }
+      if (this.threadPeerLabel && this.threadPeerLabel.style.opacity !== '0') {
+        this.threadPeerLabel.style.opacity = '0';
+      }
+      return;
+    }
+
+    // Connection animation progress (draw-in)
+    if (this.threadConnectedSid !== targetSid) {
+      this.threadConnectedSid = targetSid;
+      this.threadProgress = 0;
+    }
+
+    this.threadProgress = Math.min(1, this.threadProgress + dt * (isConnected ? 1.4 : 1.0));
+    const t = this.threadProgress;
+
+    const p1 = this.toScreen(you.x, you.y);
+    const p2 = this.toScreen(targetLight.x, targetLight.y);
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 15 || p1.x < -150 || p1.x > this.W + 150 || p2.x < -150 || p2.x > this.W + 150) {
+      this.threadSvg.style.opacity = '0';
+      if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
+      return;
+    }
+
+    // Midpoint between both stars
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2;
+
+    // Unit normal vector perpendicular to chord
+    let nx = -dy / dist;
+    let ny = dx / dist;
+
+    // Ensure the arc curves upwards (towards sky, ny < 0 in screen space)
+    if (ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+
+    // Organic gentle cosmic string harmonic vibration
+    const wave = Math.sin(time * 2.2) * (Math.min(dist * 0.025, 4.5));
+    // Arc height (approx 16-18% of span, clamped gracefully)
+    const baseArch = Math.min(150, Math.max(30, dist * 0.17));
+    const archHeight = baseArch + wave;
+
+    const cx = mx + nx * archHeight;
+    const cy = my + ny * archHeight;
+
+    // Draw-in interpolated path: quadratic bezier curve B(t) from p1 to (cx, cy) to p2
+    const currentEndX = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cx + t * t * p2.x;
+    const currentEndY = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cy + t * t * p2.y;
+    const currentControlX = (1 - t) * p1.x + t * cx;
+    const currentControlY = (1 - t) * p1.y + t * cy;
+
+    const pathD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${currentControlX.toFixed(1)} ${currentControlY.toFixed(1)} ${currentEndX.toFixed(1)} ${currentEndY.toFixed(1)}`;
+
+    this.threadGlowPath?.setAttribute('d', pathD);
+    this.threadCorePath?.setAttribute('d', pathD);
+    this.threadPulsePath?.setAttribute('d', pathD);
+
+    // Continuous flowing pulse along the thread
+    if (this.threadPulsePath) {
+      const dashOffset = -(time * 110) % 180;
+      this.threadPulsePath.style.strokeDashoffset = `${dashOffset}px`;
+    }
+
+    // Traveling light spark particle
+    if (this.threadSparkCircle) {
+      if (t >= 0.95) {
+        const sparkT = (time * 0.38) % 1;
+        const sx = (1 - sparkT) * (1 - sparkT) * p1.x + 2 * (1 - sparkT) * sparkT * cx + sparkT * sparkT * p2.x;
+        const sy = (1 - sparkT) * (1 - sparkT) * p1.y + 2 * (1 - sparkT) * sparkT * cy + sparkT * sparkT * p2.y;
+        this.threadSparkCircle.setAttribute('cx', sx.toFixed(1));
+        this.threadSparkCircle.setAttribute('cy', sy.toFixed(1));
+        this.threadSparkCircle.style.opacity = String(0.75 + 0.25 * Math.sin(time * 5));
+      } else {
+        this.threadSparkCircle.setAttribute('cx', currentEndX.toFixed(1));
+        this.threadSparkCircle.setAttribute('cy', currentEndY.toFixed(1));
+        this.threadSparkCircle.style.opacity = '1';
+      }
+    }
+
+    this.threadSvg.style.opacity = '1';
+
+    // Peer label below their star
+    if (this.threadPeerLabel) {
+      if (t >= 0.6) {
+        this.threadPeerLabel.textContent = peerName;
+        this.threadPeerLabel.style.transform = `translate3d(${Math.round(p2.x)}px,${Math.round(p2.y + 26)}px,0)`;
+        this.threadPeerLabel.style.opacity = String(Math.min(1, (t - 0.6) / 0.4));
+      } else {
+        this.threadPeerLabel.style.opacity = '0';
+      }
+    }
   }
 }

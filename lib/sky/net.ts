@@ -71,6 +71,8 @@ export class NetWorld implements World {
     });
 
     s.on('hello', (h) => {
+      if (h.bound) st.bound = h.bound;
+      if (h.scale) st.scale = h.scale;
       const currentTheme = ui.get().skyTheme;
       let savedInterests: string[] = [];
       try {
@@ -197,8 +199,14 @@ export class NetWorld implements World {
         prompt: p.prompt, msgs: [], typing: false, kept: false, ended: null, prompts: [],
         distKm: p.distKm ?? null,
       };
-      ui.set({ planet, panel: null, selected: null, ring: null, incoming: ui.get().incoming.filter(() => false), toast: null });
+      ui.set({ planet, planetMinimized: true, panel: null, selected: null, ring: null, incoming: ui.get().incoming.filter(() => false), toast: null });
       sfx.open(); buzz([30, 40, 30], ui.get().haptics);
+      setTimeout(() => {
+        const cur = ui.get();
+        if (cur.planet && cur.planetMinimized) {
+          ui.set({ planetMinimized: false });
+        }
+      }, 2500);
     });
     s.on('planet:msg', (m: { t: string; ts: number }) => {
       this.patchPlanet((p) => ({ msgs: [...p.msgs, { mine: false, t: m.t, ts: m.ts }].slice(-200), typing: false }));
@@ -307,7 +315,19 @@ export class NetWorld implements World {
   async feed() {
     if (!this.s) return;
     const r = await ack<{ lights?: NearItem[] }>(this.s, 'feed');
-    if (r.lights) { for (const n of r.lights) this.nearMap.set(n.sid, n); this.flushNear(); }
+    if (r.lights) {
+      const liveNearSids = new Set<string>();
+      for (const l of this.state.lights.values()) {
+        if (l.near) liveNearSids.add(l.sid);
+      }
+      for (const sid of Array.from(this.nearMap.keys())) {
+        if (!liveNearSids.has(sid) && !r.lights.some((n) => n.sid === sid)) {
+          this.nearMap.delete(sid);
+        }
+      }
+      for (const n of r.lights) this.nearMap.set(n.sid, n);
+      this.flushNear();
+    }
   }
   async send(text: string) {
     if (!this.s) return 'offline';

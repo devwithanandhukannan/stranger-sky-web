@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import { Newsreader } from 'next/font/google';
 import './globals.css';
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  variable: '--font-thought',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Lumen',
@@ -14,8 +22,8 @@ export const viewport: Viewport = { themeColor: '#070b1a', width: 'device-width'
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await headers(); // opts every page into per-request rendering so the CSP nonce can be applied
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={newsreader.variable}>
+      <body className={newsreader.variable}>
         <div className="sky-bg" aria-hidden />
         {children}
       </body>

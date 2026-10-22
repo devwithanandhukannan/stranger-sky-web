@@ -15,6 +15,7 @@ export function PlanetSheet() {
   const isIncognito = useUI(ui, (s) => s.isIncognito);
   const bodyRef = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
+  const minimized = useUI(ui, (s) => s.planetMinimized);
   const n = p?.msgs.length ?? 0;
 
   useEffect(() => {
@@ -68,6 +69,32 @@ export function PlanetSheet() {
     }
   };
 
+  if (minimized) {
+    return (
+      <div className="planet-docked-pill" data-ui role="status" aria-label="Connected peer in sky">
+        <div className="planet-docked-orb" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
+        <span className="planet-docked-name">{p.known && p.with ? p.with.name : 'A stranger'}</span>
+        <span className="planet-docked-status">· Connected in sky</span>
+        <button
+          type="button"
+          className="planet-docked-btn"
+          onClick={() => ui.set({ planetMinimized: false })}
+        >
+          Open chat {n > 0 ? `(${n})` : ''}
+        </button>
+        <button
+          type="button"
+          className="planet-docked-close"
+          onClick={close}
+          title="Leave connection"
+          aria-label="Leave connection"
+        >
+          <IcoX size={12} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="planet-overlay" data-ui role="dialog" aria-label="Planet chat" style={{ ['--c' as string]: color }}>
       <div className="planet-glow" aria-hidden />
@@ -106,6 +133,16 @@ export function PlanetSheet() {
           </div>
           <div className="planet-actions">
             <button
+              type="button"
+              className="planet-btn-icon"
+              onClick={() => ui.set({ planetMinimized: true })}
+              title="View sky & thread"
+              aria-label="Minimize to sky view"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+            </button>
+            <button
+              type="button"
               className="planet-btn-icon"
               onClick={() => {
                 const next = !messageSound;
@@ -122,6 +159,7 @@ export function PlanetSheet() {
               )}
             </button>
             <button
+              type="button"
               className="planet-btn-icon"
               onClick={() => setMenu(menu ? '' : 'report')}
               title="Report user"
@@ -130,6 +168,7 @@ export function PlanetSheet() {
               <IcoShieldAlert size={15} />
             </button>
             <button
+              type="button"
               className="planet-btn-leave"
               onClick={close}
               title={p.ended ? 'Close planet' : 'Leave planet'}

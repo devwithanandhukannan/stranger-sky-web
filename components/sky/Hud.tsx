@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useUI, MOOD_COLORS } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup, IcoPixelAlien } from './icons';
+import { IcoSparkle, IcoIncognito, IcoX, IcoCheck, IcoAge, IcoPhoneCall, IcoPhoneHangup } from './icons';
 
 const Ico = ({ d }: { d: string }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 const ICONS = {
@@ -144,9 +144,7 @@ export function Toast() {
         data-ui
       >
         <div className="dynamic-island-avatar">
-          <div className="dynamic-island-orb" style={{ ['--mood-c' as string]: moodColor }}>
-            <IcoPixelAlien size={22} className="dynamic-island-person" />
-          </div>
+          <div className="dynamic-island-orb" style={{ ['--mood-c' as string]: moodColor }} />
           <span className="dynamic-island-radar" style={{ ['--mood-c' as string]: moodColor }} />
         </div>
 

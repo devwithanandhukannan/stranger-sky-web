@@ -8,7 +8,7 @@ export class WorldState {
   lights = new Map<number, Light>();
   bySid = new Map<string, Light>();
   you: Light | null = null;
-  bound = 1000;
+  bound = 2000;
   radius = 160;
   scale = 16;
   warpedAt = 0;
