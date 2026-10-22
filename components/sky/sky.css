@@ -414,9 +414,9 @@
   }
 }
 
-  /* Top-down toast on mobile (Apple Dynamic Island / Notification Banner) */
+  /* Top-down toast on mobile (Apple Dynamic Island / Notification Banner) positioned below top nav */
   .toast {
-    top: calc(14px + var(--safe-t, 0px)) !important;
+    top: calc(56px + var(--safe-t, 0px)) !important;
     bottom: auto !important;
     animation: toastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -428,9 +428,9 @@
     padding: 3px;
   }
 
-  /* Top-down Apple Dynamic Island style pulse call toast on mobile */
+  /* Top-down Apple Dynamic Island style pulse call toast on mobile positioned below top nav */
   .toast-dynamic-island {
-    top: calc(14px + var(--safe-t, 0px)) !important;
+    top: calc(56px + var(--safe-t, 0px)) !important;
     bottom: auto !important;
     animation: dynamicIslandPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both !important;
     padding: 8px 10px 8px 12px;
