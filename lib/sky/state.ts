@@ -14,10 +14,18 @@ export class WorldState {
   warpedAt = 0;
 
   reset() { this.lights.clear(); this.bySid.clear(); this.you = null; }
-  add(p: { i: number; sid: string; x: number; y: number; m: number; f: number; interests?: string[]; isIncognito?: boolean; t?: string }) {
-    const old = this.lights.get(p.i);
+  add(p: { i: number; sid: string; x: number; y: number; m: number; f: number; interests?: string[]; isIncognito?: boolean; t?: string; near?: boolean }) {
+    const old = this.lights.get(p.i) || (p.sid ? this.bySid.get(p.sid) : undefined);
     if (old) this.bySid.delete(old.sid);
-    const l: Light = { ...p, tx: p.x, ty: p.y, hidden: false, near: false, t: p.t || '', interests: p.interests || [] };
+    const l: Light = {
+      ...p,
+      tx: p.x,
+      ty: p.y,
+      hidden: old ? old.hidden : false,
+      near: p.near ?? (old ? old.near : false),
+      t: (p.t !== undefined && p.t !== '') ? p.t : (old?.t || ''),
+      interests: p.interests || (old ? old.interests : []),
+    };
     this.lights.set(p.i, l);
     this.bySid.set(p.sid, l);
     return l;

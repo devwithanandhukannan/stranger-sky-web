@@ -857,31 +857,35 @@ export class SkyEngine {
 
   private layoutLabels(time: number) {
     const st = this.state, you = st.you, spec = QUALITY[this.quality];
+    const sel = this.ui.get().selected;
     const cands: { l: Light; d: number }[] = [];
     if (you) for (const l of st.lights.values()) {
-      if (l.hidden || !l.t || (!l.near && l !== you)) continue;
+      if (l.hidden || !l.t) continue;
       const dx = this.wrap(l.x - you.x);
       const dy = this.wrap(l.y - you.y);
-      cands.push({ l, d: l === you ? -1 : dx * dx + dy * dy });
+      const d = l === you ? -1 : dx * dx + dy * dy;
+      if (!l.near && l !== you && sel !== l.sid && d > (st.radius * 1.5) ** 2) continue;
+      cands.push({ l, d });
     }
     cands.sort((a, b) => a.d - b.d);
     const placed: { x: number; y: number }[] = [];
     let n = 0;
-    const R = st.radius * 1.15;
+    const R = Math.max(220, st.radius * 1.25);
     for (const c of cands) {
       if (n >= Math.min(spec.labels, this.labels.length)) break;
       const p = this.toScreen(c.l.x, c.l.y);
       if (p.x < -60 || p.x > this.W + 60 || p.y < -20 || p.y > this.H + 20) continue;
-      if (placed.some((q) => Math.abs(q.x - p.x) < 160 && Math.abs(q.y - p.y) < 38)) continue;
+      const isSelected = sel === c.l.sid;
+      if (!isSelected && placed.some((q) => Math.abs(q.x - p.x) < 70 && Math.abs(q.y - p.y) < 22)) continue;
       placed.push(p);
       const el = this.labels[n], cache = this.labelCache[n];
-      const dist = Math.sqrt(Math.max(0, c.d)), op = c.l === you ? 0.7 : Math.max(0.15, Math.min(1, 1.25 - dist / R));
+      const dist = Math.sqrt(Math.max(0, c.d));
+      const op = c.l === you ? 0.85 : isSelected ? 1 : Math.max(0.65, Math.min(1, 1.3 - dist / R));
       const lx = Math.max(110, Math.min(this.W - 110, p.x));
       const tf = `translate3d(${Math.round(lx)}px,${Math.round(p.y - 24)}px,0)`, ops = op.toFixed(2);
       if (cache.text !== c.l.t) { el.textContent = c.l.t; cache.text = c.l.t; }
       if (cache.tf !== tf) { el.style.transform = tf; cache.tf = tf; }
       if (cache.op !== ops) { el.style.opacity = ops; cache.op = ops; }
-      el.style.color = c.l === you ? '#cfe0ff' : '';
       el.classList.toggle('you', c.l === you);
       n++;
     }

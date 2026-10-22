@@ -73,6 +73,7 @@ export class NetWorld implements World {
     s.on('hello', (h) => {
       if (h.bound) st.bound = h.bound;
       if (h.scale) st.scale = h.scale;
+      if (h.radius) st.radius = h.radius;
       const currentTheme = ui.get().skyTheme;
       let savedInterests: string[] = [];
       try {
@@ -125,6 +126,7 @@ export class NetWorld implements World {
       if (myThought) {
         st.you.t = myThought;
         if (!ui.get().thought) ui.set({ thought: myThought });
+        void this.thought(myThought, ui.get().mood || 0);
       }
       for (const r of g.roster) {
         if (!(r.f & 8)) st.add(r);
@@ -155,8 +157,28 @@ export class NetWorld implements World {
       }
     });
     s.on('near:in', (n: NearItem) => {
-      const l = st.bySid.get(n.sid);
-      if (l) { l.near = true; l.t = n.t; l.m = n.m; l.f = n.f; }
+      let l = st.bySid.get(n.sid) || (n.i != null ? st.lights.get(n.i) : undefined);
+      if (l) {
+        l.near = true;
+        if (n.t) l.t = n.t;
+        l.m = n.m;
+        l.f = n.f;
+        if (n.sid && !l.sid) l.sid = n.sid;
+        if (n.sid) st.bySid.set(n.sid, l);
+      } else if (n.i != null && n.sid) {
+        l = st.add({
+          i: n.i,
+          sid: n.sid,
+          x: 0,
+          y: 0,
+          m: n.m,
+          f: n.f,
+          t: n.t,
+          near: true,
+          interests: n.interests,
+          isIncognito: n.isIncognito,
+        });
+      }
       this.nearMap.set(n.sid, n);
       this.flushNear();
     });
@@ -439,12 +461,15 @@ export class NetWorld implements World {
         distKm: r.distKm,
       };
       this.nearMap.set(r.sid, item);
-      const l = this.state.bySid.get(r.sid);
+      const l = this.state.bySid.get(r.sid) || (r.i != null ? this.state.lights.get(r.i) : undefined);
       if (l) {
+        l.near = true;
         l.t = r.t;
         l.m = r.m;
         l.f = r.f;
         l.interests = r.interests || [];
+        if (r.sid && !l.sid) l.sid = r.sid;
+        if (r.sid) this.state.bySid.set(r.sid, l);
       }
       this.flushNear();
       return item;

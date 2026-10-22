@@ -2727,6 +2727,10 @@
   text-shadow: 0 1px 8px rgba(255, 255, 255, 0.95), 0 0 4px #ffffff;
   font-weight: 600;
 }
+[data-theme="light"] .lbl.you {
+  color: #1e3a8a;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.95), 0 0 4px #ffffff;
+}
 [data-theme="light"] .lbl.special {
   color: #b45309;
 }
