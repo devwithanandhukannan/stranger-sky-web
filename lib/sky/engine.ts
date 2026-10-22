@@ -578,6 +578,8 @@ export class SkyEngine {
 
   private writeLights(time: number, dt: number) {
     const st = this.state, sel = this.ui.get().selected, inc = this.ui.get().incoming, g = this.lg;
+    const userInterests = this.ui.get().userInterests || [];
+    const selectedInterest = this.ui.get().selectedInterest?.toLowerCase();
     const ease = 1 - Math.exp(-dt * 7);
     let n = 0;
     for (const l of st.lights.values()) {
@@ -590,6 +592,16 @@ export class SkyEngine {
       else if (f & F_BUSY) { kind = 5; size = 40; bright = 0.7; }
       else if (f & F_NEW) { kind = 1; size = 46; }
       else if (f & F_VET) { kind = 2; size = 54; }
+
+      const isMatchingInterest = l !== st.you && l.interests && l.interests.length > 0 && (
+        (selectedInterest && l.interests.some((tag) => tag.toLowerCase() === selectedInterest)) ||
+        (userInterests.length > 0 && userInterests.some((myTag) => l.interests!.some((theirTag) => theirTag.toLowerCase() === myTag.toLowerCase())))
+      );
+      if (isMatchingInterest) {
+        bright = Math.max(bright, 1.25 + 0.3 * Math.sin(time * 4 + l.i));
+        size = Math.round(size * 1.35);
+      }
+
       if (l.sid === sel) bright = 1.3 + 0.2 * Math.sin(time * 6);
       else if (inc.includes(l.sid)) bright = 1.1 + 0.4 * Math.sin(time * 5);
       g.pos[n * 3] = l.x; g.pos[n * 3 + 1] = l.y; g.pos[n * 3 + 2] = 0;

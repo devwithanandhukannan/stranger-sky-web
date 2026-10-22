@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_NEW, F_VET, F_BUSY } from '@/lib/sky/store';
+import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_NEW, F_VET, F_BUSY, type NearItem } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { setSound, sfx, speakMessage } from '@/lib/sky/audio';
 import { api, API } from '@/lib/api';
@@ -56,11 +56,16 @@ export function ThoughtSheet() {
   const close = () => ui.set({ panel: null, meteorPrompt: null });
   const save = async (clear = false) => {
     setBusy(true); setErr('');
-    const e = await world.thought(clear ? '' : text.trim(), m);
+    const val = clear ? '' : text.trim();
+    const e = await world.thought(val, m);
     setBusy(false);
     if (e) {
       setErr(ERR[e] || 'Could not share that.');
     } else {
+      try {
+        if (val) localStorage.setItem('userThought', val);
+        else localStorage.removeItem('userThought');
+      } catch { /* ignore */ }
       ui.set({
         toast: clear ? 'Thought cleared from your light' : 'Thought released into the sky',
       });
@@ -177,8 +182,27 @@ export function LightSheet() {
   const { ui, world } = useSky();
   const sid = useUI(ui, (s) => s.selected), near = useUI(ui, (s) => s.near), incoming = useUI(ui, (s) => s.incoming);
   const myInterests = useUI(ui, (s) => s.userInterests);
+  const [peekItem, setPeekItem] = useState<NearItem | null>(null);
+
+  useEffect(() => {
+    if (!sid) {
+      setPeekItem(null);
+      return;
+    }
+    const alreadyNear = near.find((x) => x.sid === sid);
+    if (alreadyNear) {
+      setPeekItem(alreadyNear);
+    } else {
+      let active = true;
+      void world.peek(sid).then((item) => {
+        if (active && item) setPeekItem(item);
+      });
+      return () => { active = false; };
+    }
+  }, [sid, near, world]);
+
   if (!sid) return null;
-  const n = near.find((x) => x.sid === sid);
+  const n = peekItem || near.find((x) => x.sid === sid);
   const kind = !n ? '' : n.f & F_ECHO ? 'an echo of someone who passed through' : n.f & F_BUSY ? 'in a conversation' : n.f & F_NEW ? 'a new star' : n.f & F_VET ? 'an old soul' : 'a light';
   const pulsed = incoming.includes(sid);
   const lightInterests = n?.interests || [];

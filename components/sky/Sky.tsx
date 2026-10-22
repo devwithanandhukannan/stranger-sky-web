@@ -275,6 +275,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
       locationGranted: !!savedLoc(),
       userLocation: savedLoc(),
       skyTheme: initialSkyTheme(),
+      thought: (typeof localStorage !== 'undefined' && localStorage.getItem('userThought')) || '',
     })
   );
   const [state] = useState(() => new WorldState());
@@ -295,6 +296,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
   const hasLight = useUI(ui, (s) => !!s.selected);
   const galaxy = useUI(ui, (s) => s.galaxy);
   const locationGranted = useUI(ui, (s) => s.locationGranted);
+  const census = useUI(ui, (s) => s.census);
 
   const [activeTheme, setActiveTheme] = useState(() => resolveTheme(ui.get().skyTheme));
 
@@ -413,6 +415,14 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () =
         <MeteorCard />
         <Toast />
         {galaxy === 'neighbours' && !locationGranted && <NeighbourLocationPrompt />}
+        {galaxy === 'neighbours' && locationGranted && (census.counts['neighbours'] ?? 0) <= 1 && !hasLight && !planet && !listMode && (
+          <div className="neighbour-empty-notice" data-ui>
+            <span>No wanderers within 100 km right now</span>
+            <button type="button" className="btn sm ghost neighbour-empty-btn" onClick={() => void world.travel('night')}>
+              Switch to One Sky
+            </button>
+          </div>
+        )}
       </div>
     </Ctx.Provider>
   );

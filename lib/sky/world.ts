@@ -28,5 +28,6 @@ export interface World {
   toggleInterestDrive(on?: boolean): void;
   selectInterest(tag: string | null): void;
   driveToInterest(tag?: string): void;
+  peek(sid: string): Promise<import('./store').NearItem | null>;
 }
 export type WorldCtor = new (state: WorldState, ui: Store) => World;

@@ -91,6 +91,17 @@ export class NetWorld implements World {
       if (savedInterests.length) {
         void this.setInterests(savedInterests);
       }
+      if (!h.isIncognito) {
+        getToken().then((token) => {
+          if (token) {
+            import('../api').then(({ api }) => {
+              api<{ available: boolean }>('GET', '/lanterns/drift', token)
+                .then((res) => { if (res?.available) ui.set({ lanternDrift: true }); })
+                .catch(() => {});
+            });
+          }
+        }).catch(() => {});
+      }
       try {
         const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('userLoc') : null;
         if (raw) {
@@ -101,15 +112,28 @@ export class NetWorld implements World {
         }
       } catch { /* ignore */ }
     });
+    s.on('lantern:drift', (d: { available?: boolean }) => {
+      ui.set({ lanternDrift: !!d?.available });
+      if (d?.available) sfx.receive();
+    });
     s.on('galaxy:enter', (g) => {
       st.reset(); this.nearMap.clear();
       st.you = st.add({ ...g.you });
+      const myThought = g.you?.t || ui.get().thought || (typeof localStorage !== 'undefined' ? localStorage.getItem('userThought') || '' : '');
+      if (myThought) {
+        st.you.t = myThought;
+        if (!ui.get().thought) ui.set({ thought: myThought });
+      }
       for (const r of g.roster) st.add(r);
       for (const sid of g.hide) { const l = st.bySid.get(sid); if (l) l.hidden = true; }
       st.warpedAt = performance.now();
       ui.set({ galaxy: g.galaxy, near: [], selected: null, census: g.census, status: 'live', warp: ui.get().warp + 1, incoming: [] });
     });
     s.on('roster:add', (r) => { st.add(r); });
+    s.on('roster:interests', (p: { i: number; sid: string; interests: string[] }) => {
+      const l = st.bySid.get(p.sid) || st.lights.get(p.i);
+      if (l) l.interests = p.interests;
+    });
     s.on('roster:del', (r) => { st.remove(r.i); this.nearMap.delete(r.sid); });
     s.on('galaxies:update', (d: { galaxies: Galaxy[] }) => { if (d?.galaxies) ui.set({ galaxies: d.galaxies }); });
     s.on('pos', (buf: ArrayBuffer | Uint8Array) => {
@@ -376,6 +400,34 @@ export class NetWorld implements World {
     if (!targetTag) return;
     this.hop();
     this.toast(`Driving toward strangers exploring “${targetTag}”…`);
+  }
+
+  async peek(sid: string): Promise<NearItem | null> {
+    if (!this.s) return null;
+    const r = await ack<{ ok?: boolean; sid: string; i: number; t: string; m: number; f: number; interests?: string[]; isIncognito?: boolean; distKm?: number }>(this.s, 'peek', { sid });
+    if (r.ok) {
+      const item: NearItem = {
+        i: r.i,
+        sid: r.sid,
+        t: r.t,
+        m: r.m,
+        f: r.f,
+        interests: r.interests || [],
+        isIncognito: !!r.isIncognito,
+        distKm: r.distKm,
+      };
+      this.nearMap.set(r.sid, item);
+      const l = this.state.bySid.get(r.sid);
+      if (l) {
+        l.t = r.t;
+        l.m = r.m;
+        l.f = r.f;
+        l.interests = r.interests || [];
+      }
+      this.flushNear();
+      return item;
+    }
+    return null;
   }
 }
 

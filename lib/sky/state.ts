@@ -1,7 +1,7 @@
 // The per-frame world lives OUTSIDE React: plain objects the renderer reads every frame.
 export type Light = {
   i: number; sid: string; x: number; y: number; tx: number; ty: number; m: number; f: number;
-  hidden: boolean; near: boolean; t: string;
+  hidden: boolean; near: boolean; t: string; interests?: string[]; isIncognito?: boolean;
 };
 
 export class WorldState {
@@ -14,10 +14,10 @@ export class WorldState {
   warpedAt = 0;
 
   reset() { this.lights.clear(); this.bySid.clear(); this.you = null; }
-  add(p: { i: number; sid: string; x: number; y: number; m: number; f: number }) {
+  add(p: { i: number; sid: string; x: number; y: number; m: number; f: number; interests?: string[]; isIncognito?: boolean; t?: string }) {
     const old = this.lights.get(p.i);
     if (old) this.bySid.delete(old.sid);
-    const l: Light = { ...p, tx: p.x, ty: p.y, hidden: false, near: false, t: '' };
+    const l: Light = { ...p, tx: p.x, ty: p.y, hidden: false, near: false, t: p.t || '', interests: p.interests || [] };
     this.lights.set(p.i, l);
     this.bySid.set(p.sid, l);
     return l;
