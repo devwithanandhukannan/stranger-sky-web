@@ -94,5 +94,5 @@ export default function SkyPage() {
   }, [router]);
 
   if (!ok) return <SkyLoadingScreen />;
-  return <Sky getToken={() => getToken()} onSignOut={out} onDeleted={() => { clearIncognitoSession(); router.replace('/'); }} />;
+  return <Sky getToken={(force?: boolean) => getToken(force)} onSignOut={out} onDeleted={() => { clearIncognitoSession(); router.replace('/'); }} />;
 }

@@ -689,8 +689,6 @@ export function SettingsSheet() {
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
     : 'Oct 2026';
-  const galaxyName = s.galaxies.find((g) => g.slug === s.galaxy)?.name || s.galaxy;
-
   return (
     <Sheet title="You" onClose={() => ui.set({ panel: null })} tall className="settings-sheet">
       {/* Top Profile Card (Image 2 style) */}
@@ -701,7 +699,6 @@ export function SettingsSheet() {
         <div className="settings-profile-info">
           <div className="settings-profile-name-row">
             <h3 className="settings-profile-name">{s.name || 'Anonymous Light'}</h3>
-            {galaxyName && <span className="settings-galaxy-badge">{galaxyName}</span>}
           </div>
           <p className="settings-profile-sub">
             {s.bonds.length} bond{s.bonds.length === 1 ? '' : 's'} · here since {memberSince}
@@ -793,27 +790,6 @@ export function SettingsSheet() {
             </label>
           </div>
 
-          {/* Account & Safety Card */}
-          <div className="setting-account-card">
-            <div className="setting-links-row">
-              <a className="setting-link" href="/rules" target="_blank" rel="noopener">Community rules</a>
-              <span className="setting-link-sep">·</span>
-              <a className="setting-link" href="/privacy" target="_blank" rel="noopener">Privacy</a>
-            </div>
-            <div className="setting-account-btns">
-              <button className="btn-secondary-pill" onClick={exportData}>Download data</button>
-              <button className="btn-secondary-pill" onClick={onSignOut}>Sign out</button>
-            </div>
-            <details className="settings-delete-details">
-              <summary className="tiny muted" style={{ cursor: 'pointer' }}>Delete account</summary>
-              <p className="tiny muted" style={{ margin: '8px 0' }}>This removes your profile permanently. Type DELETE to confirm.</p>
-              <div className="row" style={{ gap: 8 }}>
-                <input className="field" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} aria-label="Type DELETE" />
-                <button className="btn danger" disabled={confirmDel !== 'DELETE'} onClick={del}>Delete</button>
-              </div>
-              {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
-            </details>
-          </div>
         </div>
 
         {/* Right Column: COMFORT */}
@@ -920,6 +896,28 @@ export function SettingsSheet() {
             Sky quality: {s.quality} · Adjusts automatically to your device.
           </p>
         </div>
+      </div>
+
+      {/* Account & Safety Card - Positioned at bottom */}
+      <div className="setting-account-card">
+        <div className="setting-links-row">
+          <a className="setting-link" href="/rules" target="_blank" rel="noopener">Community rules</a>
+          <span className="setting-link-sep">·</span>
+          <a className="setting-link" href="/privacy" target="_blank" rel="noopener">Privacy</a>
+        </div>
+        <div className="setting-account-btns">
+          <button className="btn-secondary-pill" onClick={exportData}>Download data</button>
+          <button className="btn-secondary-pill" onClick={onSignOut}>Sign out</button>
+        </div>
+        <details className="settings-delete-details">
+          <summary className="tiny muted" style={{ cursor: 'pointer' }}>Delete account</summary>
+          <p className="tiny muted" style={{ margin: '8px 0' }}>This removes your profile permanently. Type DELETE to confirm.</p>
+          <div className="row" style={{ gap: 8 }}>
+            <input className="field" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} aria-label="Type DELETE" />
+            <button className="btn danger" disabled={confirmDel !== 'DELETE'} onClick={del}>Delete</button>
+          </div>
+          {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
+        </details>
       </div>
     </Sheet>
   );

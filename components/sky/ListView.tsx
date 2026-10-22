@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES, F_ECHO, F_BUSY } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { IcoPin, IcoRefresh, IcoSparkle, IcoIncognito, IcoX } from './icons';
@@ -21,12 +21,23 @@ export function ListView() {
   const currentRealm = realmOptions.find((g) => g.slug === galaxy) || realmOptions[0];
   const count = Math.max(0, (census.counts[galaxy] ?? 0) - 1);
   const myInterests = useUI(ui, (s) => s.userInterests);
+  const [refreshing, setRefreshing] = useState(false);
 
   const closeList = () => {
     ui.set({ listMode: false });
     try {
       localStorage.setItem('list', '0');
     } catch {}
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await world.feed();
+    } finally {
+      setTimeout(() => setRefreshing(false), 500);
+    }
   };
 
   useEffect(() => {
@@ -88,17 +99,18 @@ export function ListView() {
 
             <button
               type="button"
-              className="btn ghost sm"
-              onClick={() => void world.feed()}
+              className={`btn ghost sm list-refresh-btn${refreshing ? ' spinning' : ''}`}
+              onClick={handleRefresh}
               title="Refresh thoughts"
+              aria-label="Refresh thoughts"
             >
-              <IcoRefresh size={13} style={{ marginRight: 4 }} />
-              Refresh
+              <IcoRefresh size={14} className="list-refresh-icon" />
+              <span className="list-refresh-text">Refresh</span>
             </button>
 
             <button
               type="button"
-              className="btn ghost sm"
+              className="btn ghost sm list-hop-btn"
               onClick={() => world.hop()}
               title="Hop to new lights"
             >

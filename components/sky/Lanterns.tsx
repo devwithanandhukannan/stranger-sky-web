@@ -11,10 +11,16 @@ type Inbox = { sent: Item[]; held: Item[] };
 type Held = { id: number; body: string; hops: number; galaxy?: string };
 
 const ERR: Record<string, string> = {
-  daily_limit: 'You have released all your lanterns for today.',
-  content_not_allowed: 'Links and blocked words are not allowed.',
-  too_many_held: 'Answer or release your lanterns first.',
+  daily_limit: 'You have released all your lanterns for today. Come back tomorrow.',
+  content_not_allowed: 'Links and blocked words are not allowed in lanterns.',
+  too_many_held: 'You are holding three lanterns already. Answer or release one first.',
   thread_full: 'This thread is full.',
+  invalid_input: 'Please write a shorter thought.',
+  unauthenticated: 'Lanterns require an account. Please sign in.',
+  no_profile: 'Please complete your profile to use lanterns.',
+  not_found: 'That lantern has already drifted away.',
+  not_allowed: 'You cannot do that with this lantern.',
+  already_reported: 'You already reported this lantern.',
 };
 
 export function LanternSheet() {
@@ -34,25 +40,43 @@ export function LanternSheet() {
   const [reporting, setReporting] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
+  const [releasing, setReleasing] = useState(false);
 
   const call = useCallback(async <T,>(m: string, p: string, b?: unknown): Promise<T | null> => {
     setErr('');
-    const t = await getToken();
-    if (!t) return null;
+    let t = await getToken();
+    if (!t) {
+      try { t = await getToken(true); } catch {}
+    }
+    if (!t) {
+      setErr('Lanterns require an account. Please sign in to release lanterns.');
+      return null;
+    }
     try {
       return await api<T>(m, `/lanterns${p}`, t, b);
     } catch (e) {
-      setErr(ERR[(e as Error).message] || 'Something went wrong.');
+      const msg = (e as Error).message;
+      if (msg === 'unauthenticated' || msg === 'invalid_token') {
+        try {
+          const fresh = await getToken(true);
+          if (fresh) return await api<T>(m, `/lanterns${p}`, fresh, b);
+        } catch {}
+      }
+      setErr(ERR[msg] || (msg && msg !== 'error' ? msg.replace(/_/g, ' ') : 'Something went wrong. Please try again.'));
       return null;
     }
   }, [getToken]);
 
   const load = useCallback(async () => {
-    const r = await call<Inbox>('GET', '/inbox');
+    const r = await call<Inbox & { left?: number }>('GET', '/inbox');
     if (r) {
       setInbox(r);
-      const remaining = Math.max(0, 3 - (r.sent?.length || 0));
-      setLeft(remaining);
+      if (typeof r.left === 'number') {
+        setLeft(r.left);
+      } else {
+        const remaining = Math.max(0, 3 - (r.sent?.length || 0));
+        setLeft(remaining);
+      }
     }
   }, [call]);
 
@@ -74,14 +98,20 @@ export function LanternSheet() {
 
   const doRelease = async () => {
     const t = body.trim();
-    if (!t) return;
-    const r = await call<{ left: number }>('POST', '', { body: t });
-    if (r) {
-      setBody('');
-      setLeft(r.left);
-      setOk(`Your lantern is drifting away. ${r.left} left today.`);
-      void load();
-      setTab('inbox');
+    if (!t || releasing) return;
+    setReleasing(true);
+    setErr('');
+    try {
+      const r = await call<{ left: number }>('POST', '', { body: t });
+      if (r) {
+        setBody('');
+        setLeft(r.left);
+        setOk(`Your lantern is drifting away. ${r.left} left today.`);
+        void load();
+        setTab('inbox');
+      }
+    } finally {
+      setReleasing(false);
     }
   };
 
@@ -495,21 +525,46 @@ export function LanternSheet() {
             rows={4}
             maxLength={200}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              if (err) setErr('');
+            }}
             placeholder="Something you would tell a stranger…"
             aria-label="Lantern message"
           />
+          {err && (
+            <div className="lantern-inline-err" role="alert">
+              <span>{err}</span>
+              {err.toLowerCase().includes('sign in') && (
+                <button
+                  type="button"
+                  className="lantern-inline-action-btn"
+                  onClick={() => {
+                    ui.set({ panel: null });
+                    window.location.href = '/login';
+                  }}
+                >
+                  Sign in →
+                </button>
+              )}
+            </div>
+          )}
+          {left <= 0 && !err && (
+            <div className="lantern-inline-err" style={{ borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
+              <span>You have reached your daily lantern limit. More will arrive tomorrow night.</span>
+            </div>
+          )}
           <div className="row" style={{ marginTop: 12, alignItems: 'center' }}>
             <span className="tiny" style={{ flex: 1, color: '#8a94a6' }}>
               {body.length}/200
             </span>
             <button
-              className="btn-ivory"
-              style={{ padding: '10px 26px', fontSize: 15 }}
-              disabled={!body.trim()}
+              type="button"
+              className="btn-release-submit"
+              disabled={!body.trim() || releasing || left <= 0}
               onClick={doRelease}
             >
-              Release
+              {releasing ? 'Releasing…' : 'Release'}
             </button>
           </div>
           <p className="release-caption" style={{ marginTop: 24 }}>
@@ -589,7 +644,7 @@ export function LanternSheet() {
         </ul>
       )}
 
-      {err && <div className="err" style={{ marginTop: 12 }}>{err}</div>}
+      {tab !== 'release' && err && <div className="err" style={{ marginTop: 12 }}>{err}</div>}
       {ok && <p className="tiny" style={{ color: '#ffaa40', marginTop: 12, textAlign: 'center' }}>{ok}</p>}
     </Sheet>
   );

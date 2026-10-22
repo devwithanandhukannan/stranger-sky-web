@@ -260,7 +260,7 @@ function BanScreen({
   );
 }
 
-export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: () => Promise<string | null>; onSignOut: () => void; onDeleted: () => void }) {
+export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (force?: boolean) => Promise<string | null>; onSignOut: () => void; onDeleted: () => void }) {
   const router = useRouter();
   const [ui] = useState(() =>
     createStore({

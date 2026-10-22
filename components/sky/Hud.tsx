@@ -54,8 +54,9 @@ export function TopBar() {
         </button>
 
         {isIncognito && (
-          <span className="top-incognito-badge" title="Ignoto / Incognito guest: Friends & save disabled" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <IcoIncognito size={13} /> Ignoto
+          <span className="top-incognito-badge" title="Ignoto / Incognito guest: Friends & save disabled">
+            <IcoIncognito size={13} />
+            <span className="incognito-label">Ignoto</span>
           </span>
         )}
       </div>
