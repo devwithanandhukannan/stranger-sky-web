@@ -8,7 +8,21 @@ import { IcoPin, IcoCalendar, IcoAge, IcoBond, IcoChat, IcoChime, IcoCrystal, Ic
 
 import { resolveTheme, getTimeBasedThemeId, applyThemeCss, getThemeScheduleDescription } from '@/lib/sky/themes';
 
-export function Sheet({ title, onClose, children, tall, className }: { title: string; onClose: () => void; children: ReactNode; tall?: boolean; className?: string }) {
+export function Sheet({
+  title,
+  onClose,
+  children,
+  tall,
+  className,
+  headerExtra,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  tall?: boolean;
+  className?: string;
+  headerExtra?: ReactNode;
+}) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k);
@@ -17,7 +31,14 @@ export function Sheet({ title, onClose, children, tall, className }: { title: st
   return (
     <div className={`modal${className ? ` modal-${className}` : ''}`} data-ui onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className={`sheet${tall ? ' tall' : ''}${className ? ` ${className}` : ''}`} role="dialog" aria-label={title}>
-        <header className="sheet-h"><h2>{title}</h2><button className="icon" onClick={onClose} aria-label="Close"><IcoX size={15} /></button></header>
+        <div className="sheet-handle" />
+        <header className="sheet-h">
+          <h2>{title}</h2>
+          <div className="sheet-h-right">
+            {headerExtra}
+            <button className="icon" onClick={onClose} aria-label="Close"><IcoX size={15} /></button>
+          </div>
+        </header>
         {children}
       </section>
     </div>
@@ -290,7 +311,7 @@ export function MapSheet() {
   };
 
   return (
-    <Sheet title="One Sky · Interests & Universe" onClose={() => ui.set({ panel: null })} tall>
+    <Sheet title="One Sky · Interests & Universe" onClose={() => ui.set({ panel: null })} tall className="universe-sheet">
       <p className="galaxy-sheet-desc">
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 5 }}><IcoSparkle size={13} /></span>
         {census.total} lights drifting across One Sky. Add your interests to steer and connect through the cosmos.
@@ -503,7 +524,10 @@ export function BondsSheet() {
 
 export function SettingsSheet() {
   const { ui, world, getToken, onSignOut, onDeleted } = useSky();
-  const s = useUI(ui, (x) => x), [confirmDel, setConfirmDel] = useState(''), [err, setErr] = useState('');
+  const s = useUI(ui, (x) => x);
+  const [confirmDel, setConfirmDel] = useState('');
+  const [err, setErr] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
   const [profile, setProfile] = useState<{ email?: string; age?: number; createdAt?: string } | null>(null);
 
   useEffect(() => {
@@ -524,311 +548,262 @@ export function SettingsSheet() {
     return () => { dead = true; };
   }, [getToken]);
 
-  const save = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* ignore */ } };
+  const save = (k: string, v: boolean) => {
+    try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* ignore */ }
+  };
+
   const del = async () => {
     setErr('');
     try {
       const t = await getToken();
       if (t) await api('DELETE', '/me', t);
       const { deleteLogin } = await import('@/lib/auth');
-      try { await deleteLogin(); } catch { /* the profile is gone; sign-in will be removed on next login if needed */ }
+      try { await deleteLogin(); } catch { /* ignore */ }
       onDeleted();
-    } catch { setErr('Could not delete right now. Sign in again and retry.'); }
+    } catch {
+      setErr('Could not delete right now. Sign in again and retry.');
+    }
   };
+
   const exportData = async () => {
     const t = await getToken(); if (!t) return;
     const r = await fetch(`${API}/api/me/export`, { headers: { authorization: `Bearer ${t}` } });
     const b = await r.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'my-data.json'; a.click(); URL.revokeObjectURL(a.href);
   };
-  const Row = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
-    <label className="switch"><div><b>{label}</b>{hint && <div className="tiny">{hint}</div>}</div><input type="checkbox" checked={on} onChange={(e) => set(e.target.checked)} /><i /></label>
-  );
-  return (
-    <Sheet title="Settings" onClose={() => ui.set({ panel: null })} tall className="settings-sheet">
-      <div className="sheet-card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <i className="dot" style={{ background: '#7aa2ff', boxShadow: '0 0 10px #7aa2ff' }} />
-            <b style={{ fontSize: 16, color: 'var(--ink)' }}>{s.name || 'Anonymous Light'}</b>
-          </div>
-          <span className="tiny" style={{ background: 'rgba(122, 162, 255, 0.16)', color: 'var(--accent)', padding: '3px 9px', borderRadius: 999, fontWeight: 500, textTransform: 'capitalize' }}>
-            {s.galaxies.find((g) => g.slug === s.galaxy)?.name || s.galaxy || 'Night'}
-          </span>
-        </div>
-        {profile?.email && <p className="tiny muted" style={{ margin: '4px 0 6px', wordBreak: 'break-all' }}>{profile.email}</p>}
-        <div className="tiny muted" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IcoAge size={13} /> {profile?.age ? `${profile.age} years old` : '18+ verified'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IcoBond size={13} /> {s.bonds.length} bond{s.bonds.length === 1 ? '' : 's'}</span>
-          {profile?.createdAt ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IcoCalendar size={13} /> Member since {new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span> : null}
-        </div>
-      </div>
 
-      {/* Space Atmosphere & Celestial Theme Selector */}
-      <div className="sheet-card theme-sheet-card">
-        <div className="theme-header-row">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <IcoSun size={16} style={{ color: '#ffd27a' }} />
-              <b style={{ fontSize: 14, color: 'var(--ink)' }}>Space Atmosphere & Theme</b>
-            </div>
-            <div className="tiny muted" style={{ marginTop: 2 }}>
-              Celestial space appearance synchronized with local time or custom preference
-            </div>
+  const memberSince = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+    : 'Oct 2026';
+  const galaxyName = s.galaxies.find((g) => g.slug === s.galaxy)?.name || s.galaxy;
+
+  return (
+    <Sheet title="You" onClose={() => ui.set({ panel: null })} tall className="settings-sheet">
+      {/* Top Profile Card (Image 2 style) */}
+      <div className="settings-profile-card">
+        <div className="settings-profile-orb">
+          <div className="settings-profile-orb-core" />
+        </div>
+        <div className="settings-profile-info">
+          <div className="settings-profile-name-row">
+            <h3 className="settings-profile-name">{s.name || 'Anonymous Light'}</h3>
+            {galaxyName && <span className="settings-galaxy-badge">{galaxyName}</span>}
           </div>
-          {s.skyTheme === 'auto' && (
-            <span className="tiny theme-auto-badge">
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0071e3' }} />
-              Auto: {getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset' : 'Dark Space'}
-            </span>
+          <p className="settings-profile-sub">
+            {s.bonds.length} bond{s.bonds.length === 1 ? '' : 's'} · here since {memberSince}
+          </p>
+          {showDetails && profile?.email && (
+            <p className="settings-profile-email">{profile.email} · {profile.age ? `${profile.age} yrs old` : '18+ verified'}</p>
           )}
         </div>
+        <button
+          type="button"
+          className="btn-profile-edit"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          {showDetails ? 'Close' : 'Edit'}
+        </button>
+      </div>
 
-        {/* Live sync banner */}
-        {s.skyTheme === 'auto' ? (
-          <div className="theme-sync-banner">
-            <div className="theme-sync-info">
-              <IcoClock size={15} style={{ color: '#0071e3', flexShrink: 0, marginTop: 2 }} />
-              <span>
-                Atmosphere is <strong>automatically matching your clock</strong> ({getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset Twilight' : 'Deep Cosmos'}).
-              </span>
+      {/* Two-Column Grid for Desktop */}
+      <div className="settings-grid">
+        {/* Left Column: SKY & PRIVACY */}
+        <div className="settings-col">
+          {/* Section: SKY */}
+          <div className="settings-sec-title">SKY</div>
+          <div className="settings-sky-pills" role="tablist">
+            {[
+              { id: 'auto', label: 'Auto' },
+              { id: 'day', label: 'Day' },
+              { id: 'evening', label: 'Dusk' },
+              { id: 'midnight', label: 'Night' },
+            ].map((theme) => {
+              const active = s.skyTheme === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`sky-pill-btn${active ? ' active' : ''}`}
+                  onClick={() => {
+                    ui.set({ skyTheme: theme.id });
+                    try {
+                      localStorage.setItem('skyTheme', theme.id);
+                      if (theme.id === 'auto') localStorage.removeItem('skyThemeLocked');
+                      else localStorage.setItem('skyThemeLocked', 'true');
+                    } catch {}
+                    applyThemeCss(resolveTheme(theme.id));
+                  }}
+                >
+                  {theme.label}
+                </button>
+              );
+            })}
+          </div>
+          {s.skyTheme === 'auto' && (
+            <div className="settings-auto-hint">
+              Matching your clock ({getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset Dusk' : 'Dark Night'})
             </div>
-            <span className="tiny theme-sync-schedule">
-              {getThemeScheduleDescription()}
-            </span>
-          </div>
-        ) : (
-          <div className="theme-locked-banner">
-            <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
-              Custom theme locked. Atmosphere is not adapting to the time of day.
-            </span>
-            <button
-              type="button"
-              className="btn sm theme-reenable-btn"
-              onClick={() => {
-                ui.set({ skyTheme: 'auto' });
-                try {
-                  localStorage.setItem('skyTheme', 'auto');
-                  localStorage.removeItem('skyThemeLocked');
-                } catch {}
-                applyThemeCss(resolveTheme('auto'));
-              }}
-            >
-              Re-enable Auto (Time)
-            </button>
-          </div>
-        )}
+          )}
 
-        <div className="theme-pill-grid">
-          {[
-            {
-              id: 'auto',
-              name: 'Auto Sync',
-              sub: `Syncs with clock (${getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset' : 'Dark Space'})`,
-              icon: IcoClock,
-              iconColor: '#4338ca',
-              iconFill: '#818cf8',
-            },
-            {
-              id: 'day',
-              name: 'Daylight Sky',
-              sub: 'Luminous azure & sunlight (06:00–17:00)',
-              icon: IcoSun,
-              iconColor: '#d97706',
-              iconFill: '#fbbf24',
-            },
-            {
-              id: 'evening',
-              name: 'Sunset Twilight',
-              sub: 'Golden rose & violet horizon (17:00–20:30)',
-              icon: IcoSunset,
-              iconColor: '#e11d48',
-              iconFill: '#f97316',
-            },
-            {
-              id: 'midnight',
-              name: 'Dark Space',
-              sub: 'Obsidian cosmos & stars (20:30–06:00)',
-              icon: IcoMoon,
-              iconColor: '#0f172a',
-              iconFill: '#1e293b',
-            },
-          ].map((item) => {
-            const IconComp = item.icon;
-            const active = s.skyTheme === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`theme-pill-btn ${item.id}${active ? ' active' : ''}`}
-                onClick={() => {
-                  ui.set({ skyTheme: item.id });
-                  try {
-                    localStorage.setItem('skyTheme', item.id);
-                    if (item.id === 'auto') {
-                      localStorage.removeItem('skyThemeLocked');
-                    } else {
-                      localStorage.setItem('skyThemeLocked', 'true');
+          {/* Section: PRIVACY */}
+          <div className="settings-sec-title" style={{ marginTop: 20 }}>PRIVACY</div>
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Nearby galaxy</h4>
+              <p className="setting-switch-sub">Within 100 km, blurred to about 1 km</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={s.locationGranted}
+                onChange={async (e) => {
+                  if (!e.target.checked) {
+                    await world.clearLocation();
+                  } else {
+                    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
+                      ui.set({ toast: 'Geolocation not supported by your browser.' });
+                      return;
                     }
-                  } catch {}
-                  applyThemeCss(resolveTheme(item.id));
-                }}
-                aria-label={`Select ${item.name} theme`}
-              >
-                <div className="theme-pill-knob">
-                  <IconComp
-                    size={20}
-                    style={{
-                      color: item.iconColor,
-                      fill: item.iconFill || 'currentColor',
-                      stroke: item.iconColor,
-                    }}
-                  />
-                </div>
-
-                <div className="theme-pill-meta">
-                  <div className="theme-pill-title-row">
-                    <b className="theme-pill-name">{item.name}</b>
-                    {active && (
-                      <span className="theme-pill-active-badge">
-                        <IcoCheck size={10} />
-                        <span>ACTIVE</span>
-                      </span>
-                    )}
-                  </div>
-                  <span className="theme-pill-sub">{item.sub}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="sheet-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <IcoPin size={16} style={{ color: '#0071e3', flexShrink: 0 }} />
-              <b style={{ fontSize: 14, color: 'var(--ink)' }}>Neighbour location discovery</b>
-            </div>
-            <div className="tiny muted" style={{ marginTop: 2 }}>
-              Find strangers within 100 km in the Neighbours space
-            </div>
-          </div>
-          <label className="switch" style={{ margin: 0, flexShrink: 0 }}>
-            <input
-              type="checkbox"
-              checked={s.locationGranted}
-              onChange={async (e) => {
-                if (!e.target.checked) {
-                  await world.clearLocation();
-                } else {
-                  if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-                    ui.set({ toast: 'Geolocation not supported by your browser.' });
-                    return;
+                    navigator.geolocation.getCurrentPosition(
+                      async (pos) => {
+                        const ok = await world.setLocation(pos.coords.latitude, pos.coords.longitude);
+                        if (ok) ui.set({ toast: 'Location discovery activated (fuzzed to ~1.1 km).' });
+                      },
+                      () => ui.set({ toast: 'Location access was denied or unavailable.' }),
+                      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+                    );
                   }
-                  navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                       const ok = await world.setLocation(pos.coords.latitude, pos.coords.longitude);
-                       if (ok) ui.set({ toast: 'Location discovery activated (fuzzed to ~1.1 km for privacy).' });
-                    },
-                    () => {
-                      ui.set({ toast: 'Location access was denied or unavailable.' });
-                    },
-                    { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+                }}
+              />
+              <i />
+            </label>
+          </div>
+
+          {/* Account & Safety Card */}
+          <div className="setting-account-card">
+            <div className="setting-links-row">
+              <a className="setting-link" href="/rules" target="_blank" rel="noopener">Community rules</a>
+              <span className="setting-link-sep">·</span>
+              <a className="setting-link" href="/privacy" target="_blank" rel="noopener">Privacy</a>
+            </div>
+            <div className="setting-account-btns">
+              <button className="btn-secondary-pill" onClick={exportData}>Download data</button>
+              <button className="btn-secondary-pill" onClick={onSignOut}>Sign out</button>
+            </div>
+            <details className="settings-delete-details">
+              <summary className="tiny muted" style={{ cursor: 'pointer' }}>Delete account</summary>
+              <p className="tiny muted" style={{ margin: '8px 0' }}>This removes your profile permanently. Type DELETE to confirm.</p>
+              <div className="row" style={{ gap: 8 }}>
+                <input className="field" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} aria-label="Type DELETE" />
+                <button className="btn danger" disabled={confirmDel !== 'DELETE'} onClick={del}>Delete</button>
+              </div>
+              {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
+            </details>
+          </div>
+        </div>
+
+        {/* Right Column: COMFORT */}
+        <div className="settings-col">
+          <div className="settings-sec-title">COMFORT</div>
+
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Sound</h4>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.sound} onChange={(e) => { ui.set({ sound: e.target.checked }); setSound(e.target.checked); save('sound', e.target.checked); }} />
+              <i />
+            </label>
+          </div>
+
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Lite mode</h4>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.lite} onChange={(e) => { ui.set({ lite: e.target.checked }); save('lite', e.target.checked); }} />
+              <i />
+            </label>
+          </div>
+
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">List view</h4>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.listMode} onChange={(e) => { ui.set({ listMode: e.target.checked, panel: null }); save('list', e.target.checked); }} />
+              <i />
+            </label>
+          </div>
+
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Message sounds</h4>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.messageSound} onChange={(e) => { ui.set({ messageSound: e.target.checked }); save('messageSound', e.target.checked); }} />
+              <i />
+            </label>
+          </div>
+
+          {s.messageSound && (
+            <div className="settings-tone-subcard">
+              <span className="tiny muted" style={{ display: 'block', marginBottom: 6 }}>Tone</span>
+              <div className="settings-tone-pills">
+                {[
+                  { id: 'pop', label: 'Pop' },
+                  { id: 'chime', label: 'Chime' },
+                  { id: 'crystal', label: 'Crystal' },
+                  { id: 'bell', label: 'Bell' },
+                ].map((tone) => {
+                  const active = s.messageTone === tone.id;
+                  return (
+                    <button
+                      key={tone.id}
+                      type="button"
+                      className={`tone-pill-btn${active ? ' active' : ''}`}
+                      onClick={() => {
+                        ui.set({ messageTone: tone.id });
+                        try { localStorage.setItem('messageTone', tone.id); } catch {}
+                        sfx.msgSent(tone.id);
+                        setTimeout(() => sfx.msgReceived(tone.id), 260);
+                      }}
+                    >
+                      {tone.label}
+                    </button>
                   );
-                }
-              }}
-            />
-            <i />
-          </label>
-        </div>
-        {s.locationGranted && (
-          <div className="tiny" style={{ color: '#0071e3', display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0071e3' }} /> Active · Fuzzed to ~1.1 km for privacy (max 100 km discovery)
-          </div>
-        )}
-      </div>
-
-      <div className="sheet-card settings-group">
-        <Row label="Master sound" hint="Soft ambient tones and chimes" on={s.sound} set={(v) => { ui.set({ sound: v }); setSound(v); save('sound', v); }} />
-        <Row
-          label="Message sounds"
-          hint="Play sound when sending and receiving chat messages"
-          on={s.messageSound}
-          set={(v) => {
-            ui.set({ messageSound: v });
-            save('messageSound', v);
-          }}
-        />
-        {s.messageSound && (
-          <div className="settings-sound-panel">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>Message Sound Tone</span>
-              <span className="tiny muted">Tap to listen</span>
+                })}
+              </div>
             </div>
-            <div className="sound-tone-grid">
-              {[
-                { id: 'pop', name: 'WhatsApp Pop', icon: IcoChat },
-                { id: 'chime', name: 'Cosmic Chime', icon: IcoChime },
-                { id: 'crystal', name: 'Crystal Ping', icon: IcoCrystal },
-                { id: 'bell', name: 'Soft Bell', icon: IcoBell },
-              ].map((tone) => {
-                const IconComp = tone.icon;
-                const active = s.messageTone === tone.id;
-                return (
-                  <button
-                    key={tone.id}
-                    type="button"
-                    className={`sound-tone-btn${active ? ' active' : ''}`}
-                    onClick={() => {
-                      ui.set({ messageTone: tone.id });
-                      try { localStorage.setItem('messageTone', tone.id); } catch { /* ignore */ }
-                      sfx.msgSent(tone.id);
-                      setTimeout(() => sfx.msgReceived(tone.id), 260);
-                    }}
-                  >
-                    <IconComp size={15} style={{ opacity: active ? 1 : 0.7 }} />
-                    <span>{tone.name}</span>
-                  </button>
-                );
-              })}
+          )}
+
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Voice reader</h4>
+              <p className="setting-switch-sub">Speak incoming messages aloud</p>
             </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.voiceReader} onChange={(e) => {
+                ui.set({ voiceReader: e.target.checked });
+                save('voiceReader', e.target.checked);
+                if (e.target.checked) speakMessage('Voice reader enabled.');
+              }} />
+              <i />
+            </label>
           </div>
-        )}
-        <Row
-          label="Voice reader"
-          hint="Speak incoming messages aloud with browser voice"
-          on={s.voiceReader}
-          set={(v) => {
-            ui.set({ voiceReader: v });
-            save('voiceReader', v);
-            if (v) speakMessage('Voice reader enabled. Incoming messages will be read aloud.');
-          }}
-        />
-      </div>
 
-      <div className="sheet-card settings-group">
-        <Row label="Haptics" hint="Gentle vibration on pulses" on={s.haptics} set={(v) => { ui.set({ haptics: v }); save('haptics', v); }} />
-        <Row label="Lite mode" hint="Fewer effects, saves battery and data" on={s.lite} set={(v) => { ui.set({ lite: v }); save('lite', v); }} />
-        <Row label="List view" hint="Thoughts as a simple list instead of the sky" on={s.listMode} set={(v) => { ui.set({ listMode: v, panel: null }); save('list', v); }} />
-        <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)' }}>
-          Sky quality: {s.quality}. It adjusts automatically to keep things smooth.
-        </div>
-      </div>
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Haptics</h4>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={s.haptics} onChange={(e) => { ui.set({ haptics: e.target.checked }); save('haptics', e.target.checked); }} />
+              <i />
+            </label>
+          </div>
 
-      <div className="sheet-card settings-actions-card">
-        <div className="row" style={{ gap: 10, marginBottom: 10 }}>
-          <a className="btn ghost settings-legal-btn" href="/rules" target="_blank" rel="noopener">Community rules</a>
-          <a className="btn ghost settings-legal-btn" href="/privacy" target="_blank" rel="noopener">Privacy</a>
-        </div>
-        <div className="stack" style={{ gap: 8, margin: 0 }}>
-          <button className="btn ghost" onClick={exportData}>Download my data</button>
-          <button className="btn ghost" onClick={onSignOut}>Sign out</button>
-          <details style={{ marginTop: 6 }}><summary className="tiny muted" style={{ cursor: 'pointer', padding: '4px 0' }}>Delete my account</summary>
-            <p className="tiny muted" style={{ margin: '8px 0' }}>This removes your profile, lanterns, and bonds permanently. Type DELETE to confirm.</p>
-            <div className="row" style={{ gap: 8 }}><input className="field" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} aria-label="Type DELETE" /><button className="btn danger" disabled={confirmDel !== 'DELETE'} onClick={del}>Delete</button></div>
-            <div className="err" style={{ marginTop: 6 }}>{err}</div>
-          </details>
+          <p className="tiny muted" style={{ marginTop: 10, paddingLeft: 4 }}>
+            Sky quality: {s.quality} · Adjusts automatically to your device.
+          </p>
         </div>
       </div>
     </Sheet>

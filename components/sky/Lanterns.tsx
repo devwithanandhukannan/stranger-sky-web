@@ -10,100 +10,479 @@ type Item = { id: number; body: string; status: string; hops: number; thread: Th
 type Inbox = { sent: Item[]; held: Item[] };
 type Held = { id: number; body: string; hops: number; galaxy?: string };
 
-const ERR: Record<string, string> = { daily_limit: 'You have released all your lanterns for today.', content_not_allowed: 'Links and blocked words are not allowed.', too_many_held: 'Answer or release your lanterns first.', thread_full: 'This thread is full.' };
+const ERR: Record<string, string> = {
+  daily_limit: 'You have released all your lanterns for today.',
+  content_not_allowed: 'Links and blocked words are not allowed.',
+  too_many_held: 'Answer or release your lanterns first.',
+  thread_full: 'This thread is full.',
+};
 
 export function LanternSheet() {
-  const { ui, getToken } = useSky();
+  const { ui, world, getToken } = useSky();
   const drift = useUI(ui, (s) => s.lanternDrift), tick = useUI(ui, (s) => s.inboxTick);
-  const [tab, setTab] = useState<'catch' | 'release' | 'mine'>(drift ? 'catch' : 'release');
-  const [caught, setCaught] = useState<Held | null>(null), [body, setBody] = useState(''), [reply, setReply] = useState('');
-  const [inbox, setInbox] = useState<Inbox>({ sent: [], held: [] }), [err, setErr] = useState(''), [ok, setOk] = useState('');
+  const bonds = useUI(ui, (s) => s.bonds);
+
+  const [tab, setTab] = useState<'inbox' | 'release' | 'catch' | 'mine'>('inbox');
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [left, setLeft] = useState<number>(3);
+  const [caught, setCaught] = useState<Held | null>(null);
+  const [body, setBody] = useState('');
+  const [reply, setReply] = useState('');
+  const [inbox, setInbox] = useState<Inbox>({ sent: [], held: [] });
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
   const [reporting, setReporting] = useState<number | null>(null);
 
   const call = useCallback(async <T,>(m: string, p: string, b?: unknown): Promise<T | null> => {
     setErr('');
-    const t = await getToken(); if (!t) return null;
-    try { return await api<T>(m, `/lanterns${p}`, t, b); } catch (e) { setErr(ERR[(e as Error).message] || 'Something went wrong.'); return null; }
+    const t = await getToken();
+    if (!t) return null;
+    try {
+      return await api<T>(m, `/lanterns${p}`, t, b);
+    } catch (e) {
+      setErr(ERR[(e as Error).message] || 'Something went wrong.');
+      return null;
+    }
   }, [getToken]);
-  const load = useCallback(async () => { const r = await call<Inbox>('GET', '/inbox'); if (r) setInbox(r); }, [call]);
-  useEffect(() => { if (tab === 'mine') void load(); }, [tab, tick, load]);
+
+  const load = useCallback(async () => {
+    const r = await call<Inbox>('GET', '/inbox');
+    if (r) {
+      setInbox(r);
+      const remaining = Math.max(0, 3 - (r.sent?.length || 0));
+      setLeft(remaining);
+    }
+  }, [call]);
+
+  useEffect(() => {
+    void load();
+  }, [load, tick]);
 
   const doCatch = async () => {
     const r = await call<{ lantern: Held | null }>('POST', '/catch');
-    if (r?.lantern) { setCaught(r.lantern); ui.set({ lanternDrift: false }); } else if (r) { setErr('Nothing to catch right now. Try again later.'); ui.set({ lanternDrift: false }); }
-  };
-  const doRelease = async () => {
-    const t = body.trim(); if (!t) return;
-    const r = await call<{ left: number }>('POST', '', { body: t });
-    if (r) { setBody(''); setOk(`Your lantern is drifting away. ${r.left} left today.`); }
-  };
-  const sendReply = async (id: number, text: string, after: () => void) => {
-    if (!text.trim()) return;
-    if (await call('POST', `/${id}/reply`, { body: text.trim() })) { after(); void load(); }
+    if (r?.lantern) {
+      setCaught(r.lantern);
+      ui.set({ lanternDrift: false });
+      setTab('catch');
+    } else if (r) {
+      setErr('Nothing to catch right now. Try again later.');
+      ui.set({ lanternDrift: false });
+    }
   };
 
-  const Thread = ({ it }: { it: Item }) => {
+  const doRelease = async () => {
+    const t = body.trim();
+    if (!t) return;
+    const r = await call<{ left: number }>('POST', '', { body: t });
+    if (r) {
+      setBody('');
+      setLeft(r.left);
+      setOk(`Your lantern is drifting away. ${r.left} left today.`);
+      void load();
+      setTab('inbox');
+    }
+  };
+
+  const sendReply = async (id: number, text: string, after: () => void) => {
+    if (!text.trim()) return;
+    if (await call('POST', `/${id}/reply`, { body: text.trim() })) {
+      after();
+      void load();
+    }
+  };
+
+  const deleteLantern = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this lantern? It will be removed from the sky permanently.')) return;
+    const res = await call('DELETE', `/${id}`);
+    if (res) {
+      setOk('Lantern deleted and removed from the sky.');
+      setSelectedItem(null);
+      void load();
+    }
+  };
+
+  const ThreadDetails = ({ it, onBack }: { it: Item; onBack?: () => void }) => {
     const [r, setR] = useState('');
     const [bond, setBond] = useState('');
     return (
-      <li className="lan">
-        <p className="thought">“{it.body}”</p>
-        {it.thread.map((m, i) => <div key={i} className={`bub${m.mine ? ' me' : ''}`}>{m.body}</div>)}
-        {(it.caught !== false) && (
-          <div className="row" style={{ marginTop: 8 }}>
-            <input className="field" value={r} maxLength={400} placeholder="Reply anonymously…" aria-label="Reply" onChange={(e) => setR(e.target.value)} />
-            <button className="btn" disabled={!r.trim()} onClick={() => sendReply(it.id, r, () => setR(''))}>Send</button>
+      <div className="thread-detail-container">
+        {onBack && (
+          <button className="btn-ghost-back" onClick={onBack}>
+            ← Back to Inbox
+          </button>
+        )}
+        <div className="inbox-card special" style={{ marginTop: 8, marginBottom: 16 }}>
+          <div className="orb-amber" />
+          <div className="inbox-card-info">
+            <h3 className="inbox-card-title">
+              {it.caught ? 'A lantern you caught' : 'Your released lantern'}
+            </h3>
+            <p className="inbox-card-sub italic">“{it.body}”</p>
+          </div>
+        </div>
+
+        <div className="thread-messages">
+          {it.thread.length === 0 && (
+            <p className="muted tiny" style={{ textAlign: 'center', margin: '20px 0' }}>
+              No replies yet. When a stranger answers, their note will appear here.
+            </p>
+          )}
+          {it.thread.map((m, i) => (
+            <div key={i} className={`thread-bub${m.mine ? ' me' : ' them'}`}>
+              <span className="thread-bub-author">{m.mine ? 'You' : 'Stranger'}</span>
+              <p className="thread-bub-body">{m.body}</p>
+            </div>
+          ))}
+        </div>
+
+        {it.caught !== false && (
+          <div className="row" style={{ marginTop: 14, gap: 8 }}>
+            <input
+              className="field"
+              value={r}
+              maxLength={400}
+              placeholder="Reply anonymously…"
+              aria-label="Reply"
+              onChange={(e) => setR(e.target.value)}
+            />
+            <button
+              className="btn-ivory"
+              disabled={!r.trim()}
+              onClick={() => sendReply(it.id, r, () => { setR(''); void load(); })}
+            >
+              Send
+            </button>
           </div>
         )}
-        <div className="row" style={{ marginTop: 8 }}>
-          {it.thread.length > 0 && <button className="btn ghost sm" disabled={it.kept} onClick={async () => { const k = await call<{ bonded: boolean; with?: { name: string } }>('POST', `/${it.id}/keep`); if (k) { setBond(k.bonded ? `You and ${k.with?.name} kept each other.` : 'Kept. They will see your name only if they keep you too.'); void load(); } }}>{it.kept ? 'Kept' : 'Keep in touch'}</button>}
-          <button className="btn ghost sm" onClick={() => setReporting(it.id)}>Report</button>
+
+        <div className="row" style={{ marginTop: 12, justifyContent: 'space-between', alignItems: 'center' }}>
+          {it.thread.length > 0 && (
+            <button
+              className="btn-ghost-action"
+              disabled={it.kept}
+              onClick={async () => {
+                const k = await call<{ bonded: boolean; with?: { name: string } }>('POST', `/${it.id}/keep`);
+                if (k) {
+                  setBond(k.bonded ? `You and ${k.with?.name} kept each other.` : 'Kept. They will see your name only if they keep you too.');
+                  void load();
+                }
+              }}
+            >
+              {it.kept ? '✓ Kept in touch' : 'Keep in touch'}
+            </button>
+          )}
+          <div className="row" style={{ gap: 8, margin: 0 }}>
+            {!it.caught && (
+              <button
+                type="button"
+                className="btn-ghost-action"
+                style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}
+                onClick={() => deleteLantern(it.id)}
+              >
+                Delete lantern
+              </button>
+            )}
+            <button className="btn-ghost-action" style={{ color: '#f87171' }} onClick={() => setReporting(it.id)}>
+              Report
+            </button>
+          </div>
         </div>
-        {bond && <p className="tiny" style={{ color: 'var(--accent)' }}>{bond}</p>}
-      </li>
+        {bond && <p className="tiny" style={{ color: '#ffaa40', marginTop: 8 }}>{bond}</p>}
+      </div>
     );
   };
 
+  const answeredList = inbox.sent.filter((it) => it.thread && it.thread.length > 0);
+  const title = tab === 'inbox' ? 'Inbox' : tab === 'release' ? 'Release a lantern' : tab === 'catch' ? 'Catch a lantern' : 'My lanterns';
+
   return (
-    <Sheet title="Lanterns" onClose={() => ui.set({ panel: null })} tall>
-      <div className="tabs" role="tablist">
-        {(['catch', 'release', 'mine'] as const).map((t) => <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => { setTab(t); setOk(''); setErr(''); }}>{t === 'catch' ? 'Catch' : t === 'release' ? 'Release' : 'Mine'}</button>)}
+    <Sheet
+      title={title}
+      onClose={() => ui.set({ panel: null })}
+      tall
+      className="lantern-sheet"
+      headerExtra={<span className="lantern-header-count">{left} lanterns left tonight</span>}
+    >
+      {/* Tab Switcher allowing users to access old & new modes */}
+      <div className="lantern-tabs" role="tablist">
+        {(['inbox', 'release', 'catch', 'mine'] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            className={tab === t ? 'on' : ''}
+            onClick={() => {
+              setTab(t);
+              setSelectedItem(null);
+              setOk('');
+              setErr('');
+            }}
+          >
+            {t === 'inbox' ? 'Inbox' : t === 'release' ? 'Release' : t === 'catch' ? 'Catch' : 'Mine'}
+          </button>
+        ))}
       </div>
+
       {reporting !== null ? (
-        <ReportForm onCancel={() => setReporting(null)} onSubmit={async (reason, details) => { await call('POST', `/${reporting}/report`, { reason, details }); setReporting(null); setOk('Reported. You will not hear from them again.'); void load(); }} />
+        <ReportForm
+          onCancel={() => setReporting(null)}
+          onSubmit={async (reason, details) => {
+            await call('POST', `/${reporting}/report`, { reason, details });
+            setReporting(null);
+            setOk('Reported. You will not hear from them again.');
+            void load();
+          }}
+        />
+      ) : selectedItem ? (
+        <ThreadDetails it={selectedItem} onBack={() => setSelectedItem(null)} />
+      ) : tab === 'inbox' ? (
+        <div className="inbox-container">
+          {/* SECTION: NEW */}
+          <div className="lantern-sec-title">NEW</div>
+
+          {answeredList.length > 0 ? (
+            answeredList.map((it) => (
+              <div key={it.id} className="inbox-card special">
+                <div className="orb-amber" />
+                <div className="inbox-card-info">
+                  <h3 className="inbox-card-title">A stranger answered your lantern</h3>
+                  <p className="inbox-card-sub italic">
+                    “{it.thread[it.thread.length - 1]?.body || it.body}”
+                  </p>
+                </div>
+                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
+                  Read
+                </button>
+              </div>
+            ))
+          ) : inbox.held.length > 0 ? (
+            inbox.held.map((it) => (
+              <div key={it.id} className="inbox-card special">
+                <div className="orb-amber" />
+                <div className="inbox-card-info">
+                  <h3 className="inbox-card-title">A lantern you caught</h3>
+                  <p className="inbox-card-sub italic">“{it.body}”</p>
+                </div>
+                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
+                  Read
+                </button>
+              </div>
+            ))
+          ) : drift ? (
+            <div className="inbox-card special">
+              <div className="orb-amber" />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">A lantern is drifting by</h3>
+                <p className="inbox-card-sub">Someone let a thought go into the sky · tap to catch</p>
+              </div>
+              <button className="btn-ivory" onClick={doCatch}>
+                Catch
+              </button>
+            </div>
+          ) : (
+            <div className="inbox-card">
+              <div className="orb-amber" style={{ opacity: 0.65 }} />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">No new answers yet</h3>
+                <p className="inbox-card-sub">Release a lantern and wait for a wanderer to answer.</p>
+              </div>
+              <button className="btn-ivory" onClick={() => setTab('release')}>
+                Release
+              </button>
+            </div>
+          )}
+
+          {/* SECTION: KEPT IN TOUCH */}
+          <div className="lantern-sec-title">KEPT IN TOUCH</div>
+
+          {bonds.length > 0 ? (
+            bonds.map((b) => (
+              <div key={b.id} className="inbox-card">
+                <div className={b.online ? 'orb-green' : 'orb-purple'} />
+                <div className="inbox-card-info">
+                  <h3 className="inbox-card-title">{b.name}</h3>
+                  <p className="inbox-card-sub">{b.online ? 'in the sky now' : 'away'}</p>
+                </div>
+                <button
+                  className="btn-ivory"
+                  disabled={!b.online}
+                  onClick={() => {
+                    world.callBond(b.id);
+                    ui.set({ panel: null });
+                  }}
+                >
+                  Say hi
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="inbox-card">
+              <div className="orb-purple" style={{ opacity: 0.55 }} />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">No kept bonds yet</h3>
+                <p className="inbox-card-sub">
+                  When you and a stranger both choose to keep in touch, they appear here.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Large Action Button from Image 2 */}
+          <div className="inbox-release-box">
+            <button className="btn-release-main" onClick={() => setTab('release')}>
+              Release a lantern
+            </button>
+            <p className="release-caption">
+              A note for a stranger. It drifts, and you may never know where.
+            </p>
+          </div>
+        </div>
       ) : tab === 'catch' ? (
         caught ? (
-          <div>
-            <p className="tiny">A lantern from a stranger{caught.hops ? `, passed along ${caught.hops} time${caught.hops > 1 ? 's' : ''}` : ''}</p>
-            <p className="thought lg">“{caught.body}”</p>
-            <div className="row"><input className="field" value={reply} maxLength={400} placeholder="Write back…" aria-label="Reply" onChange={(e) => setReply(e.target.value)} />
-              <button className="btn" disabled={!reply.trim()} onClick={() => sendReply(caught.id, reply, () => { setReply(''); setCaught(null); setOk('Sent. Find it under Mine.'); })}>Reply</button></div>
-            <div className="row" style={{ marginTop: 10 }}>
-              <button className="btn ghost" onClick={async () => { if (await call('POST', `/${caught.id}/release`)) { setCaught(null); setOk('You let it drift on to someone else.'); } }}>Let it go on</button>
-              <button className="btn ghost" onClick={() => setReporting(caught.id)}>Report</button>
+          <div className="catch-box">
+            <div className="inbox-card special" style={{ marginBottom: 14 }}>
+              <div className="orb-amber" />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">
+                  A lantern from a stranger{caught.hops ? `, passed along ${caught.hops} time${caught.hops > 1 ? 's' : ''}` : ''}
+                </h3>
+                <p className="inbox-card-sub italic">“{caught.body}”</p>
+              </div>
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <input
+                className="field"
+                value={reply}
+                maxLength={400}
+                placeholder="Write back…"
+                aria-label="Reply"
+                onChange={(e) => setReply(e.target.value)}
+              />
+              <button
+                className="btn-ivory"
+                disabled={!reply.trim()}
+                onClick={() =>
+                  sendReply(caught.id, reply, () => {
+                    setReply('');
+                    setCaught(null);
+                    setOk('Sent. Find it under Mine or Inbox.');
+                    void load();
+                  })
+                }
+              >
+                Reply
+              </button>
+            </div>
+            <div className="row" style={{ marginTop: 14, justifyContent: 'space-between' }}>
+              <button
+                className="btn-ghost-action"
+                onClick={async () => {
+                  if (await call('POST', `/${caught.id}/release`)) {
+                    setCaught(null);
+                    setOk('You let it drift on to someone else.');
+                  }
+                }}
+              >
+                Let it go on
+              </button>
+              <button className="btn-ghost-action" style={{ color: '#f87171' }} onClick={() => setReporting(caught.id)}>
+                Report
+              </button>
             </div>
           </div>
         ) : (
-          <div className="center" style={{ padding: '10px 0' }}>
-            <p className="muted">{drift ? 'A lantern is drifting your way.' : 'No lantern nearby right now. They appear every so often, keep an eye on the sky.'}</p>
-            <button className="btn" disabled={!drift} onClick={doCatch}>Catch it</button>
+          <div className="center" style={{ padding: '24px 0' }}>
+            <div className="orb-amber" style={{ margin: '0 auto 16px', width: 48, height: 48 }} />
+            <p className="muted" style={{ marginBottom: 16 }}>
+              {drift
+                ? 'A lantern is drifting your way right now.'
+                : 'No lantern nearby right now. They appear every so often, keep an eye on the sky.'}
+            </p>
+            <button className="btn-ivory" style={{ padding: '10px 24px', fontSize: 15 }} disabled={!drift} onClick={doCatch}>
+              Catch it
+            </button>
           </div>
         )
       ) : tab === 'release' ? (
-        <div>
-          <p className="muted tiny">Write something for a stranger. It drifts to someone you will never meet unless you both choose to.</p>
-          <textarea className="field" rows={4} maxLength={200} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Something you would tell a stranger…" aria-label="Lantern message" />
-          <div className="row" style={{ marginTop: 10 }}><span className="tiny" style={{ flex: 1 }}>{body.length}/200</span><button className="btn" disabled={!body.trim()} onClick={doRelease}>Release</button></div>
+        <div className="release-view">
+          <p className="muted tiny" style={{ marginBottom: 12 }}>
+            Write something for a stranger. It drifts to someone you will never meet unless you both choose to.
+          </p>
+          <textarea
+            className="field"
+            rows={4}
+            maxLength={200}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Something you would tell a stranger…"
+            aria-label="Lantern message"
+          />
+          <div className="row" style={{ marginTop: 12, alignItems: 'center' }}>
+            <span className="tiny" style={{ flex: 1, color: '#8a94a6' }}>
+              {body.length}/200
+            </span>
+            <button
+              className="btn-ivory"
+              style={{ padding: '10px 26px', fontSize: 15 }}
+              disabled={!body.trim()}
+              onClick={doRelease}
+            >
+              Release
+            </button>
+          </div>
+          <p className="release-caption" style={{ marginTop: 24 }}>
+            A note for a stranger. It drifts, and you may never know where.
+          </p>
         </div>
       ) : (
-        <ul className="list lans">
-          {!inbox.sent.length && !inbox.held.length && <p className="muted">Nothing yet. Release a lantern or catch one.</p>}
-          {inbox.held.map((it) => <Thread key={'h' + it.id} it={{ ...it, caught: true }} />)}
-          {inbox.sent.map((it) => <Thread key={'s' + it.id} it={it} />)}
+        <ul className="list lans" style={{ padding: 0 }}>
+          {!inbox.sent.length && !inbox.held.length && (
+            <p className="muted" style={{ textAlign: 'center', padding: '24px 0' }}>
+              Nothing yet. Release a lantern or catch one in the sky.
+            </p>
+          )}
+          {inbox.held.map((it) => (
+            <div key={'h' + it.id} className="inbox-card" style={{ cursor: 'pointer' }} onClick={() => setSelectedItem({ ...it, caught: true })}>
+              <div className="orb-amber" />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">Lantern you caught</h3>
+                <p className="inbox-card-sub italic">“{it.body}”</p>
+              </div>
+              <button className="btn-ivory" onClick={(e) => { e.stopPropagation(); setSelectedItem({ ...it, caught: true }); }}>
+                Open
+              </button>
+            </div>
+          ))}
+          {inbox.sent.map((it) => (
+            <div key={'s' + it.id} className={`inbox-card${it.thread.length > 0 ? ' special' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setSelectedItem(it)}>
+              <div className="orb-amber" />
+              <div className="inbox-card-info">
+                <h3 className="inbox-card-title">
+                  {it.thread.length > 0 ? 'Stranger answered' : 'Released by you'}
+                </h3>
+                <p className="inbox-card-sub italic">“{it.body}”</p>
+              </div>
+              <div className="row" style={{ gap: 8, margin: 0 }} onClick={(e) => e.stopPropagation()}>
+                <button className="btn-ivory" onClick={() => setSelectedItem(it)}>
+                  Open
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost-action"
+                  style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', padding: '6px 12px' }}
+                  onClick={() => deleteLantern(it.id)}
+                  title="Delete this lantern"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </ul>
       )}
-      <div className="err">{err}</div>
-      {ok && <p className="tiny" style={{ color: 'var(--accent)' }}>{ok}</p>}
+
+      {err && <div className="err" style={{ marginTop: 12 }}>{err}</div>}
+      {ok && <p className="tiny" style={{ color: '#ffaa40', marginTop: 12, textAlign: 'center' }}>{ok}</p>}
     </Sheet>
   );
 }
