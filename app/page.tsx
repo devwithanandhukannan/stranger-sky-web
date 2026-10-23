@@ -274,11 +274,11 @@ export default function Home() {
             <span>Instant & Ephemeral</span>
             <span>Free · 18+</span>
           </div>
-        </div>
 
-        <div className="lp-scroll-hint lp-reveal" aria-hidden="true">
-          <span>Scroll to explore</span>
-          <div className="lp-scroll-line" />
+          <div className="lp-scroll-hint lp-reveal" aria-hidden="true">
+            <span>Scroll to explore</span>
+            <div className="lp-scroll-line" />
+          </div>
         </div>
       </section>
 
