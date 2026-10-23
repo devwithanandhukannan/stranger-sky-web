@@ -39,6 +39,18 @@ function ensure() {
   master = ctx.createGain();
   master.gain.value = enabled ? 0.22 : 0;
   master.connect(ctx.destination);
+
+  // Auto-suspend audio context when tab or phone screen is hidden to conserve battery
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (ctx && ctx.state === 'running') void ctx.suspend();
+      } else {
+        if (ctx && ctx.state === 'suspended' && enabled) void ctx.resume();
+      }
+    });
+  }
+
   return ctx;
 }
 
@@ -218,7 +230,13 @@ function startAmbient() {
   // Function to spawn organ pipe oscillators for a chord
   const spawnChordOscillators = (chordFrequencies: number[], targetGain: GainNode): OscillatorNode[] => {
     const list: OscillatorNode[] = [];
-    chordFrequencies.forEach((freq, idx) => {
+    const isMobile = typeof window !== 'undefined' && (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768);
+    // On mobile, use 4 harmonic frequencies instead of 8 to conserve CPU while keeping chord body
+    const freqs = isMobile
+      ? chordFrequencies.filter((_, i) => i === 0 || i === 2 || i === 4 || i === chordFrequencies.length - 1)
+      : chordFrequencies;
+
+    freqs.forEach((freq, idx) => {
       const osc = c.createOscillator();
       // Pipe organ blend: triangle waves for rich church harmonics, sine for deep sub bass
       osc.type = freq < 100 ? 'sine' : 'triangle';

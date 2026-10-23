@@ -150,6 +150,7 @@ export class SkyEngine {
   private unsub: () => void;
   private prevUI: { planet: boolean; incoming: number; selected: string | null; warp: number; theme: string; census: string } = { planet: false, incoming: 0, selected: null, warp: 0, theme: '', census: '' };
   private lastSparkle = 0;
+  private labelFrame = 0;
   private threadSvg: SVGSVGElement | null = null;
   private threadGlowPath: SVGPathElement | null = null;
   private threadCorePath: SVGPathElement | null = null;
@@ -210,9 +211,10 @@ export class SkyEngine {
     this.theme = resolveTheme(ui.get().skyTheme);
 
     const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
-    const weak = (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4 || !!nav.connection?.saveData;
+    const isMobile = typeof window !== 'undefined' && (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768);
+    const weak = (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4 || !!nav.connection?.saveData || isMobile;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.quality = reduced ? 'low' : weak ? 'balanced' : 'high';
+    this.quality = reduced ? 'low' : isMobile ? 'balanced' : weak ? 'balanced' : 'high';
     this.lockedLow = ui.get().lite;
     if (this.lockedLow) this.quality = 'low';
 
@@ -352,7 +354,9 @@ export class SkyEngine {
   private setQuality(q: QualityName) {
     this.quality = q;
     const s = QUALITY[q];
-    this.dpr = Math.min(window.devicePixelRatio || 1, s.dpr);
+    const isMobile = typeof window !== 'undefined' && (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768);
+    const maxTargetDpr = isMobile ? Math.min(s.dpr, 1.25) : s.dpr;
+    this.dpr = Math.min(window.devicePixelRatio || 1, maxTargetDpr);
     if (this.renderer) {
       this.renderer.setPixelRatio(this.dpr);
       this.far.geometry.setDrawRange(0, s.far); this.mid.geometry.setDrawRange(0, s.mid);
@@ -626,8 +630,11 @@ export class SkyEngine {
     } else if (this.ctx2d) {
       this.render2D(fadeE, time, dt);
     }
-    this.layoutLabels(time);
-    this.updateConnectionThread(time, dt);
+    this.labelFrame++;
+    if (this.labelFrame % 2 === 0) {
+      this.layoutLabels(time);
+      this.updateConnectionThread(time, dt);
+    }
 
     if (this.theme.sparkle && now - this.lastSparkle > 1100 && this.quality !== 'low') {
       this.lastSparkle = now;

@@ -1434,6 +1434,17 @@ button { cursor: pointer; }
   }
 }
 
+/* Mobile GPU thermal optimization */
+@media (max-width: 768px), (pointer: coarse) {
+  .card,
+  .lp-nav-pill,
+  .lp-chapter-card,
+  .lp-stats-strip {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+}
+
 
 
 

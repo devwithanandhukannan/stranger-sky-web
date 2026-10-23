@@ -51,18 +51,21 @@ export default function Home() {
     };
     window.addEventListener('resize', handleResize, { passive: true });
 
-    // Generate gentle starlight nodes
-    const nodeCount = Math.min(80, Math.floor((width * height) / 14000));
+    // Detect mobile for optimized star count
+    const isMobile = width <= 768;
+    const nodeCount = Math.min(isMobile ? 32 : 64, Math.floor((width * height) / (isMobile ? 22000 : 16000)));
     const stars: StarNode[] = Array.from({ length: nodeCount }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      radius: Math.random() * 1.6 + 0.6,
+      radius: Math.random() * 1.5 + 0.6,
       alpha: Math.random() * 0.6 + 0.2,
-      speed: Math.random() * 0.25 + 0.08,
+      speed: Math.random() * 0.22 + 0.08,
       hue: Math.random() > 0.6 ? 240 : 260, // soft cool violet/blue
     }));
 
+    let isRunning = true;
     const render = () => {
+      if (!isRunning) return;
       ctx.clearRect(0, 0, width, height);
 
       // Smooth mouse lerp
@@ -83,11 +86,16 @@ export default function Home() {
         const renderX = star.x + mx * (star.radius * 0.8);
         const renderY = star.y + my * (star.radius * 0.8);
 
+        // Hardware-accelerated soft starlight glow (Zero GPU/CPU thermal blur overhead)
+        ctx.beginPath();
+        ctx.arc(renderX, renderY, star.radius * 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${star.hue}, 85%, 80%, ${star.alpha * 0.22})`;
+        ctx.fill();
+
+        // Pinpoint starlight core
         ctx.beginPath();
         ctx.arc(renderX, renderY, star.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${star.hue}, 80%, 85%, ${star.alpha})`;
-        ctx.shadowBlur = star.radius * 4;
-        ctx.shadowColor = `hsla(${star.hue}, 90%, 75%, ${star.alpha * 0.8})`;
+        ctx.fillStyle = `hsla(${star.hue}, 80%, 92%, ${star.alpha})`;
         ctx.fill();
       }
 
@@ -95,6 +103,18 @@ export default function Home() {
     };
 
     animId = requestAnimationFrame(render);
+
+    // Pause animation when tab or phone screen is hidden to eliminate battery drain
+    const handleVisibility = () => {
+      if (document.hidden) {
+        isRunning = false;
+        cancelAnimationFrame(animId);
+      } else if (!isRunning) {
+        isRunning = true;
+        animId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current.targetX = e.clientX;
@@ -171,7 +191,9 @@ export default function Home() {
     handleScroll();
 
     return () => {
+      isRunning = false;
       cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleScroll);

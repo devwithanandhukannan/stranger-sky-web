@@ -7106,3 +7106,29 @@ a.settings-legal-btn:focus {
   background: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
+
+/* ==========================================================================
+   Mobile Hardware Thermal & GPU Compositing Optimization
+   Replaces heavy 48px multi-pass blur with lightweight 12px blur on mobile
+   ========================================================================== */
+@media (max-width: 768px), (pointer: coarse) {
+  .hud-dock,
+  .hud-topbar,
+  .hud-wrap,
+  .sheet-card,
+  .planet-overlay,
+  .note,
+  .location-prompt-card,
+  .light-sheet,
+  .lantern-sheet,
+  .bonds-sheet,
+  .map-sheet,
+  .settings-sheet,
+  .report-sheet,
+  .thought-sheet,
+  .ban-card,
+  .pulse-toast-banner {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+}
