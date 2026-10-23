@@ -243,10 +243,6 @@ export default function Home() {
         </div>
 
         <div className="lp-hero-content">
-          <div className="lp-badge lp-reveal">
-            <span className="lp-badge-dot" />
-            <span>A quiet place on the internet</span>
-          </div>
 
           <h1 className="lp-hero-h1 lp-reveal">
             Drift quietly.<br />Connect genuinely.
