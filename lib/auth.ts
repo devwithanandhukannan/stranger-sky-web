@@ -145,11 +145,34 @@ export async function refreshUser() {
   return { email: auth.currentUser.email || '', verified: auth.currentUser.emailVerified };
 }
 export async function resetPassword(email: string) {
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://stranger-sky-web.vercel.app';
+  const continueUrl = `${origin}/auth/action`;
+
+  // 1. Send via custom backend SMTP mailer first (custom HTML with button, zero Firebase email)
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const res = await fetch(`${apiUrl}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, continueUrl }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.method === 'smtp') {
+        return; // Sent cleanly via custom SMTP
+      }
+    }
+  } catch (e) {
+    console.warn('[auth] Custom SMTP reset request failed:', e);
+  }
+
+  // 2. Fallback to Firebase client SDK if server is unreachable
   const { auth, fb } = await init();
   try {
     await fb.sendPasswordResetEmail(auth, email, getActionCodeSettings('/auth/action'));
   } catch (err) {
-    // If the custom domain or URL fails ActionCodeSettings check, fallback to default
     await fb.sendPasswordResetEmail(auth, email);
   }
 }
