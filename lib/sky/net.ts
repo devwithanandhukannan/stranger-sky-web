@@ -540,5 +540,15 @@ export class NetWorld implements World {
     }
     return null;
   }
+
+  async setIncognito(enabled: boolean): Promise<boolean> {
+    if (!this.s) return false;
+    const r = await ack<{ ok?: boolean; error?: string }>(this.s, 'incognito:set', { enabled });
+    if (r.error) {
+      this.toast('Incognito cannot be turned off during an active session');
+      return false;
+    }
+    return !!r.ok;
+  }
 }
 

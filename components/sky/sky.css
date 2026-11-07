@@ -57,6 +57,13 @@
   cursor: pointer;
   user-select: none;
 }
+.sky-incognito-wrap.sky-incognito-locked {
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+.sky-incognito-wrap.sky-incognito-locked .sky-switch-track {
+  cursor: not-allowed;
+}
 .sky-incognito-label {
   font-family: var(--font-sans), sans-serif;
   font-size: 13.5px;

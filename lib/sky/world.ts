@@ -29,5 +29,6 @@ export interface World {
   selectInterest(tag: string | null): void;
   driveToInterest(tag?: string): void;
   peek(sid: string): Promise<import('./store').NearItem | null>;
+  setIncognito(enabled: boolean): Promise<boolean>;
 }
 export type WorldCtor = new (state: WorldState, ui: Store) => World;

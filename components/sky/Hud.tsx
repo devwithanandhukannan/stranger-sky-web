@@ -15,25 +15,32 @@ const MOOD_OPTIONS = [
  * 1. Sky Header: Wordmark Untold, Incognito Switch, Chats, You
  */
 export function SkyHeader() {
-  const { ui, state } = useSky();
+  const { ui, state, world } = useSky();
   const isIncognito = useUI(ui, (s) => s.isIncognito);
   const bonds = useUI(ui, (s) => s.bonds);
   const incoming = useUI(ui, (s) => s.incoming);
   const activeChatCount = bonds.filter((b) => b.online).length + incoming.length;
 
-  const toggleIncognito = () => {
-    const next = !isIncognito;
-    ui.set({ isIncognito: next });
-    if (state.you) state.you.isIncognito = next;
+  const handleToggleClick = (e: React.MouseEvent) => {
+    if (isIncognito) {
+      e.preventDefault();
+      ui.set({ toast: 'Incognito is active. You cannot disable Incognito during this session.' });
+    }
+  };
+
+  const toggleIncognito = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isIncognito) {
+      e.preventDefault();
+      ui.set({ toast: 'Incognito is active. You cannot disable Incognito during this session.' });
+      return;
+    }
+    ui.set({ isIncognito: true });
+    if (state.you) state.you.isIncognito = true;
     try {
-      if (next) {
-        sessionStorage.setItem('lumen_incognito', JSON.stringify({ isIncognito: true, alias: 'Drifting Stranger' }));
-        ui.set({ toast: 'Incognito enabled · Disguised in the sky' });
-      } else {
-        sessionStorage.removeItem('lumen_incognito');
-        ui.set({ toast: 'Incognito disabled' });
-      }
+      sessionStorage.setItem('lumen_incognito', JSON.stringify({ isIncognito: true, alias: 'Drifting Stranger' }));
+      ui.set({ toast: 'Incognito enabled · Disguised in the sky' });
     } catch {}
+    void world.setIncognito(true);
   };
 
   return (
@@ -43,12 +50,17 @@ export function SkyHeader() {
       </div>
 
       <div className="sky-header-right">
-        <label className="sky-incognito-wrap" title="Incognito mode: Disguise presence in the sky">
+        <label
+          className={`sky-incognito-wrap ${isIncognito ? 'sky-incognito-locked' : ''}`}
+          onClick={handleToggleClick}
+          title={isIncognito ? 'Incognito is active for this session and cannot be turned off' : 'Incognito mode: Disguise presence in the sky'}
+        >
           <span className="sky-incognito-label">Incognito</span>
           <input
             type="checkbox"
             className="sky-switch-input"
             checked={isIncognito}
+            disabled={isIncognito}
             onChange={toggleIncognito}
             aria-label="Toggle Incognito"
           />

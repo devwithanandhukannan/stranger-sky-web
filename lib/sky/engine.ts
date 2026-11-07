@@ -56,7 +56,7 @@ void main(){
   float a = 1.0 - smoothstep(0.72, 0.98, d);
   vec3 col = vColor;
   gl_FragColor = vec4(col, a * vBright);
-};`;
+}`;
 
 const FX_VERT = `
 uniform vec2 uCam; uniform float uDpr;
@@ -688,22 +688,35 @@ export class SkyEngine {
       const p = { x: this.W / 2 + relX, y: this.H / 2 - relY };
       const mood = MOOD_COLORS[l.m % 8] || MOOD_COLORS[0];
       const baseR = isYou ? 7 : l.near ? 5.5 : 4;
+      const isIncognito = isYou && (this.ui.get().isIncognito || l.isIncognito);
+      const incognitoColor = '#9baeff';
 
-      const glowR = isYou ? 24 : 15;
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
-      grad.addColorStop(0, mood);
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = grad;
+      if (!isLight) {
+        const glowR = isYou ? 24 : 15;
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
+        grad.addColorStop(0, isIncognito ? incognitoColor : mood);
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = isIncognito ? incognitoColor : (isYou ? (isLight ? '#2563eb' : '#ffffff') : mood);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, isIncognito ? 9 : baseR, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = isYou ? '#ffffff' : mood;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, baseR, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isYou || l.sid === sel || inc.includes(l.sid)) {
+      if (isYou && isIncognito) {
+        ctx.save();
+        ctx.strokeStyle = isLight ? 'rgba(155, 174, 255, 0.95)' : 'rgba(155, 174, 255, 0.85)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 26, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (isYou || l.sid === sel || inc.includes(l.sid)) {
         const pulse = 10 + 6 * Math.sin(time * 4);
         ctx.strokeStyle = mood;
         ctx.lineWidth = 1.5;
@@ -799,29 +812,33 @@ export class SkyEngine {
       } else if (l.sid === sel) bright = 1.3 + 0.2 * Math.sin(time * 6);
       else if (inc.includes(l.sid)) bright = 1.1 + 0.4 * Math.sin(time * 5);
 
+      const isIncognito = isYou && (this.ui.get().isIncognito || l.isIncognito);
+      if (isIncognito) {
+        // Soft periwinkle dot matching Reference Image 2 (#9baeff)
+        g.color[n * 3] = 0.608;
+        g.color[n * 3 + 1] = 0.682;
+        g.color[n * 3 + 2] = 1.0;
+        bright = 1.0;
+        size = 18;
+      } else if (this.theme.mode === 'light') {
+        const lightCol = isYou ? [0.18, 0.42, 0.95] : [mood[0] * 0.85, mood[1] * 0.75, mood[2] * 0.75];
+        g.color[n * 3] = lightCol[0];
+        g.color[n * 3 + 1] = lightCol[1];
+        g.color[n * 3 + 2] = lightCol[2];
+        if (isYou) size = 16;
+      } else {
+        g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]);
+        g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]);
+        g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
+        if (isYou) size = 16;
+      }
+
       g.pos[n * 3] = this.cam.x + relX;
       g.pos[n * 3 + 1] = this.cam.y + relY;
       g.pos[n * 3 + 2] = 0;
       g.size[n] = size;
       g.kind[n] = kind;
       g.bright[n] = bright;
-      const isIncognito = isYou && (this.ui.get().isIncognito || l.isIncognito);
-      if (isIncognito) {
-        // Disguised ghost slate-indigo star matching Reference image
-        g.color[n * 3] = 0.42;
-        g.color[n * 3 + 1] = 0.48;
-        g.color[n * 3 + 2] = 0.62;
-        bright = 0.65;
-      } else if (this.theme.mode === 'light') {
-        const lightCol = isYou ? [0.18, 0.42, 0.95] : [mood[0] * 0.85, mood[1] * 0.75, mood[2] * 0.75];
-        g.color[n * 3] = lightCol[0];
-        g.color[n * 3 + 1] = lightCol[1];
-        g.color[n * 3 + 2] = lightCol[2];
-      } else {
-        g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]);
-        g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]);
-        g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
-      }
       n++;
     }
     const geo = this.lights.geometry; geo.setDrawRange(0, n);
@@ -918,15 +935,18 @@ export class SkyEngine {
       if (p1.x >= -60 && p1.x <= this.W + 60 && p1.y >= -60 && p1.y <= this.H + 60) {
         this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
         this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
-        this.threadUserRing.setAttribute('r', '24');
+        this.threadUserRing.setAttribute('r', '26');
         if (isIncognito) {
-          this.threadUserRing.style.strokeDasharray = '4 4';
-          this.threadUserRing.style.stroke = 'rgba(130, 150, 190, 0.45)';
-          this.threadUserRing.style.opacity = '0.65';
+          this.threadUserRing.style.strokeDasharray = '5 4';
+          const strokeCol = this.theme.mode === 'light' ? 'rgba(155, 174, 255, 0.95)' : 'rgba(155, 174, 255, 0.85)';
+          this.threadUserRing.style.stroke = strokeCol;
+          this.threadUserRing.style.strokeWidth = '1.5px';
+          this.threadUserRing.style.opacity = '1.0';
         } else {
           this.threadUserRing.style.strokeDasharray = 'none';
           const moodColor = MOOD_COLORS[you.m % 4] || '#818cf8';
           this.threadUserRing.style.stroke = moodColor;
+          this.threadUserRing.style.strokeWidth = '1.2px';
           this.threadUserRing.style.opacity = '0.75';
         }
       } else {
