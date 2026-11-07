@@ -175,10 +175,11 @@ export function LanternsSheet() {
 
   const handleDelete = async (id: number) => {
     setBusy(true);
+    setErr('');
     try {
       const res = await call('DELETE', `/${id}`);
       if (res) {
-        ui.set({ toast: 'Lantern removed from the sky' });
+        ui.set({ toast: 'Lantern removed' });
         setSelectedItem(null);
         setDeletingId(null);
         void load();

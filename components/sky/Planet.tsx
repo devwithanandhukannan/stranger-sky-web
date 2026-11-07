@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useUI } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { ReportForm } from './Sheets';
+import { IcoVolume, IcoVolumeMute } from './icons';
 
 export function PlanetSheet() {
   const { ui, world } = useSky();
@@ -11,9 +12,18 @@ export function PlanetSheet() {
   const [err, setErr] = useState('');
   const [menu, setMenu] = useState<'' | 'report'>('');
   const isIncognito = useUI(ui, (s) => s.isIncognito);
+  const voiceReader = useUI(ui, (s) => s.voiceReader);
   const bodyRef = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
   const n = p?.msgs.length ?? 0;
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -57,8 +67,23 @@ export function PlanetSheet() {
   };
 
   const close = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
     world.leave();
     setMenu('');
+  };
+
+  const toggleVoice = () => {
+    const next = !voiceReader;
+    ui.set({ voiceReader: next });
+    try {
+      localStorage.setItem('voiceReader', next ? '1' : '0');
+    } catch {}
+    if (!next && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    ui.set({ toast: next ? 'Voice over enabled' : 'Voice over turned off' });
   };
 
   const handleBlock = async () => {
@@ -95,10 +120,20 @@ export function PlanetSheet() {
       }}
     >
       <aside className="sky-drawer chat-drawer">
-        {/* Header: Stranger name + Block and Leave */}
+        {/* Header: Stranger name + Voice Over toggle + Block and Leave */}
         <header className="sky-drawer-header">
           <h2 className="sky-drawer-title">{strangerName}</h2>
           <div className="chat-header-actions">
+            <button
+              type="button"
+              className={`chat-header-btn chat-voice-btn${voiceReader ? ' on' : ''}`}
+              onClick={toggleVoice}
+              title={voiceReader ? 'Voice over is on. Tap to turn off.' : 'Voice over is off. Tap to turn on.'}
+              aria-label={voiceReader ? 'Turn off voice over' : 'Turn on voice over'}
+            >
+              {voiceReader ? <IcoVolume size={14} /> : <IcoVolumeMute size={14} />}
+              <span>{voiceReader ? 'Voice on' : 'Voice off'}</span>
+            </button>
             <button
               type="button"
               className="chat-header-btn danger"
@@ -144,7 +179,7 @@ export function PlanetSheet() {
             </div>
 
             {/* Plain Message List */}
-            <div className="chat-messages-body" ref={bodyRef} aria-live="polite">
+            <div className="chat-messages-body" ref={bodyRef} aria-live={voiceReader ? 'polite' : 'off'}>
               {p.msgs.map((m, i) => (
                 <div key={m.ts ? `${m.ts}-${i}` : i} className={`chat-bubble-row${m.mine ? ' me' : ''}`}>
                   <div className={`chat-bubble${m.mine ? ' me' : ''}`}>

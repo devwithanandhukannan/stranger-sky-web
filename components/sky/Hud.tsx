@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useUI, MOOD_COLORS, MOOD_NAMES, type NearItem, F_ECHO } from '@/lib/sky/store';
 import { useSky } from './ctx';
-import { IcoX } from './icons';
+import { IcoX, IcoPhoneCall, IcoPhoneHangup } from './icons';
 
 const MOOD_OPTIONS = [
   { id: 0, name: 'calm', color: '#4ade80' },
@@ -327,6 +327,10 @@ export function Toast() {
   if (isPulse) {
     return (
       <div className="pulse-toast-banner" role="alertdialog" data-ui>
+        <div className="pulse-toast-beacon" aria-hidden="true">
+          <span className="pulse-toast-beacon-core" />
+          <span className="pulse-toast-beacon-wave" />
+        </div>
         <div className="pulse-toast-content">
           <div className="pulse-toast-thought">{thought ? `“${thought}”` : 'Someone sent you a pulse'}</div>
           <div className="pulse-toast-stranger">{title} · Sent you a pulse</div>
@@ -334,7 +338,9 @@ export function Toast() {
         <div className="pulse-toast-actions">
           <button type="button" className="pulse-toast-btn decline" onClick={handleDecline}>Decline</button>
           <button type="button" className="pulse-toast-btn accept" onClick={handleAccept}>Accept</button>
-          <button type="button" className="pulse-toast-close" onClick={() => ui.set({ toast: null })}><IcoX size={14} /></button>
+          <button type="button" className="pulse-toast-close" onClick={() => ui.set({ toast: null })} aria-label="Dismiss">
+            <IcoX size={13} />
+          </button>
         </div>
       </div>
     );
@@ -367,14 +373,54 @@ export function IncomingCall() {
   const { ui, world } = useSky();
   const ring = useUI(ui, (s) => s.ring);
   if (!ring) return null;
+
+  const initial = (ring.name || 'S').trim().charAt(0).toUpperCase();
+
   return (
-    <div className="modal" data-ui role="dialog" aria-label="Incoming connection">
-      <div className="sheet small center">
-        <h2>{ring.name}</h2>
-        <p className="muted">wants to talk</p>
-        <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
-          <button className="btn ghost" onClick={() => world.answerBond(ring.id, false)}>Not now</button>
-          <button className="btn" onClick={() => world.answerBond(ring.id, true)}>Accept</button>
+    <div
+      className="incoming-call-backdrop"
+      data-ui
+      role="dialog"
+      aria-label="Incoming connection"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) world.answerBond(ring.id, false);
+      }}
+    >
+      <div className="incoming-call-card">
+        {/* Caller Avatar with radiating ripples */}
+        <div className="incoming-call-avatar-wrap" aria-hidden="true">
+          <div className="incoming-call-ripple r1" />
+          <div className="incoming-call-ripple r2" />
+          <div className="incoming-call-avatar">
+            <span>{initial}</span>
+          </div>
+        </div>
+
+        {/* Caller Identity */}
+        <h2 className="incoming-call-name">{ring.name}</h2>
+        <div className="incoming-call-status">
+          <span className="incoming-call-live-dot" />
+          <span>wants to connect</span>
+        </div>
+
+        {/* Actions: Decline & Accept */}
+        <div className="incoming-call-actions">
+          <button
+            type="button"
+            className="incoming-call-btn decline"
+            onClick={() => world.answerBond(ring.id, false)}
+          >
+            <IcoPhoneHangup size={16} />
+            <span>Decline</span>
+          </button>
+          <button
+            type="button"
+            className="incoming-call-btn accept"
+            onClick={() => world.answerBond(ring.id, true)}
+          >
+            <IcoPhoneCall size={16} />
+            <span>Accept</span>
+          </button>
         </div>
       </div>
     </div>

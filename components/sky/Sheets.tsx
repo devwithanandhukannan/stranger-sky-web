@@ -336,6 +336,33 @@ export function SettingsSheet() {
               </label>
             </div>
 
+            {/* Row 1b: Voice over */}
+            <div className="you-row">
+              <div className="you-row-group">
+                <span className="you-row-title">Voice over</span>
+                <span className="you-row-sub">Reads incoming chat messages aloud.</span>
+              </div>
+              <label className="sky-incognito-wrap">
+                <input
+                  type="checkbox"
+                  className="sky-switch-input"
+                  checked={s.voiceReader}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    ui.set({ voiceReader: next });
+                    if (!next && typeof window !== 'undefined' && window.speechSynthesis) {
+                      window.speechSynthesis.cancel();
+                    }
+                    save('voiceReader', next);
+                  }}
+                  aria-label="Toggle Voice over"
+                />
+                <span className="sky-switch-track">
+                  <span className="sky-switch-thumb" />
+                </span>
+              </label>
+            </div>
+
             {/* Row 2: Nearby only */}
             <div className="you-row">
               <div className="you-row-group">

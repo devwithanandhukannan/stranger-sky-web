@@ -653,6 +653,51 @@
   color: #ff453a;
 }
 
+.chat-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.chat-voice-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ink);
+}
+.chat-voice-btn.on {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+.chat-voice-btn.on:hover {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+}
+
+[data-theme="light"] .chat-voice-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #64748b;
+}
+[data-theme="light"] .chat-voice-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+}
+[data-theme="light"] .chat-voice-btn.on {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
 .chat-thought-quote-section {
   padding: 0 36px 20px 36px;
   border-bottom: 1px solid var(--line);
@@ -958,21 +1003,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  background: rgba(18, 22, 34, 0.94);
+  gap: 14px;
+  background: rgba(10, 10, 10, 0.92);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 12px 16px 12px 18px;
+  border-radius: 9999px;
+  padding: 8px 10px 8px 16px;
   min-width: 320px;
   max-width: min(520px, calc(100vw - 28px));
   box-sizing: border-box;
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
   box-shadow:
-    0 20px 48px -8px rgba(0, 0, 0, 0.8),
+    0 20px 48px -8px rgba(0, 0, 0, 0.85),
     0 4px 16px -2px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   animation: pulseToastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   user-select: none;
   pointer-events: auto;
@@ -989,20 +1034,52 @@
   }
 }
 
+.pulse-toast-beacon {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-toast-beacon-core {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  display: block;
+}
+
+.pulse-toast-beacon-wave {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(52, 211, 153, 0.45);
+  animation: toastBeaconWave 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes toastBeaconWave {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 .pulse-toast-content {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   flex: 1;
   min-width: 0;
   text-align: left;
 }
 
 .pulse-toast-thought {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 550;
   color: #f8fafc;
-  line-height: 1.35;
+  line-height: 1.3;
   word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1010,10 +1087,10 @@
 }
 
 .pulse-toast-stranger {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 450;
-  color: #94a3b8;
-  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1028,7 +1105,7 @@
 
 .pulse-toast-btn {
   border-radius: 9999px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   padding: 6px 14px;
   cursor: pointer;
@@ -1042,36 +1119,42 @@
 }
 
 .pulse-toast-btn.decline {
-  background: rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .pulse-toast-btn.decline:hover {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.3);
   color: #fca5a5;
   transform: translateY(-1px);
 }
 
 .pulse-toast-btn.accept {
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
 }
 
 .pulse-toast-btn.accept:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.5);
+  background: #f1f5f9;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35);
   transform: translateY(-1px);
+}
+
+.pulse-toast-btn.accept:active,
+.pulse-toast-btn.decline:active {
+  transform: scale(0.97);
 }
 
 .pulse-toast-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
-  width: 26px;
-  height: 26px;
+  color: rgba(255, 255, 255, 0.4);
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1085,6 +1168,202 @@
 .pulse-toast-close:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+}
+
+/* ==========================================================================
+   Incoming Connection / Calling Modal (Modern Editorial Minimalism)
+   ========================================================================== */
+.incoming-call-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: callBackdropFade 0.28s ease-out both;
+  user-select: none;
+}
+
+@keyframes callBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.incoming-call-card {
+  position: relative;
+  width: min(380px, calc(100vw - 32px));
+  background: rgba(14, 14, 16, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 38px 28px 30px;
+  text-align: center;
+  box-shadow:
+    0 32px 80px -10px rgba(0, 0, 0, 0.85),
+    0 10px 30px -5px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  animation: callCardPop 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-sizing: border-box;
+}
+
+@keyframes callCardPop {
+  0% { opacity: 0; transform: scale(0.94) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.incoming-call-avatar-wrap {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incoming-call-avatar {
+  position: relative;
+  z-index: 2;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #000000;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.incoming-call-avatar span {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 28px;
+  font-weight: 350;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.incoming-call-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+
+.incoming-call-ripple.r1 {
+  animation: callWave 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.incoming-call-ripple.r2 {
+  animation: callWave 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation-delay: 0.8s;
+}
+
+@keyframes callWave {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(1.65);
+    opacity: 0;
+  }
+}
+
+.incoming-call-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
+
+.incoming-call-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 450;
+  margin-bottom: 28px;
+}
+
+.incoming-call-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  animation: liveDotBlink 1.6s ease-in-out infinite;
+}
+
+@keyframes liveDotBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.incoming-call-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.incoming-call-btn {
+  height: 48px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  border: none;
+}
+
+.incoming-call-btn.decline {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.incoming-call-btn.decline:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.incoming-call-btn.decline:active {
+  transform: scale(0.97);
+}
+
+.incoming-call-btn.accept {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+}
+
+.incoming-call-btn.accept:hover {
+  background: #f1f5f9;
+  box-shadow: 0 6px 22px rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.incoming-call-btn.accept:active {
+  transform: scale(0.97);
 }
 
 @media (max-width: 860px) {
@@ -1168,9 +1447,9 @@
     top: calc(56px + var(--safe-t, 0px)) !important;
     width: calc(100% - 24px) !important;
     max-width: 440px !important;
-    padding: 10px 12px 10px 14px !important;
+    padding: 8px 10px 8px 14px !important;
     gap: 10px !important;
-    border-radius: 14px !important;
+    border-radius: 9999px !important;
   }
   .pulse-toast-thought {
     font-size: 13.5px !important;
@@ -2289,7 +2568,7 @@
 
 [data-theme="light"] .pulse-toast-btn.decline {
   background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.1);
   color: #475569;
 }
 
@@ -2299,6 +2578,17 @@
   color: #dc2626;
 }
 
+[data-theme="light"] .pulse-toast-btn.accept {
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .pulse-toast-btn.accept:hover {
+  background: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
 [data-theme="light"] .pulse-toast-close {
   color: #64748b;
 }
@@ -2306,6 +2596,63 @@
 [data-theme="light"] .pulse-toast-close:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #0f172a;
+}
+
+/* Light mode adaptations for Incoming Call */
+[data-theme="light"] .incoming-call-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] .incoming-call-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 32px 80px -10px rgba(0, 0, 0, 0.2),
+    0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .incoming-call-avatar {
+  background: #000000;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .incoming-call-avatar span {
+  color: #ffffff;
+}
+
+[data-theme="light"] .incoming-call-name {
+  color: #0f172a;
+}
+
+[data-theme="light"] .incoming-call-status {
+  color: #64748b;
+}
+
+[data-theme="light"] .incoming-call-ripple {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .incoming-call-btn.decline {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+[data-theme="light"] .incoming-call-btn.decline:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+
+[data-theme="light"] .incoming-call-btn.accept {
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .incoming-call-btn.accept:hover {
+  background: #1e293b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================
