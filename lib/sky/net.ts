@@ -137,7 +137,7 @@ export class NetWorld implements World {
       }
       for (const sid of g.hide) { const l = st.bySid.get(sid); if (l) l.hidden = true; }
       st.warpedAt = performance.now();
-      const realOthers = (g.roster || []).filter((r) => !(r.f & 8) && r.sid !== g.you?.sid);
+      const realOthers = (g.roster || []).filter((r: { f?: number; sid?: string }) => !(Number(r.f || 0) & 8) && r.sid !== g.you?.sid);
       const totalCount = g.census?.counts?.[g.galaxy] ?? g.census?.total ?? (realOthers.length + 1);
       if (totalCount <= 1 || realOthers.length === 0) {
         setTimeout(() => {

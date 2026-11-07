@@ -1,5 +1,5 @@
 // Untold PWA Service Worker
-const CACHE_NAME = 'untold-cache-v3';
+const CACHE_NAME = 'untold-cache-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -17,6 +17,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // Never intercept HTML page navigation/refresh requests (lets Next.js load instantaneously with fresh state)
+  if (event.request.mode === 'navigate') {
+    return;
+  }
 
   let url;
   try {

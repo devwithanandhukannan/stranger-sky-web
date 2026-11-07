@@ -1,18 +1,18 @@
 :root {
   --font-sans: var(--font-sans), 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg: #0a0a0c;
-  --bg-secondary: #121318;
-  --ink: #ffffff;
-  --ink2: #8e9099;
-  --ink3: #52545e;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --bg: #0E1014;
+  --bg-secondary: #16181D;
+  --ink: #F2F3F5;
+  --ink2: #8B909A;
+  --ink3: #565A63;
+  --line: rgba(242, 243, 245, 0.12);
+  --line-strong: rgba(242, 243, 245, 0.28);
   --accent: #ffffff;
   --accent-ink: #000000;
   --danger: #ef4444;
-  --sheet-bg: #0a0a0c;
-  --sky-top: #0a0a0c;
-  --sky-bottom: #0a0a0c;
+  --sheet-bg: #0E1014;
+  --sky-top: #0E1014;
+  --sky-bottom: #0E1014;
   --panel-width: 420px;
   --r: 20px;
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -23,19 +23,19 @@
 :root[data-theme="light"],
 [data-theme="light"],
 .sky-root[data-theme="light"] {
-  --bg: #ffffff;
-  --bg-secondary: #f4f4f6;
-  --ink: #0a0a0c;
-  --ink2: #6b6d76;
-  --ink3: #a0a2aa;
-  --line: rgba(0, 0, 0, 0.08);
-  --line-strong: rgba(0, 0, 0, 0.16);
-  --accent: #0a0a0c;
+  --bg: #F4F5F7;
+  --bg-secondary: #EAECEF;
+  --ink: #101216;
+  --ink2: #6B707A;
+  --ink3: #A0A5AE;
+  --line: rgba(16, 18, 22, 0.12);
+  --line-strong: rgba(16, 18, 22, 0.28);
+  --accent: #101216;
   --accent-ink: #ffffff;
   --danger: #e11d48;
-  --sheet-bg: #ffffff;
-  --sky-top: #ffffff;
-  --sky-bottom: #ffffff;
+  --sheet-bg: #F4F5F7;
+  --sky-top: #F4F5F7;
+  --sky-bottom: #F4F5F7;
   color-scheme: light;
 }
 
@@ -265,20 +265,6 @@ button { cursor: pointer; }
 .input-inner::placeholder {
   color: #71717a;
 }
-.input-btn-right {
-  background: transparent;
-  border: none;
-  color: #71717a;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  border-radius: 6px;
-  transition: color 0.15s ease;
-}
-.input-btn-right:hover {
-  color: #e4e4e7;
-}
 
 .field {
   width: 100%;
@@ -357,51 +343,9 @@ button { cursor: pointer; }
 
 .err { color: #f87171; font-size: 13.5px; min-height: 1.2em; }
 .row { display: flex; gap: 10px; align-items: center; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .center { text-align: center; }
-.logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  margin: 0 auto 16px;
-  background-image: url('/web-app-manifest-512x512.png');
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 8px 24px -4px rgba(100, 83, 219, 0.6), 0 0 16px rgba(255, 209, 102, 0.25);
-}
 
 /* Minimalist Guest / Ignoto Mode without emoji clutter */
-.guest-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0 14px;
-  color: #52525b;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 550;
-}
-.guest-divider::before,
-.guest-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.07);
-}
-.guest-box {
-  display: grid;
-  gap: 10px;
-}
-.guest-btn {
-  background: #141518 !important;
-  color: #e4e4e7 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-.guest-btn:hover:not(:disabled) {
-  background: #1b1c21 !important;
-  color: #ffffff !important;
-}
 
 /* Immediate Suspension Screen */
 .ban-page {
@@ -484,7 +428,7 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 /* ==========================================================================
-   Instant Sky Loading Screen (Smooth transition from blank to sky)
+   Instant Sky Loading Screen (Seamless pitch-black fallback)
    ========================================================================== */
 .sky-instant-loader {
   position: fixed;
@@ -493,74 +437,11 @@ button { cursor: pointer; }
   height: 100vh;
   z-index: 100;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(ellipse at 50% 50%, #0c142b 0%, #030611 100%);
-  color: #ffffff;
+  background: var(--bg, #0a0a0c);
+  color: var(--fg, #f4f4f5);
   overflow: hidden;
-  transition: opacity 0.3s ease;
-}
-
-.sky-loader-stars {
-  position: absolute;
-  inset: 0;
-  background-image: 
-    radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1.5px 1.5px at 100px 150px, rgba(255,255,255,0.8), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 240px 80px, #93c5fd, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 320px 220px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 450px 120px, rgba(255,255,255,0.7), rgba(0,0,0,0));
-  background-size: 500px 500px;
-  opacity: 0.6;
-}
-
-.sky-loader-center {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  z-index: 2;
-}
-
-.sky-loader-halo {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, -4px);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(0, 113, 227, 0) 70%);
-  animation: skyPulseHalo 2s ease-in-out infinite;
-}
-
-.sky-loader-core {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, #ffffff 0%, #7dd3fc 45%, #0071e3 100%);
-  box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.65);
-  animation: skyPulseCore 2s ease-in-out infinite;
-}
-
-.sky-loader-text {
-  font-size: 14px;
-  font-weight: 550;
-  letter-spacing: 0.04em;
-  color: rgba(224, 238, 255, 0.85);
-  margin: 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-}
-
-@keyframes skyPulseCore {
-  0%, 100% { transform: scale(0.95); opacity: 0.85; }
-  50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 28px 6px rgba(56, 189, 248, 0.85); }
-}
-
-@keyframes skyPulseHalo {
-  0%, 100% { transform: translate(-50%, -4px) scale(0.9); opacity: 0.3; }
-  50% { transform: translate(-50%, -4px) scale(1.3); opacity: 0.7; }
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
 /* =========================================================
@@ -1181,13 +1062,6 @@ button { cursor: pointer; }
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.lp-author-img {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 /* Editorial Manifesto */
 .lp-manifesto-section {
   padding: 96px 24px 80px;
@@ -1412,13 +1286,6 @@ button { cursor: pointer; }
   gap: 12px;
 }
 
-.lp-author-img {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .lp-author-name {
   font-size: 14px;
   font-weight: 700;
@@ -1611,283 +1478,5 @@ button { cursor: pointer; }
 /* =========================================================
    PWA INSTALL NOTIFICATION BANNER & MODAL (APPLE / PICKY MINIMALIST)
    ========================================================= */
-.pwa-toast-banner {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 9999;
-  max-width: 380px;
-  width: calc(100vw - 32px);
-  animation: pwaSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes pwaSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.pwa-toast-card {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 18px 20px 16px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 20px;
-  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
-  color: #111111;
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-}
-
-[data-theme="dark"] .pwa-toast-card,
-.sky-root[data-theme="dark"] ~ .pwa-toast-banner .pwa-toast-card {
-  background: rgba(24, 24, 28, 0.94);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.6);
-}
-
-.pwa-toast-icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-.pwa-toast-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.pwa-toast-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.pwa-toast-title {
-  margin: 0 0 4px 0;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: inherit;
-}
-
-.pwa-toast-desc {
-  margin: 0 0 14px 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #666666;
-}
-[data-theme="dark"] .pwa-toast-desc {
-  color: #a1a1aa;
-}
-
-.pwa-toast-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pwa-btn-install {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 9999px;
-  background: #111111;
-  color: #ffffff;
-  font-size: 13.5px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-[data-theme="dark"] .pwa-btn-install {
-  background: #ffffff;
-  color: #111111;
-}
-.pwa-btn-install:hover {
-  opacity: 0.88;
-}
-
-.pwa-btn-dismiss {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 9999px;
-  background: transparent;
-  color: #666666;
-  font-size: 13.5px;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-[data-theme="dark"] .pwa-btn-dismiss {
-  color: #a1a1aa;
-}
-.pwa-btn-dismiss:hover {
-  color: #111111;
-}
-[data-theme="dark"] .pwa-btn-dismiss:hover {
-  color: #ffffff;
-}
-
-.pwa-toast-close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  line-height: 1;
-  color: #999999;
-  cursor: pointer;
-  padding: 4px;
-}
-.pwa-toast-close:hover {
-  color: #111111;
-}
 
 /* iOS / Manual Guide Modal */
-.pwa-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  animation: pwaFadeIn 0.2s ease forwards;
-}
-
-@keyframes pwaFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.pwa-modal-card {
-  width: min(420px, 100%);
-  background: #ffffff;
-  color: #111111;
-  border-radius: 24px;
-  padding: 32px 26px 24px;
-  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.25);
-  animation: pwaScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-}
-
-[data-theme="dark"] .pwa-modal-card {
-  background: #1c1c20;
-  color: #ffffff;
-}
-
-@keyframes pwaScaleUp {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.pwa-modal-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.pwa-modal-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  margin: 0 auto 12px;
-  display: block;
-}
-
-.pwa-modal-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: inherit;
-}
-
-.pwa-modal-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-.pwa-step-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #444444;
-}
-[data-theme="dark"] .pwa-step-item {
-  color: #d1d1d6;
-}
-
-.pwa-step-num {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #f0f0f4;
-  color: #111111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-}
-[data-theme="dark"] .pwa-step-num {
-  background: #2c2c32;
-  color: #ffffff;
-}
-
-.pwa-btn-done {
-  width: 100%;
-  height: 48px;
-  border-radius: 9999px;
-  background: #111111;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-[data-theme="dark"] .pwa-btn-done {
-  background: #ffffff;
-  color: #111111;
-}
-.pwa-btn-done:hover {
-  opacity: 0.9;
-}
-
-@media (max-width: 480px) {
-  .pwa-toast-banner {
-    bottom: 16px;
-    right: 16px;
-    left: 16px;
-    width: auto;
-  }
-}

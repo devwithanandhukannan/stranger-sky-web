@@ -1,6 +1,6 @@
 'use client';
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Color, Mesh, MeshBasicMaterial, OrthographicCamera,
+  AdditiveBlending, NormalBlending, BufferAttribute, BufferGeometry, CanvasTexture, Color, Mesh, MeshBasicMaterial, OrthographicCamera,
   PlaneGeometry, Points, Scene, ShaderMaterial, WebGLRenderer,
 } from 'three';
 import { F_BUSY, F_ECHO, F_NEW, F_VET, MOOD_COLORS, type QualityName, type Store } from './store';
@@ -46,7 +46,7 @@ void main(){
   vColor = aColor; vKind = aKind; vBright = aBright*uFade;
 }`;
 const LIGHT_FRAG = `
-uniform float uTime;
+uniform float uTime; uniform float uLight;
 varying vec3 vColor; varying float vKind; varying float vBright;
 void main(){
   vec2 q = gl_PointCoord-.5; float d = length(q)*2.;
@@ -65,6 +65,7 @@ void main(){
   } else if (vKind>4.5) { // in a conversation: dimmer, ringed
     a *= .5; a += smoothstep(.05,0.,abs(d-.72))*.55;
   }
+  if (uLight > .5) col = vColor;
   gl_FragColor = vec4(col, clamp(a,0.,1.)*vBright);
 }`;
 
@@ -234,7 +235,7 @@ export class SkyEngine {
     lgGeo.setAttribute('aColor', new BufferAttribute(this.lg.color, 3).setUsage(35048));
     lgGeo.setAttribute('aKind', new BufferAttribute(this.lg.kind, 1).setUsage(35048));
     lgGeo.setAttribute('aBright', new BufferAttribute(this.lg.bright, 1).setUsage(35048));
-    this.lightMat = new ShaderMaterial({ vertexShader: LIGHT_VERT, fragmentShader: LIGHT_FRAG, transparent: true, depthTest: false, depthWrite: false, blending: AdditiveBlending, uniforms: { uCam: { value: [0, 0] }, uDpr: { value: 1 }, uTime: { value: 0 }, uFade: { value: 0 } } });
+    this.lightMat = new ShaderMaterial({ vertexShader: LIGHT_VERT, fragmentShader: LIGHT_FRAG, transparent: true, depthTest: false, depthWrite: false, blending: AdditiveBlending, uniforms: { uCam: { value: [0, 0] }, uDpr: { value: 1 }, uTime: { value: 0 }, uFade: { value: 0 }, uLight: { value: 0 } } });
     this.lights = new Points(lgGeo, this.lightMat); this.lights.frustumCulled = false;
 
     const fxGeo = new BufferGeometry();
@@ -396,6 +397,12 @@ export class SkyEngine {
     const starMid = t.mode === 'light' ? '#71717a' : '#ffffff';
     (this.far.material as ShaderMaterial).uniforms.uColor.value.set(hex(starFar));
     (this.mid.material as ShaderMaterial).uniforms.uColor.value.set(hex(starMid));
+    // Additive blending disappears on a light background, so use normal blending there.
+    const blend = t.mode === 'light' ? NormalBlending : AdditiveBlending;
+    for (const m of [this.lightMat, this.fxMat, this.far.material as ShaderMaterial, this.mid.material as ShaderMaterial]) {
+      m.blending = blend; m.needsUpdate = true;
+    }
+    this.lightMat.uniforms.uLight.value = t.mode === 'light' ? 1 : 0;
   }
   private tintNebulaToCensus() {
     const { counts } = this.ui.get().census; const gal = this.ui.get().galaxies;
@@ -882,207 +889,65 @@ export class SkyEngine {
   }
 
   private layoutLabels(time: number) {
-    const st = this.state, you = st.you, spec = QUALITY[this.quality];
-    const sel = this.ui.get().selected;
-    const cands: { l: Light; d: number }[] = [];
-    if (you) for (const l of st.lights.values()) {
-      if (l.hidden || !l.t) continue;
-      const dx = this.wrap(l.x - you.x);
-      const dy = this.wrap(l.y - you.y);
-      const d = l === you ? -1 : dx * dx + dy * dy;
-      if (!l.near && l !== you && sel !== l.sid && d > (st.radius * 1.5) ** 2) continue;
-      cands.push({ l, d });
+    // Suppress floating text pills above stars (editorial minimalism: thoughts are read in the lower-left card)
+    for (let i = 0; i < this.labels.length; i++) {
+      if (this.labels[i].style.opacity !== '0') {
+        this.labels[i].style.opacity = '0';
+      }
     }
-    cands.sort((a, b) => a.d - b.d);
-    const placed: { x: number; y: number }[] = [];
-    let n = 0;
-    const R = Math.max(220, st.radius * 1.25);
-    for (const c of cands) {
-      if (n >= Math.min(spec.labels, this.labels.length)) break;
-      const p = this.toScreen(c.l.x, c.l.y);
-      if (p.x < -60 || p.x > this.W + 60 || p.y < -20 || p.y > this.H + 20) continue;
-      const isSelected = sel === c.l.sid;
-      if (!isSelected && placed.some((q) => Math.abs(q.x - p.x) < 70 && Math.abs(q.y - p.y) < 22)) continue;
-      placed.push(p);
-      const el = this.labels[n], cache = this.labelCache[n];
-      const dist = Math.sqrt(Math.max(0, c.d));
-      const op = c.l === you ? 0.85 : isSelected ? 1 : Math.max(0.65, Math.min(1, 1.3 - dist / R));
-      const lx = Math.max(110, Math.min(this.W - 110, p.x));
-      const tf = `translate3d(${Math.round(lx)}px,${Math.round(p.y - 24)}px,0)`, ops = op.toFixed(2);
-      if (cache.text !== c.l.t) { el.textContent = c.l.t; cache.text = c.l.t; }
-      if (cache.tf !== tf) { el.style.transform = tf; cache.tf = tf; }
-      if (cache.op !== ops) { el.style.opacity = ops; cache.op = ops; }
-      el.classList.toggle('you', c.l === you);
-      n++;
-    }
-    for (; n < this.labels.length; n++) { const cache = this.labelCache[n]; if (cache.op !== '0') { this.labels[n].style.opacity = '0'; cache.op = '0'; cache.text = ''; } }
-    const s = this.ui.get();
-    const bob = Math.sin(time * 0.9) * 4;
-    this.place(
-      this.lanternEl,
-      s.lanternDrift && this.lanternFx >= 0 && this.lanternOpacity > 0.05
-        ? { x: this.lanternPos.x, y: this.lanternPos.y + bob }
-        : null,
-      time,
-      this.lanternOpacity
-    );
-    this.place(this.meteorEl, s.meteor ? { x: s.meteor.x, y: s.meteor.y } : null, time);
-  }
-  private place(el: HTMLElement, w: { x: number; y: number } | null, time: number, alpha = 1) {
-    if (!w || alpha <= 0.02) { if (el.style.opacity !== '0') el.style.opacity = '0'; return; }
-    const p = this.toScreen(w.x, w.y);
-    if (p.x < -120 || p.x > this.W + 120 || p.y < -120 || p.y > this.H + 120) {
-      if (el.style.opacity !== '0') el.style.opacity = '0';
-      return;
-    }
-    el.style.transform = `translate3d(${Math.round(p.x)}px,${Math.round(p.y + 30)}px,0)`;
-    const pulse = 0.65 + 0.3 * Math.sin(time * 2);
-    el.style.opacity = String((pulse * alpha).toFixed(2));
   }
 
   private updateConnectionThread(time: number, dt: number) {
-    if (!this.threadSvg || !this.threadCorePath) return;
+    if (!this.threadSvg) return;
     const s = this.ui.get();
     const you = this.state.you;
 
-    let targetSid: string | null = null;
-    let peerName = 'a stranger';
-    let isConnected = false;
+    // 1. Center User Star: Delicate circular ring (always visible when user exists, matching editorial reference)
+    if (you && this.threadUserRing) {
+      const p1 = this.toScreen(you.x, you.y);
+      if (p1.x >= -60 && p1.x <= this.W + 60 && p1.y >= -60 && p1.y <= this.H + 60) {
+        this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
+        this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
+        this.threadUserRing.setAttribute('r', '20');
+        this.threadUserRing.style.opacity = '1';
+      } else {
+        this.threadUserRing.style.opacity = '0';
+      }
+    } else if (this.threadUserRing) {
+      this.threadUserRing.style.opacity = '0';
+    }
 
+    // 2. Selected Target Star: Delicate circular ring when tapped or in conversation
+    let targetSid: string | null = null;
     if (s.planet && s.planet.sid && !s.planet.ended) {
       targetSid = s.planet.sid;
-      peerName = (s.planet.known && s.planet.with?.name) ? s.planet.with.name : 'a stranger';
-      isConnected = true;
     } else if (s.selected) {
       targetSid = s.selected;
-      peerName = 'a stranger';
-      isConnected = false;
     }
 
     const targetLight = targetSid ? (this.state.bySid.get(targetSid) || Array.from(this.state.lights.values()).find((l) => l.sid === targetSid)) : null;
 
-    if (!you || !targetSid || !targetLight || targetLight === you || targetLight.hidden) {
-      this.threadConnectedSid = null;
-      this.threadProgress = 0;
-      if (this.threadSvg.style.opacity !== '0') {
-        this.threadSvg.style.opacity = '0';
-      }
-      if (this.threadPeerLabel && this.threadPeerLabel.style.opacity !== '0') {
-        this.threadPeerLabel.style.opacity = '0';
-      }
-      if (this.threadUserRing) this.threadUserRing.style.opacity = '0';
-      if (this.threadTargetGlow) this.threadTargetGlow.style.opacity = '0';
-      return;
-    }
-
-    // Connection animation progress (draw-in)
-    if (this.threadConnectedSid !== targetSid) {
-      this.threadConnectedSid = targetSid;
-      this.threadProgress = 0;
-    }
-
-    this.threadProgress = Math.min(1, this.threadProgress + dt * (isConnected ? 2.2 : 2.0));
-    const t = this.threadProgress;
-
-    const p1 = this.toScreen(you.x, you.y);
-    const p2 = this.toScreen(targetLight.x, targetLight.y);
-
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist < 10 || p1.x < -200 || p1.x > this.W + 200 || p1.y < -200 || p1.y > this.H + 200 || p2.x < -200 || p2.x > this.W + 200 || p2.y < -200 || p2.y > this.H + 200) {
-      this.threadSvg.style.opacity = '0';
-      if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
-      if (this.threadUserRing) this.threadUserRing.style.opacity = '0';
-      if (this.threadTargetGlow) this.threadTargetGlow.style.opacity = '0';
-      return;
-    }
-
-    // Midpoint between both stars
-    const mx = (p1.x + p2.x) / 2;
-    const my = (p1.y + p2.y) / 2;
-
-    // Unit normal vector perpendicular to chord
-    let nx = -dy / dist;
-    let ny = dx / dist;
-
-    // Ensure the arc curves upwards (towards sky, ny < 0 in screen space)
-    if (ny > 0) {
-      nx = -nx;
-      ny = -ny;
-    }
-    // If nearly vertical, ensure it consistently bows outward
-    if (Math.abs(ny) < 0.12 && nx > 0) {
-      nx = -nx;
-    }
-
-    // Organic gentle cosmic string harmonic vibration
-    const wave = Math.sin(time * 2.2) * (Math.min(dist * 0.02, 3.5));
-    // Arc height (approx 22% of span for control point, bowing curve by ~11% of span)
-    const baseArch = Math.min(180, Math.max(36, dist * 0.22));
-    const archHeight = baseArch + wave;
-
-    const cx = mx + nx * archHeight;
-    const cy = my + ny * archHeight;
-
-    // Draw-in interpolated path: quadratic bezier curve B(t) from p1 to (cx, cy) to p2
-    const currentEndX = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cx + t * t * p2.x;
-    const currentEndY = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cy + t * t * p2.y;
-    const currentControlX = (1 - t) * p1.x + t * cx;
-    const currentControlY = (1 - t) * p1.y + t * cy;
-
-    const pathD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${currentControlX.toFixed(1)} ${currentControlY.toFixed(1)} ${currentEndX.toFixed(1)} ${currentEndY.toFixed(1)}`;
-
-    this.threadGlowPath?.setAttribute('d', pathD);
-    this.threadCorePath?.setAttribute('d', pathD);
-    this.threadPulsePath?.setAttribute('d', pathD);
-
-    // Continuous flowing pulse along the thread
-    if (this.threadPulsePath) {
-      const dashOffset = -(time * 120) % 184;
-      this.threadPulsePath.style.strokeDashoffset = `${dashOffset}px`;
-    }
-
-    // Traveling light spark particle
-    if (this.threadSparkCircle) {
-      if (t >= 0.95) {
-        const sparkT = (time * 0.45) % 1;
-        const sx = (1 - sparkT) * (1 - sparkT) * p1.x + 2 * (1 - sparkT) * sparkT * cx + sparkT * sparkT * p2.x;
-        const sy = (1 - sparkT) * (1 - sparkT) * p1.y + 2 * (1 - sparkT) * sparkT * cy + sparkT * sparkT * p2.y;
-        this.threadSparkCircle.setAttribute('cx', sx.toFixed(1));
-        this.threadSparkCircle.setAttribute('cy', sy.toFixed(1));
-        this.threadSparkCircle.style.opacity = String(0.85 + 0.15 * Math.sin(time * 5));
+    if (targetLight && targetLight !== you && !targetLight.hidden && this.threadTargetGlow) {
+      const p2 = this.toScreen(targetLight.x, targetLight.y);
+      if (p2.x >= -60 && p2.x <= this.W + 60 && p2.y >= -60 && p2.y <= this.H + 60) {
+        this.threadTargetGlow.setAttribute('cx', p2.x.toFixed(1));
+        this.threadTargetGlow.setAttribute('cy', p2.y.toFixed(1));
+        this.threadTargetGlow.setAttribute('r', '20');
+        this.threadTargetGlow.style.opacity = '1';
       } else {
-        this.threadSparkCircle.setAttribute('cx', currentEndX.toFixed(1));
-        this.threadSparkCircle.setAttribute('cy', currentEndY.toFixed(1));
-        this.threadSparkCircle.style.opacity = '1';
+        this.threadTargetGlow.style.opacity = '0';
       }
+    } else if (this.threadTargetGlow) {
+      this.threadTargetGlow.style.opacity = '0';
     }
 
-    // Rings & halos on the two connected stars
-    if (this.threadUserRing) {
-      this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
-      this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
-      this.threadUserRing.style.opacity = String(Math.min(1, t * 1.2));
-    }
-    if (this.threadTargetGlow) {
-      this.threadTargetGlow.setAttribute('cx', p2.x.toFixed(1));
-      this.threadTargetGlow.setAttribute('cy', p2.y.toFixed(1));
-      this.threadTargetGlow.style.opacity = String(Math.min(1, Math.max(0, (t - 0.15) / 0.85)));
-    }
+    // 3. Clear legacy connection curves, sparks and peer labels (editorial minimal reference)
+    if (this.threadGlowPath) this.threadGlowPath.setAttribute('d', '');
+    if (this.threadCorePath) this.threadCorePath.setAttribute('d', '');
+    if (this.threadPulsePath) this.threadPulsePath.setAttribute('d', '');
+    if (this.threadSparkCircle) this.threadSparkCircle.style.opacity = '0';
+    if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
 
     this.threadSvg.style.opacity = '1';
-
-    // Peer label below their star
-    if (this.threadPeerLabel) {
-      if (t >= 0.5) {
-        this.threadPeerLabel.textContent = peerName;
-        this.threadPeerLabel.style.transform = `translate3d(${Math.round(p2.x)}px,${Math.round(p2.y + 26)}px,0)`;
-        this.threadPeerLabel.style.opacity = String(Math.min(1, (t - 0.5) / 0.5));
-      } else {
-        this.threadPeerLabel.style.opacity = '0';
-      }
-    }
   }
 }

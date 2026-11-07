@@ -8,12 +8,12 @@ import type { World } from '@/lib/sky/world';
 import { NetWorld } from '@/lib/sky/net';
 import { applyThemeCss, resetThemeCss, resolveTheme } from '@/lib/sky/themes';
 import { setSound, unlock } from '@/lib/sky/audio';
-import { Ctx, useSky, type SkyCtx } from './ctx';
+import { Ctx, type SkyCtx } from './ctx';
 import { Announcement, IncomingCall, SelectedLightThought, SkyComposer, SkyHeader, SkyHints, Toast, Warp } from './Hud';
 import { BondsSheet, ReportSheet, SettingsSheet } from './Sheets';
 import { PlanetSheet } from './Planet';
 import { SkyEngine } from '@/lib/sky/engine';
-import { IcoPin, IcoShield, IcoGlobe, IcoRadar, IcoShieldAlert, IcoX } from './icons';
+import { IcoShieldAlert } from './icons';
 import Logo from '@/components/Logo';
 
 
@@ -41,146 +41,12 @@ const savedLoc = () => {
   return null;
 };
 
-function NeighbourLocationPrompt() {
-  const { ui, world } = useSky();
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState('');
-
-  const handleClose = () => {
-    void world.travel('night');
-  };
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
-
-  const requestLocation = () => {
-    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-      setErr('Geolocation is not supported by your browser.');
-      return;
-    }
-    setLoading(true);
-    setErr('');
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        setLoading(false);
-        const ok = await world.setLocation(pos.coords.latitude, pos.coords.longitude);
-        if (!ok) {
-          setErr('Could not register location with server. Please try again.');
-        }
-      },
-      (e) => {
-        setLoading(false);
-        if (e.code === e.PERMISSION_DENIED) {
-          setErr('Location permission was denied. Please allow location access in your browser to discover nearby strangers.');
-        } else if (e.code === e.POSITION_UNAVAILABLE) {
-          setErr('Location information is unavailable. Please check your GPS/network settings.');
-        } else if (e.code === e.TIMEOUT) {
-          setErr('Request to get location timed out. Please try again.');
-        } else {
-          setErr('Unable to retrieve location. Please check browser permissions.');
-        }
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
-    );
-  };
-
-  return (
-    <div
-      className="location-prompt-overlay"
-      data-ui
-      role="dialog"
-      aria-label="Location Permission Required"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-    >
-      <div className="location-prompt-card">
-        <button
-          type="button"
-          className="location-prompt-close"
-          onClick={handleClose}
-          aria-label="Close"
-          title="Close and return to One Sky"
-        >
-          <IcoX size={15} />
-        </button>
-
-        <div className="location-radar-wrap">
-          <div className="location-radar-pulse" />
-          <div className="location-radar-pulse outer" />
-          <div className="location-radar-core"><IcoPin size={22} style={{ color: '#0071e3' }} /></div>
-        </div>
-
-        <h2 className="location-prompt-title">Discover Strangers Near You</h2>
-        <p className="location-prompt-sub">
-          The <strong>Neighbours</strong> galaxy connects you with wanderers within <strong>100 km</strong> in the physical world.
-        </p>
-
-        <div className="location-privacy-box">
-          <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoShield size={17} style={{ color: '#ffffff' }} /></span>
-            <div>
-              <b>Zero Real-Time Tracking</b>
-              <p className="tiny muted">Your exact coordinates are never shared with anyone.</p>
-            </div>
-          </div>
-          <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoGlobe size={17} style={{ color: '#ffffff' }} /></span>
-            <div>
-              <b>Fuzzed Precision (~1.1 km)</b>
-              <p className="tiny muted">Location is rounded for privacy. Others only see relative distance (e.g. <em>~14 km away</em>).</p>
-            </div>
-          </div>
-          <div className="location-privacy-item">
-            <span className="location-privacy-ico"><IcoRadar size={17} style={{ color: '#ffffff' }} /></span>
-            <div>
-              <b>Max 100 km Radius</b>
-              <p className="tiny muted">Only people within 100 km who also enabled location will drift into your orbit.</p>
-            </div>
-          </div>
-        </div>
-
-
-        {err && <div className="err" style={{ marginBottom: 12, textAlign: 'center' }}>{err}</div>}
-
-        <div className="location-prompt-actions">
-          <button
-            className="btn location-btn-primary"
-            disabled={loading}
-            onClick={requestLocation}
-          >
-            {loading ? 'Locating your position in orbit…' : <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><IcoPin size={16} /> Enable Location (Within 100 km)</span>}
-          </button>
-          <button
-            className="btn ghost location-btn-ghost"
-            disabled={loading}
-            onClick={() => ui.set({ panel: 'map' })}
-          >
-            Switch to Another Galaxy
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const initialSkyTheme = () => {
   try {
-    if (typeof localStorage === 'undefined') return 'midnight';
-    const locked = localStorage.getItem('skyThemeLocked');
-    const saved = localStorage.getItem('skyTheme');
-    if (locked === 'true' && saved && ['auto', 'day', 'evening', 'midnight', 'white', 'dark'].includes(saved)) {
-      return saved === 'auto' ? 'midnight' : saved;
-    }
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('skyTheme') : null;
+    if (saved && ['auto', 'day', 'midnight'].includes(saved)) return saved;
   } catch {}
-  return 'midnight';
+  return 'auto';
 };
 
 function BanScreen({
@@ -382,6 +248,21 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
     }
   }, [listMode]);
 
+  // Global keyboard listeners: Escape to close panels or clear selection
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (ui.get().panel) {
+          ui.set({ panel: null });
+        } else if (ui.get().selected) {
+          ui.set({ selected: null });
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ui]);
+
   const ctx: SkyCtx = { ui, world, state, getToken, onSignOut, onDeleted };
 
   const isBanned =
@@ -405,20 +286,6 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
     );
   }
 
-  // Global keyboard listeners: Escape to close panels or clear selection
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (ui.get().panel) {
-          ui.set({ panel: null });
-        } else if (ui.get().selected) {
-          ui.set({ selected: null });
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [ui]);
 
   return (
     <Ctx.Provider value={ctx}>

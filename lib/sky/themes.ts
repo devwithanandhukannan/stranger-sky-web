@@ -18,8 +18,8 @@ export const THEMES: Record<string, Theme> = {
     name: 'Dark',
     subtitle: 'Ultra-minimal dark space',
     mode: 'dark',
-    top: '#0a0a0c',
-    bottom: '#0a0a0c',
+    top: '#0E1014',
+    bottom: '#0E1014',
     tint: [1, 1, 1],
     nebula: [],
     sparkle: false,
@@ -29,8 +29,8 @@ export const THEMES: Record<string, Theme> = {
     name: 'Dark',
     subtitle: 'Ultra-minimal dark space',
     mode: 'dark',
-    top: '#0a0a0c',
-    bottom: '#0a0a0c',
+    top: '#0E1014',
+    bottom: '#0E1014',
     tint: [1, 1, 1],
     nebula: [],
     sparkle: false,
@@ -40,9 +40,9 @@ export const THEMES: Record<string, Theme> = {
     name: 'Light',
     subtitle: 'Pure minimal light canvas',
     mode: 'light',
-    top: '#ffffff',
-    bottom: '#ffffff',
-    tint: [1.0, 1.0, 1.0],
+    top: '#F4F5F7',
+    bottom: '#F4F5F7',
+    tint: [0.55, 0.6, 0.78],
     nebula: [],
     sparkle: false,
   },
@@ -122,7 +122,8 @@ export function getThemeScheduleDescription(): string {
 export function resolveTheme(setting: string, date = new Date()): Theme {
   let key = setting;
   if (!key || key === 'auto') {
-    key = 'midnight';
+    const dark = typeof window === 'undefined' || !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
+    key = dark ? 'midnight' : 'day';
   } else if (key === 'white' || key === 'light') {
     key = 'day';
   } else if (key === 'dark') {
@@ -153,4 +154,3 @@ export function resetThemeCss() {
   root.style.removeProperty('--sky-top');
   root.style.removeProperty('--sky-bottom');
 }
-
