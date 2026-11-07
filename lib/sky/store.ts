@@ -74,7 +74,7 @@ export type UI = {
 export const initialUI: UI = {
   status: 'idle', denied: '', banInfo: null, name: '', galaxy: '', galaxies: [], thought: '', mood: 0, thoughtMax: 120,
   near: [], selected: null, incoming: [], planet: null, bonds: [], ring: null, meteor: null, meteorPrompt: null,
-  census: { counts: {}, total: 0 }, announcement: '', skyTheme: 'auto', panel: null, lanternDrift: false, inboxTick: 0,
+  census: { counts: {}, total: 0 }, announcement: '', skyTheme: 'midnight', panel: null, lanternDrift: false, inboxTick: 0,
   toast: null, listMode: false, sound: true, messageSound: true, messageTone: 'pop', voiceReader: false, haptics: true, lite: false, quality: 'high', warp: 0, reportSid: null,
   locationGranted: false,
   userLocation: null,

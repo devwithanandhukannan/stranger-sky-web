@@ -175,14 +175,14 @@ function NeighbourLocationPrompt() {
 
 const initialSkyTheme = () => {
   try {
-    if (typeof localStorage === 'undefined') return 'auto';
+    if (typeof localStorage === 'undefined') return 'midnight';
     const locked = localStorage.getItem('skyThemeLocked');
     const saved = localStorage.getItem('skyTheme');
     if (locked === 'true' && saved && ['auto', 'day', 'evening', 'midnight', 'white', 'dark'].includes(saved)) {
-      return saved;
+      return saved === 'auto' ? 'midnight' : saved;
     }
   } catch {}
-  return 'auto';
+  return 'midnight';
 };
 
 function BanScreen({

@@ -18,10 +18,10 @@ export const THEMES: Record<string, Theme> = {
     name: 'Dark Space',
     subtitle: 'Deep obsidian & starry cosmos',
     mode: 'dark',
-    top: '#04060a',
-    bottom: '#090d18',
+    top: '#030509',
+    bottom: '#070a14',
     tint: [1, 1, 1],
-    nebula: ['#2563eb', '#7c3aed', '#0891b2'],
+    nebula: ['#1e1b4b', '#1e293b', '#0f172a'],
     sparkle: false,
   },
   evening: {
@@ -122,7 +122,7 @@ export function getThemeScheduleDescription(): string {
 export function resolveTheme(setting: string, date = new Date()): Theme {
   let key = setting;
   if (!key || key === 'auto') {
-    key = getTimeBasedThemeId(date);
+    key = 'midnight';
   } else if (key === 'white' || key === 'light') {
     key = 'day';
   } else if (key === 'dark') {

@@ -392,10 +392,10 @@ export class SkyEngine {
     this.nebula.forEach((m, i) => {
       const mat = m.material as MeshBasicMaterial;
       mat.color.set(t.nebula[i % t.nebula.length]);
-      mat.opacity = t.mode === 'light' ? 0.04 : 0.2;
+      mat.opacity = t.mode === 'light' ? 0.02 : 0.04;
     });
-    const starFar = t.mode === 'light' ? '#8bb5ff' : t.mode === 'evening' ? '#ffc4a8' : '#e2ecff';
-    const starMid = t.mode === 'light' ? '#ffffff' : '#ffffff';
+    const starFar = t.mode === 'light' ? '#94a3b8' : t.mode === 'evening' ? '#ffc4a8' : '#e2ecff';
+    const starMid = t.mode === 'light' ? '#cbd5e1' : '#ffffff';
     (this.far.material as ShaderMaterial).uniforms.uColor.value.set(hex(starFar));
     (this.mid.material as ShaderMaterial).uniforms.uColor.value.set(hex(starMid));
   }
