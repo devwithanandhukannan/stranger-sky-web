@@ -49,29 +49,14 @@ const LIGHT_FRAG = `
 uniform float uTime; uniform float uLight;
 varying vec3 vColor; varying float vKind; varying float vBright;
 void main(){
-  vec2 q = gl_PointCoord-.5; float d = length(q)*2.;
-  if (d>1.) discard;
-  float a = smoothstep(.28,.0,d) + exp(-d*d*5.)*.7;
+  vec2 q = gl_PointCoord - 0.5;
+  float d = length(q) * 2.0;
+  if (d > 1.0) discard;
+  // Crisp solid circular dot with clean anti-aliased edge (matching Reference 1, zero blur/haze)
+  float a = 1.0 - smoothstep(0.72, 0.98, d);
   vec3 col = vColor;
-  if (vKind>.5 && vKind<1.5) { // new star: sharp twinkling cross
-    float cr = max(0.,1.-abs(q.x)*16.)*max(0.,1.-abs(q.y)*2.2) + max(0.,1.-abs(q.y)*16.)*max(0.,1.-abs(q.x)*2.2);
-    a += cr*(.7+.3*sin(uTime*3.+vBright*9.)); col = mix(col, vec3(1.), .55);
-  } else if (vKind>1.5 && vKind<2.5) { // old soul: broad warm halo
-    a += exp(-d*d*1.6)*.4; col = mix(col, vec3(1.,.86,.62), .35);
-  } else if (vKind>2.5 && vKind<3.5) { // echo: faint, flickering trace
-    a *= .5*(.75+.25*sin(uTime*1.4+gl_FragCoord.x*.02)); col = mix(col, vec3(.6,.7,1.), .5);
-  } else if (vKind>3.5 && vKind<4.5) { // you: solid celestial core
-    a = smoothstep(.45,.0,d) + exp(-d*d*4.0)*0.85;
-    col = mix(col, vec3(1.), .45);
-  } else if (vKind>4.5) { // in a conversation: dimmer, ringed
-    a *= .5; a += smoothstep(.05,0.,abs(d-.72))*.55;
-  }
-  if (uLight > .5) {
-    col = vColor;
-    a = smoothstep(.75,.15,d);
-  }
-  gl_FragColor = vec4(col, clamp(a,0.,1.)*vBright);
-}`;
+  gl_FragColor = vec4(col, a * vBright);
+};`;
 
 const FX_VERT = `
 uniform vec2 uCam; uniform float uDpr;
@@ -281,12 +266,12 @@ export class SkyEngine {
 
       const userRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       userRing.setAttribute('class', 'sky-thread-user-ring');
-      userRing.setAttribute('r', '22');
+      userRing.setAttribute('r', '24');
       userRing.style.opacity = '0';
 
       const targetGlow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       targetGlow.setAttribute('class', 'sky-thread-target-glow');
-      targetGlow.setAttribute('r', '28');
+      targetGlow.setAttribute('r', '24');
       targetGlow.style.opacity = '0';
       
       svg.appendChild(targetGlow);
@@ -537,7 +522,11 @@ export class SkyEngine {
       const p = this.toScreen(l.x, l.y), d = Math.hypot(p.x - sx, p.y - sy);
       if (d < bd) { bd = d; best = l; }
     }
-    if (best) { this.ui.set({ selected: best.sid, panel: null }); return; }
+    if (best) {
+      this.ui.set({ selected: best.sid, panel: null });
+      if (!best.t) void this.world.peek(best.sid);
+      return;
+    }
     if (s.selected) this.ui.set({ selected: null });
     const w = this.toWorld(sx, sy); this.waypoint = { x: w.x, y: w.y };
     this.spawn(w.x, w.y, KIND_RING, '#ffffff', 70, 0.7);
@@ -785,13 +774,14 @@ export class SkyEngine {
       // Viewport culling: only process and draw lights within or near screen
       if (!isYou && (Math.abs(relX) > halfW || Math.abs(relY) > halfH)) continue;
 
-      const f = l.f, mood = MOOD_RGB[l.m % 8] || MOOD_RGB[0];
-      let kind = 0, size = 40, bright = l.near ? 0.95 : 0.58;
-      if (isYou) { kind = 4; size = 66; bright = 1.1; }
-      else if (f & F_ECHO) { kind = 3; size = 32; bright = 0.7; }
-      else if (f & F_BUSY) { kind = 5; size = 40; bright = 0.7; }
-      else if (f & F_NEW) { kind = 1; size = 46; }
-      else if (f & F_VET) { kind = 2; size = 54; }
+      const f = l.f, mood = MOOD_RGB[l.m % 4] || MOOD_RGB[0];
+      let kind = 0, size = 10, bright = l.near ? 0.95 : 0.65;
+      if (isYou) { kind = 4; size = 15; bright = 1.0; }
+      else if (l.sid === sel) { size = 14; bright = 1.0; }
+      else if (f & F_ECHO) { kind = 3; size = 8; bright = 0.5; }
+      else if (f & F_BUSY) { kind = 5; size = 10; bright = 0.6; }
+      else if (f & F_NEW) { kind = 1; size = 11; }
+      else if (f & F_VET) { kind = 2; size = 12; }
 
       const isMatchingInterest = !isYou && l.interests && l.interests.length > 0 && (
         (selectedInterest && l.interests.some((tag) => tag.toLowerCase() === selectedInterest)) ||
@@ -913,14 +903,16 @@ export class SkyEngine {
     const s = this.ui.get();
     const you = this.state.you;
 
-    // 1. Center User Star: Delicate circular ring (always visible when user exists, matching editorial reference)
+    // 1. Center User Star: Delicate circular ring with mood stroke (Reference 1)
     if (you && this.threadUserRing) {
       const p1 = this.toScreen(you.x, you.y);
       if (p1.x >= -60 && p1.x <= this.W + 60 && p1.y >= -60 && p1.y <= this.H + 60) {
         this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
         this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
-        this.threadUserRing.setAttribute('r', '20');
-        this.threadUserRing.style.opacity = '1';
+        this.threadUserRing.setAttribute('r', '24');
+        const moodColor = MOOD_COLORS[you.m % 4] || '#818cf8';
+        this.threadUserRing.style.stroke = moodColor;
+        this.threadUserRing.style.opacity = '0.75';
       } else {
         this.threadUserRing.style.opacity = '0';
       }
@@ -928,7 +920,7 @@ export class SkyEngine {
       this.threadUserRing.style.opacity = '0';
     }
 
-    // 2. Selected Target Star: Delicate circular ring when tapped or in conversation
+    // 2. Selected Target Comet: Delicate circular ring, curved connection line, and floating thought popup
     let targetSid: string | null = null;
     if (s.planet && s.planet.sid && !s.planet.ended) {
       targetSid = s.planet.sid;
@@ -938,26 +930,83 @@ export class SkyEngine {
 
     const targetLight = targetSid ? (this.state.bySid.get(targetSid) || Array.from(this.state.lights.values()).find((l) => l.sid === targetSid)) : null;
 
-    if (targetLight && targetLight !== you && !targetLight.hidden && this.threadTargetGlow) {
+    if (targetLight && targetLight !== you && !targetLight.hidden) {
       const p2 = this.toScreen(targetLight.x, targetLight.y);
-      if (p2.x >= -60 && p2.x <= this.W + 60 && p2.y >= -60 && p2.y <= this.H + 60) {
-        this.threadTargetGlow.setAttribute('cx', p2.x.toFixed(1));
-        this.threadTargetGlow.setAttribute('cy', p2.y.toFixed(1));
-        this.threadTargetGlow.setAttribute('r', '20');
-        this.threadTargetGlow.style.opacity = '1';
-      } else {
-        this.threadTargetGlow.style.opacity = '0';
+
+      // Target circular ring
+      if (this.threadTargetGlow) {
+        if (p2.x >= -60 && p2.x <= this.W + 60 && p2.y >= -60 && p2.y <= this.H + 60) {
+          this.threadTargetGlow.setAttribute('cx', p2.x.toFixed(1));
+          this.threadTargetGlow.setAttribute('cy', p2.y.toFixed(1));
+          this.threadTargetGlow.setAttribute('r', '24');
+          const targetMoodColor = MOOD_COLORS[targetLight.m % 4] || '#818cf8';
+          this.threadTargetGlow.style.stroke = targetMoodColor;
+          this.threadTargetGlow.style.opacity = '0.75';
+        } else {
+          this.threadTargetGlow.style.opacity = '0';
+        }
       }
-    } else if (this.threadTargetGlow) {
-      this.threadTargetGlow.style.opacity = '0';
+
+      // Thin curved connection line (gentle arc, not straight)
+      if (you && this.threadCorePath) {
+        const p1 = this.toScreen(you.x, you.y);
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist >= 12 && p1.x >= -200 && p1.x <= this.W + 200 && p2.x >= -200 && p2.x <= this.W + 200) {
+          const mx = (p1.x + p2.x) / 2;
+          const my = (p1.y + p2.y) / 2;
+
+          let nx = -dy / dist;
+          let ny = dx / dist;
+
+          // Bow arc gracefully towards upper sky
+          if (ny > 0) {
+            nx = -nx;
+            ny = -ny;
+          }
+          if (Math.abs(ny) < 0.12 && nx > 0) {
+            nx = -nx;
+          }
+
+          const arch = Math.min(90, Math.max(16, dist * 0.16));
+          const cx = mx + nx * arch;
+          const cy = my + ny * arch;
+
+          const pathD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+          this.threadCorePath.setAttribute('d', pathD);
+          this.threadCorePath.style.opacity = '1';
+        } else {
+          this.threadCorePath.setAttribute('d', '');
+          this.threadCorePath.style.opacity = '0';
+        }
+      }
+
+      // Floating thought popup above the comet
+      if (this.threadPeerLabel) {
+        const nearItem = this.ui.get().near.find((x) => x.sid === targetSid);
+        const thought = targetLight.t || nearItem?.t || '';
+        if (thought && p2.x >= -40 && p2.x <= this.W + 40 && p2.y >= 0 && p2.y <= this.H + 80) {
+          this.threadPeerLabel.textContent = thought;
+          this.threadPeerLabel.style.transform = `translate3d(${Math.round(p2.x)}px, ${Math.round(p2.y - 34)}px, 0) translate(-50%, -100%)`;
+          this.threadPeerLabel.style.opacity = '1';
+        } else {
+          this.threadPeerLabel.style.opacity = '0';
+        }
+      }
+    } else {
+      if (this.threadTargetGlow) this.threadTargetGlow.style.opacity = '0';
+      if (this.threadCorePath) {
+        this.threadCorePath.setAttribute('d', '');
+        this.threadCorePath.style.opacity = '0';
+      }
+      if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
     }
 
-    // 3. Clear legacy connection curves, sparks and peer labels (editorial minimal reference)
     if (this.threadGlowPath) this.threadGlowPath.setAttribute('d', '');
-    if (this.threadCorePath) this.threadCorePath.setAttribute('d', '');
     if (this.threadPulsePath) this.threadPulsePath.setAttribute('d', '');
     if (this.threadSparkCircle) this.threadSparkCircle.style.opacity = '0';
-    if (this.threadPeerLabel) this.threadPeerLabel.style.opacity = '0';
 
     this.threadSvg.style.opacity = '1';
   }

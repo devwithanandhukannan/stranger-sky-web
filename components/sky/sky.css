@@ -1472,14 +1472,28 @@
 .sky-thread-glow,
 .sky-thread-core,
 .sky-thread-pulse,
-.sky-thread-spark,
-.connected-peer-label {
+.sky-thread-glow,
+.sky-thread-pulse,
+.sky-thread-spark {
   display: none !important;
+}
+
+.sky-thread-core {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1px;
+  stroke-linecap: round;
+  filter: none;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+[data-theme="light"] .sky-thread-core {
+  stroke: rgba(0, 0, 0, 0.35);
 }
 
 .sky-thread-user-ring {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.45);
   stroke-width: 1px;
   filter: none;
   pointer-events: none;
@@ -1488,19 +1502,46 @@
 
 .sky-thread-target-glow {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.45);
   stroke-width: 1px;
   filter: none;
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
 
-[data-theme="light"] .sky-thread-user-ring {
-  stroke: rgba(24, 75, 200, 0.45);
+.connected-peer-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  padding: 5px 12px;
+  max-width: 260px;
+  background: rgba(14, 16, 22, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #f4f4f5;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
 }
 
-[data-theme="light"] .sky-thread-target-glow {
-  stroke: rgba(217, 119, 6, 0.55);
+[data-theme="light"] .connected-peer-label {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #18181b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 /* Docked pill when planet is minimized into sky view */
