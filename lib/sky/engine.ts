@@ -149,6 +149,7 @@ export class SkyEngine {
   private threadUserRing: SVGCircleElement | null = null;
   private threadTargetGlow: SVGCircleElement | null = null;
   private threadPeerLabel: HTMLDivElement | null = null;
+  private threadUserLabel: HTMLDivElement | null = null;
   private threadConnectedSid: string | null = null;
   private threadProgress = 0;
   private cleanup: (() => void)[] = [];
@@ -295,6 +296,12 @@ export class SkyEngine {
       peerLbl.textContent = 'a stranger';
       host.appendChild(peerLbl);
       this.threadPeerLabel = peerLbl;
+
+      const userLbl = document.createElement('div');
+      userLbl.className = 'connected-peer-label user-star-thought-label';
+      userLbl.textContent = '';
+      host.appendChild(userLbl);
+      this.threadUserLabel = userLbl;
     }
 
     this.applyTheme(this.theme);
@@ -324,7 +331,7 @@ export class SkyEngine {
   dispose() {
     this.stop(); this.unsub(); this.cleanup.forEach((f) => f());
     this.labels.forEach((l) => l.remove()); this.lanternEl.remove(); this.meteorEl.remove();
-    this.threadSvg?.remove(); this.threadPeerLabel?.remove();
+    this.threadSvg?.remove(); this.threadPeerLabel?.remove(); this.threadUserLabel?.remove();
     if (this.renderer) {
       this.scene.traverse((o) => { const m = o as Mesh; m.geometry?.dispose?.(); (m.material as { dispose?: () => void } | undefined)?.dispose?.(); });
       this.renderer.dispose();
@@ -949,11 +956,25 @@ export class SkyEngine {
           this.threadUserRing.style.strokeWidth = '1.2px';
           this.threadUserRing.style.opacity = '0.75';
         }
+
+        // Floating thought popup above your star
+        if (this.threadUserLabel) {
+          const userThought = you.t || s.thought || '';
+          if (userThought) {
+            this.threadUserLabel.textContent = userThought;
+            this.threadUserLabel.style.transform = `translate3d(${Math.round(p1.x)}px, ${Math.round(p1.y - 36)}px, 0) translate(-50%, -100%)`;
+            this.threadUserLabel.style.opacity = '1';
+          } else {
+            this.threadUserLabel.style.opacity = '0';
+          }
+        }
       } else {
         this.threadUserRing.style.opacity = '0';
+        if (this.threadUserLabel) this.threadUserLabel.style.opacity = '0';
       }
     } else if (this.threadUserRing) {
       this.threadUserRing.style.opacity = '0';
+      if (this.threadUserLabel) this.threadUserLabel.style.opacity = '0';
     }
 
     // 2. Selected Target Comet: Delicate circular ring, curved connection line, and floating thought popup

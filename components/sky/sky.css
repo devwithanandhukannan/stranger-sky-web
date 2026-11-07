@@ -1551,6 +1551,16 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
+.user-star-thought-label {
+  border-color: rgba(155, 174, 255, 0.45);
+  font-weight: 500;
+}
+
+[data-theme="light"] .user-star-thought-label {
+  border-color: rgba(140, 165, 255, 0.45);
+  color: #1e293b;
+}
+
 /* Docked pill when planet is minimized into sky view */
 
 /* Planet Chat Modal & Cosmic Pod */

@@ -146,7 +146,7 @@ export class NetWorld implements World {
       if (myThought) {
         st.you.t = myThought;
         if (!ui.get().thought) ui.set({ thought: myThought });
-        void this.thought(myThought, ui.get().mood || 0);
+        if (!g.you?.t) void this.thought(myThought, ui.get().mood || 0);
       }
       for (const r of g.roster) {
         if (!(r.f & 8) && r.sid !== g.you?.sid) st.add(r);
@@ -338,9 +338,13 @@ export class NetWorld implements World {
     this.s?.volatile.emit('move', { x, y });
   }
   async thought(text: string, mood: number) {
-    if (!this.s) return 'offline';
+    // Optimistically update locally so the user instantly sees their thought released above their star!
+    this.ui.set({ thought: text, mood });
+    if (this.state.you) { this.state.you.t = text; this.state.you.m = mood; }
+
+    if (!this.s) return null;
     const r = await ack<{ ok?: boolean; error?: string }>(this.s, 'thought', { text, mood });
-    if (r.ok) { this.ui.set({ thought: text, mood }); if (this.state.you) { this.state.you.t = text; this.state.you.m = mood; } return null; }
+    if (r.ok) return null;
     return r.error || 'error';
   }
   pulse(sid: string) {

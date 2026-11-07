@@ -168,18 +168,13 @@ export function SelectedLightThought() {
  * 3. One-line composer at the bottom with mood choices shown only while typing
  */
 export function SkyComposer() {
-  const { ui, world } = useSky();
-  const currentThought = useUI(ui, (s) => s.thought);
+  const { ui, world, state } = useSky();
   const currentMood = useUI(ui, (s) => s.mood);
 
-  const [text, setText] = useState(currentThought);
+  const [text, setText] = useState('');
   const [mood, setMood] = useState(Math.min(currentMood, 3));
   const [isFocused, setIsFocused] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-
-  useEffect(() => {
-    setText(currentThought);
-  }, [currentThought]);
 
   useEffect(() => {
     setMood(Math.min(currentMood, 3));
@@ -191,12 +186,21 @@ export function SkyComposer() {
     if (!val || isBusy) return;
     setIsBusy(true);
     try {
-      await world.thought(val, mood);
-      ui.set({ thought: val, mood, toast: 'Thought released into the sky' });
-      try {
-        localStorage.setItem('userThought', val);
-        localStorage.setItem('userMood', String(mood));
-      } catch {}
+      const err = await world.thought(val, mood);
+      if (err && err !== 'offline') {
+        ui.set({ toast: err === 'slow_down' ? 'Please slow down a moment' : 'Could not release thought. Please try again.' });
+      } else {
+        ui.set({ thought: val, mood, toast: 'Thought released into the sky' });
+        if (state.you) {
+          state.you.t = val;
+          state.you.m = mood;
+        }
+        setText('');
+        try {
+          localStorage.setItem('userThought', val);
+          localStorage.setItem('userMood', String(mood));
+        } catch {}
+      }
       setIsFocused(false);
     } catch {
       ui.set({ toast: 'Could not release thought. Please try again.' });
