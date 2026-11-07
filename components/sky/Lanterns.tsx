@@ -592,3 +592,4 @@ export function LanternsSheet() {
     </div>
   );
 }
+
