@@ -28,12 +28,12 @@ export const DEFAULT_CONFIG: PublicConfig = {
     { slug: 'kerala', name: 'Kerala', color: '#ffb07a' },
   ],
   firebase: {
-    apiKey: 'AIzaSyAydMVet7JSq6S9zkZE0FOXN_5pUpIj9CU',
-    authDomain: 'stranger-social-41bc5.firebaseapp.com',
-    projectId: 'stranger-social-41bc5',
-    appId: '1:758529337031:web:48a255a0dfe0de557c40e2',
-    messagingSenderId: '758529337031',
-    storageBucket: 'stranger-social-41bc5.firebasestorage.app',
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'stranger-social-41bc5.firebaseapp.com',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'stranger-social-41bc5',
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:758529337031:web:48a255a0dfe0de557c40e2',
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '758529337031',
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'stranger-social-41bc5.firebasestorage.app',
   },
 };
 
