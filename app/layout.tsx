@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import { Newsreader, Inter } from 'next/font/google';
+import PwaPrompt from '@/components/PwaPrompt';
 import './globals.css';
 
 const inter = Inter({
@@ -17,7 +18,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: 'Stranger Sky',
+  title: 'Untold',
   description: 'A quiet night sky of strangers. Drift, find a thought that fits, say hello.',
   manifest: '/manifest.webmanifest',
   icons: {
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
         <div className="sky-bg" aria-hidden />
         {children}
+        <PwaPrompt />
       </body>
     </html>
   );

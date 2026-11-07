@@ -39,7 +39,7 @@ export default function Logo({ size = 48, className = '', glow = false }: LogoPr
       )}
       <img
         src="/web-app-manifest-512x512.png"
-        alt="Stranger Sky Mascot"
+        alt="Untold Mascot"
         width={size}
         height={size}
         style={{

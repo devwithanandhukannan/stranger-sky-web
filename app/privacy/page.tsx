@@ -1,4 +1,4 @@
-export const metadata = { title: 'Privacy · Stranger Sky' };
+export const metadata = { title: 'Privacy · Untold' };
 export default function Privacy() {
   return (
     <main className="page"><article className="card" style={{ width: 'min(640px,100%)', border: 'none' }}>

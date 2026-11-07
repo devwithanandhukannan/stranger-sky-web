@@ -1,507 +1,354 @@
 'use client';
-
-import React, { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
-import {
-  IconCompass,
-  IconThought,
-  IconPulse,
-  IconLantern,
-  IconShield,
-  IconLock,
-  IconNoLinks,
-  IconBan,
-  IconSparkle,
-  IconArrowRight,
-  IconChevronDown,
-} from '@/components/landing/LandingIcons';
 
-interface StarNode {
-  x: number;
-  y: number;
-  radius: number;
-  alpha: number;
-  speed: number;
-  hue: number;
+interface FAQItem {
+  q: string;
+  a: string;
 }
 
+const FAQS: FAQItem[] = [
+  {
+    q: 'What is Untold and how does it work?',
+    a: 'Untold is a quiet, contemplative digital universe where people meet as gentle glowing lights. Unlike modern social media, there are no profile pictures, bios, follower counts, or algorithmic feeds. You drift freely across a real-time celestial canvas, read thoughts that surface only when you draw close, and connect organically.',
+  },
+  {
+    q: 'How do chats work, and are they really never stored?',
+    a: 'When you send a pulse to a nearby light and they pulse back, a private Planet forms. Inside this temporary sanctuary, you talk 1-on-1 in real time. The moment either person leaves or disconnects, the planet collapses into stardust. No messages, chat histories, or transcripts are ever written to disk or database.',
+  },
+  {
+    q: 'What are Drifting Paper Lanterns?',
+    a: 'Lanterns are anonymous notes released into the night sky. A lantern floats across the cosmos until another stranger catches it. They can hold it for up to 48 hours, read it, optionally leave a gentle reply, and release it back into the wind. Each lantern journeys up to 6 hops across strangers worldwide.',
+  },
+  {
+    q: 'How do Mutual Bonds work?',
+    a: 'On Untold, you remain entirely anonymous and identifiable only by a transient glowing star. If you have a meaningful connection inside a planet and both people explicitly choose to keep in touch, a Bond is created. Only then are your chosen first names shared, allowing you to connect again.',
+  },
+  {
+    q: 'Is Untold safe and who is it designed for?',
+    a: 'Untold is strictly 18+ to protect the tranquility of the space. We have zero algorithmic vanity feeds, hyperlinks are blocked to prevent spam and scams, and every light or planet has an instant one-tap block and report button with automated server evidence capture.',
+  },
+];
+
+const COMMUNITY_MEMBERS = [
+  { img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80', name: 'Elena' },
+  { img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=240&q=80', name: 'Marcus' },
+  { img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=240&q=80', name: 'Hana' },
+  { img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=240&q=80', name: 'Liam' },
+  { img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80', name: 'Aria' },
+  { img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80', name: 'Dev' },
+  { img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80', name: 'Chloe' },
+];
+
 export default function Home() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  const chaptersRef = useRef<(HTMLElement | null)[]>([]);
-  const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  useEffect(() => {
-    // ── 1. Interactive Starlight Canvas ──
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
-
-    // Detect mobile for optimized star count
-    const isMobile = width <= 768;
-    const nodeCount = Math.min(isMobile ? 32 : 64, Math.floor((width * height) / (isMobile ? 22000 : 16000)));
-    const stars: StarNode[] = Array.from({ length: nodeCount }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      radius: Math.random() * 1.5 + 0.6,
-      alpha: Math.random() * 0.6 + 0.2,
-      speed: Math.random() * 0.22 + 0.08,
-      hue: Math.random() > 0.6 ? 240 : 260, // soft cool violet/blue
-    }));
-
-    let isRunning = true;
-    const render = () => {
-      if (!isRunning) return;
-      ctx.clearRect(0, 0, width, height);
-
-      // Smooth mouse lerp
-      mouseRef.current.x += (mouseRef.current.targetX - mouseRef.current.x) * 0.05;
-      mouseRef.current.y += (mouseRef.current.targetY - mouseRef.current.y) * 0.05;
-
-      const mx = (mouseRef.current.x - width / 2) * 0.03;
-      const my = (mouseRef.current.y - height / 2) * 0.03;
-
-      for (let i = 0; i < stars.length; i++) {
-        const star = stars[i];
-        star.y -= star.speed;
-        if (star.y < -10) {
-          star.y = height + 10;
-          star.x = Math.random() * width;
-        }
-
-        const renderX = star.x + mx * (star.radius * 0.8);
-        const renderY = star.y + my * (star.radius * 0.8);
-
-        // Hardware-accelerated soft starlight glow (Zero GPU/CPU thermal blur overhead)
-        ctx.beginPath();
-        ctx.arc(renderX, renderY, star.radius * 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${star.hue}, 85%, 80%, ${star.alpha * 0.22})`;
-        ctx.fill();
-
-        // Pinpoint starlight core
-        ctx.beginPath();
-        ctx.arc(renderX, renderY, star.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${star.hue}, 80%, 92%, ${star.alpha})`;
-        ctx.fill();
-      }
-
-      animId = requestAnimationFrame(render);
-    };
-
-    animId = requestAnimationFrame(render);
-
-    // Pause animation when tab or phone screen is hidden to eliminate battery drain
-    const handleVisibility = () => {
-      if (document.hidden) {
-        isRunning = false;
-        cancelAnimationFrame(animId);
-      } else if (!isRunning) {
-        isRunning = true;
-        animId = requestAnimationFrame(render);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current.targetX = e.clientX;
-      mouseRef.current.targetY = e.clientY;
-    };
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-
-    // ── 2. Parallel Scroll Engine & Eased Lerp ──
-    let isTicking = false;
-    const handleScroll = () => {
-      if (!isTicking) {
-        requestAnimationFrame(() => {
-          const scrollY = window.scrollY;
-          const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-          const scrollProgress = maxScroll > 0 ? scrollY / maxScroll : 0;
-
-          // Top progress line
-          if (progressBarRef.current) {
-            progressBarRef.current.style.transform = `scaleX(${scrollProgress})`;
-          }
-
-          // Hero parallax
-          if (heroRef.current) {
-            const heroY = scrollY * 0.38;
-            const heroOpacity = Math.max(0, 1 - scrollY / 650);
-            heroRef.current.style.transform = `translate3d(0, ${heroY}px, 0)`;
-            heroRef.current.style.opacity = `${heroOpacity}`;
-          }
-
-          // Feature Chapters Parallel Multi-Speed Parallax
-          const winH = window.innerHeight;
-          chaptersRef.current.forEach((chapter) => {
-            if (!chapter) return;
-            const rect = chapter.getBoundingClientRect();
-            // Relative distance from center of viewport (-1 to 1)
-            const centerOffset = (rect.top + rect.height / 2 - winH / 2) / winH;
-
-            // Image drifts at -70px speed, text at +25px speed in parallel
-            const pImg = centerOffset * -65;
-            const pText = centerOffset * 22;
-
-            chapter.style.setProperty('--p-img', `${pImg.toFixed(1)}px`);
-            chapter.style.setProperty('--p-text', `${pText.toFixed(1)}px`);
-          });
-
-          isTicking = false;
-        });
-        isTicking = true;
-      }
-    };
-
-    // ── 3. Scroll Reveal System ──
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('lp-visible');
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
-    );
-
-    document.querySelectorAll('.lp-reveal').forEach((el) => observer.observe(el));
-
-    // Stagger hero elements immediately
-    requestAnimationFrame(() => {
-      document.querySelectorAll('.lp-hero .lp-reveal').forEach((el, i) => {
-        setTimeout(() => el.classList.add('lp-visible'), 60 + i * 100);
-      });
-    });
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      isRunning = false;
-      cancelAnimationFrame(animId);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
-    };
-  }, []);
+  const toggleFaq = (idx: number) => {
+    setOpenFaq(openFaq === idx ? null : idx);
+  };
 
   return (
-    <div className="lp">
-      {/* ── Scroll Progress Indicator ── */}
-      <div className="lp-progress-bar" ref={progressBarRef} aria-hidden="true" />
-
-      {/* ── Interactive Starlight Ambient Canvas ── */}
-      <canvas ref={canvasRef} className="lp-bg-canvas" aria-hidden="true" />
-
-      {/* ── Ambient Glowing Halo Orbs ── */}
-      <div className="lp-ambient-orb lp-ambient-orb--1" aria-hidden="true" />
-      <div className="lp-ambient-orb lp-ambient-orb--2" aria-hidden="true" />
-
-      {/* ── Apple-Style Borderless Floating Nav ── */}
-      <nav className="lp-nav" aria-label="Main Navigation">
-        <div className="lp-nav-pill">
-          <Link href="/" className="lp-nav-brand">
-            <Logo size={28} glow={false} />
-            <span>Stranger Sky</span>
+    <div className="lp-minimal">
+      {/* ── Top Navigation (Picky Minimalist Style) ── */}
+      <header className="lp-header">
+        <div className="lp-header-inner">
+          <Link href="/" className="lp-logo">
+            untold<span>.</span>
           </Link>
 
-          <div className="lp-nav-links">
-            <a href="#experience" className="lp-nav-link">Experience</a>
-            <a href="#chapters" className="lp-nav-link">How it works</a>
-            <a href="#privacy" className="lp-nav-link">Privacy</a>
-          </div>
+          <nav className="lp-nav-links">
+            <a href="#philosophy">Philosophy</a>
+            <a href="#why">Why Untold</a>
+            <a href="#how">How It Works</a>
+            <a href="#community">Community</a>
+            <a href="#faq">FAQ</a>
+          </nav>
 
-          <Link href="/sky" className="lp-nav-cta">
-            Enter Sky
+          <Link href="/login" className="lp-nav-btn">
+            Sign In
           </Link>
         </div>
-      </nav>
+      </header>
 
-      {/* ══════════════════════════════════════════════
-          HERO — Multi-Layer Parallel Scroll Experience
-          ══════════════════════════════════════════════ */}
-      <section className="lp-hero" id="experience">
-        <div className="lp-hero-bg" ref={heroRef} aria-hidden="true">
-          <img src="/assets/hero-sky.jpg" alt="" className="lp-hero-img" />
-          <div className="lp-hero-fade" />
-        </div>
-
-        <div className="lp-hero-content">
-
-          <h1 className="lp-hero-h1 lp-reveal">
-            Drift quietly.<br />Connect genuinely.
+      {/* ── Hero Section (Matching Picky Reference 1) ── */}
+      <section className="lp-hero-section">
+        <div className="lp-hero-container">
+          <h1 className="lp-hero-title">
+            Real Humans.<br />
+            Quiet Thoughts.<br />
+            Zero Vanity.
           </h1>
 
-          <p className="lp-hero-sub lp-reveal">
-            No profiles. No feeds. No algorithms. Just gentle lights drifting in the dark,
-            waiting for a quiet hello.
+          <p className="lp-hero-desc">
+            A contemplative digital sanctuary where people meet without algorithms,
+            follower counts, or vanity feeds. Just gentle presence.
           </p>
 
-          <div className="lp-hero-cta lp-reveal">
-            <Link href="/sky" className="lp-btn-apple">
+          <div className="lp-hero-actions">
+            <Link href="/sky" className="lp-primary-btn">
               Enter the Sky
-              <IconSparkle size={15} />
             </Link>
-            <a href="#chapters" className="lp-btn-link">
-              Explore the experience
-              <IconArrowRight size={15} />
+            <a href="#philosophy" className="lp-secondary-btn">
+              Explore philosophy &darr;
             </a>
           </div>
 
-          <div className="lp-hero-trust lp-reveal">
-            <span><IconShield size={14} /> 100% Anonymous</span>
-            <span><IconLock size={14} /> Zero Chat Storage</span>
-            <span>Instant & Ephemeral</span>
-            <span>Free · 18+</span>
+          {/* Clean Editorial Hero Visual (Picky Style) */}
+          <div className="lp-hero-visual-card">
+            <img
+              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1600&q=80"
+              alt="Untold community connection"
+              className="lp-hero-photo"
+            />
           </div>
 
-          <div className="lp-scroll-hint lp-reveal" aria-hidden="true">
-            <span>Scroll to explore</span>
-            <div className="lp-scroll-line" />
+          {/* Under-Hero Community Strip (Picky Style 7-Avatar Row) */}
+          <div className="lp-community-strip">
+            <h3 className="lp-strip-title">A Contemplative Digital Universe</h3>
+            <p className="lp-strip-subtitle">
+              Meet as gentle glowing lights. No profiles, no pressure, no performative feeds.
+            </p>
+
+            <div className="lp-avatars-row">
+              {COMMUNITY_MEMBERS.map((member, i) => (
+                <div key={i} className="lp-avatar-item" title={member.name}>
+                  <img src={member.img} alt={member.name} className="lp-avatar-img" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          BORDERLESS PHILOSOPHY / STAT RIBBON
-          ══════════════════════════════════════════════ */}
-      <section className="lp-stats-strip lp-reveal" aria-label="Key highlights">
-        <div className="lp-stat-item">
-          <span className="lp-stat-value">0</span>
-          <span className="lp-stat-label">Algorithms or feeds</span>
-        </div>
-        <div className="lp-stat-item">
-          <span className="lp-stat-value">100%</span>
-          <span className="lp-stat-label">Completely anonymous</span>
-        </div>
-        <div className="lp-stat-item">
-          <span className="lp-stat-value">0</span>
-          <span className="lp-stat-label">Chat logs saved</span>
-        </div>
-        <div className="lp-stat-item">
-          <span className="lp-stat-value">∞</span>
-          <span className="lp-stat-label">Quiet night sky</span>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          PARALLEL SCROLL CHAPTERS
-          ══════════════════════════════════════════════ */}
-      <div id="chapters">
-        <header className="lp-section-header">
-          <span className="lp-eyebrow lp-reveal">The Experience</span>
-          <h2 className="lp-section-title lp-reveal">
-            Designed for human quietude.
-          </h2>
-          <p className="lp-section-desc lp-reveal">
-            Every interaction is subtle, intentional, and completely free of social noise.
+      {/* ── Editorial Manifesto / Statement ── */}
+      <section id="philosophy" className="lp-manifesto-section">
+        <div className="lp-manifesto-inner">
+          <span className="lp-kicker">Our Philosophy</span>
+          <p className="lp-manifesto-text">
+            Untold is our calm, contemplative universe for mindful connection—offering
+            anonymous encounters, zero message history, drifting paper lanterns,
+            and genuine human sincerity.
           </p>
-        </header>
 
-        {/* Chapter 01: Drift */}
-        <section
-          className="lp-chapter"
-          ref={(el) => { chaptersRef.current[0] = el; }}
-        >
-          <div className="lp-chapter-media-wrap lp-reveal">
-            <div className="lp-media-halo lp-media-halo--drift" aria-hidden="true" />
-            <div className="lp-chapter-media">
-              <img
-                src="/assets/feature-drift.jpg"
-                alt="Drift through the stars"
-                loading="lazy"
-              />
-            </div>
-          </div>
-
-          <div className="lp-chapter-text lp-reveal">
-            <span className="lp-chapter-index">01 / DRIFT</span>
-            <h3 className="lp-chapter-h3">Wander across the stars.</h3>
-            <p className="lp-chapter-desc">
-              Glide freely through an infinite canvas. Every gentle light you see
-              is a real person somewhere across the world, wandering quietly under the same night sky.
-            </p>
-            <div className="lp-chapter-pills">
-              <span className="lp-chapter-pill">Real-time presence</span>
-              <span className="lp-chapter-pill">Zero tracking</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Chapter 02: Thoughts */}
-        <section
-          className="lp-chapter lp-chapter--reverse"
-          ref={(el) => { chaptersRef.current[1] = el; }}
-        >
-          <div className="lp-chapter-media-wrap lp-reveal">
-            <div className="lp-media-halo lp-media-halo--thoughts" aria-hidden="true" />
-            <div className="lp-chapter-media">
-              <img
-                src="/assets/feature-thoughts.jpg"
-                alt="Read quiet thoughts"
-                loading="lazy"
-              />
-            </div>
-          </div>
-
-          <div className="lp-chapter-text lp-reveal">
-            <span className="lp-chapter-index">02 / THOUGHTS</span>
-            <h3 className="lp-chapter-h3">Listen to honest words.</h3>
-            <p className="lp-chapter-desc">
-              Float near another light to softly reveal their current thought.
-              No follower counts, no likes, no comment sections — just genuine reflection.
-            </p>
-            <div className="lp-chapter-pills">
-              <span className="lp-chapter-pill">No popularity contests</span>
-              <span className="lp-chapter-pill">Pure expression</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Chapter 03: Talk */}
-        <section
-          className="lp-chapter"
-          ref={(el) => { chaptersRef.current[2] = el; }}
-        >
-          <div className="lp-chapter-media-wrap lp-reveal">
-            <div className="lp-media-halo lp-media-halo--talk" aria-hidden="true" />
-            <div className="lp-chapter-media">
-              <img
-                src="/assets/feature-talk.jpg"
-                alt="One-on-one ephemeral conversations"
-                loading="lazy"
-              />
-            </div>
-          </div>
-
-          <div className="lp-chapter-text lp-reveal">
-            <span className="lp-chapter-index">03 / CONNECT</span>
-            <h3 className="lp-chapter-h3">A spark in the silence.</h3>
-            <p className="lp-chapter-desc">
-              Send a gentle pulse to request a conversation. If accepted,
-              a private space opens. When either person leaves, the words vanish forever.
-            </p>
-            <div className="lp-chapter-pills">
-              <span className="lp-chapter-pill">In-memory only</span>
-              <span className="lp-chapter-pill">Leaves no trace</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Chapter 04: Lanterns */}
-        <section
-          className="lp-chapter lp-chapter--reverse"
-          ref={(el) => { chaptersRef.current[3] = el; }}
-        >
-          <div className="lp-chapter-media-wrap lp-reveal">
-            <div className="lp-media-halo lp-media-halo--lantern" aria-hidden="true" />
-            <div className="lp-chapter-media">
-              <img
-                src="/assets/feature-lantern.jpg"
-                alt="Release a sky lantern"
-                loading="lazy"
-              />
-            </div>
-          </div>
-
-          <div className="lp-chapter-text lp-reveal">
-            <span className="lp-chapter-index">04 / LANTERNS</span>
-            <h3 className="lp-chapter-h3">Release a thought to the world.</h3>
-            <p className="lp-chapter-desc">
-              Write a kind note, a secret wish, or a gentle question into a paper lantern.
-              Watch it float up into the atmosphere, where strangers worldwide can catch and cherish it.
-            </p>
-            <div className="lp-chapter-pills">
-              <span className="lp-chapter-pill">Global serendipity</span>
-              <span className="lp-chapter-pill">Shared warmth</span>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          BORDERLESS PRIVACY ARCHITECTURE
-          ══════════════════════════════════════════════ */}
-      <section className="lp-privacy-section" id="privacy">
-        <header className="lp-section-header" style={{ padding: '0 0 20px' }}>
-          <span className="lp-eyebrow lp-reveal">Privacy Architecture</span>
-          <h2 className="lp-section-title lp-reveal">
-            Engineered for pure privacy.
-          </h2>
-          <p className="lp-section-desc lp-reveal">
-            Privacy isn’t a setting you toggle. It is the fundamental principle of our codebase.
-          </p>
-        </header>
-
-        <div className="lp-privacy-grid">
-          <div className="lp-privacy-card lp-reveal">
-            <div className="lp-privacy-icon"><IconShield size={24} /></div>
-            <h4>Completely Anonymous</h4>
-            <p>No phone numbers, photos, bios, or tracking cookies. You exist only as a calm light.</p>
-          </div>
-
-          <div className="lp-privacy-card lp-reveal">
-            <div className="lp-privacy-icon"><IconLock size={24} /></div>
-            <h4>Ephemeral In-Memory</h4>
-            <p>Messages live purely in volatile memory. When a conversation ends, it disappears forever.</p>
-          </div>
-
-          <div className="lp-privacy-card lp-reveal">
-            <div className="lp-privacy-icon"><IconNoLinks size={24} /></div>
-            <h4>Protected from Spam</h4>
-            <p>Automatic safeguards instantly block malicious links, bots, and unsolicited advertising.</p>
-          </div>
-
-          <div className="lp-privacy-card lp-reveal">
-            <div className="lp-privacy-icon"><IconBan size={24} /></div>
-            <h4>Instant Departure</h4>
-            <p>Disconnect or block any stranger with a single tap. Peace of mind is always in your control.</p>
+          {/* Minimalist Feature Ticker */}
+          <div className="lp-ticker-row">
+            <span className="lp-ticker-tag"><span>+</span> 100% Anonymous</span>
+            <span className="lp-ticker-tag"><span>+</span> Zero Chat Storage</span>
+            <span className="lp-ticker-tag"><span>+</span> Ephemeral By Design</span>
+            <span className="lp-ticker-tag"><span>+</span> No Algorithmic Vanity</span>
+            <span className="lp-ticker-tag"><span>+</span> Strictly 18+</span>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          GRAND FINALE — Apple Minimalist CTA
-          ══════════════════════════════════════════════ */}
-      <section className="lp-finale lp-reveal">
-        <div className="lp-finale-halo" aria-hidden="true" />
-        <div className="lp-finale-content">
-          <span className="lp-eyebrow">Ready to begin?</span>
-          <h2 className="lp-finale-h2">Your light belongs in the sky.</h2>
-          <p className="lp-finale-sub">
+      {/* ── Why Untold (Matching Picky's 4 Divider Rows) ── */}
+      <section id="why" className="lp-why-section">
+        <div className="lp-why-inner">
+          <div className="lp-why-header">
+            <span className="lp-kicker">Why Untold</span>
+            <p className="lp-why-intro">
+              Designed from first principles to restore human peace in digital communication.
+            </p>
+          </div>
+
+          <div className="lp-divider-rows">
+            <div className="lp-divider-row">
+              <h4 className="lp-row-title">Zero Algorithmic Validation</h4>
+              <p className="lp-row-desc">
+                No follower counts, like buttons, or bios. You exist purely as your presence and your genuine thoughts.
+              </p>
+            </div>
+
+            <div className="lp-divider-row">
+              <h4 className="lp-row-title">Ephemeral Sanctuaries</h4>
+              <p className="lp-row-desc">
+                Private 1-on-1 planets vanish the instant you part ways. Nothing is ever written to disk or database.
+              </p>
+            </div>
+
+            <div className="lp-divider-row">
+              <h4 className="lp-row-title">Global Drifting Paper Lanterns</h4>
+              <p className="lp-row-desc">
+                Release thoughtful notes into the cosmos. Strangers across the globe catch, cherish, and pass them along.
+              </p>
+            </div>
+
+            <div className="lp-divider-row">
+              <h4 className="lp-row-title">Deep Sincerity Over Surface</h4>
+              <p className="lp-row-desc">
+                Thoughts only illuminate as you draw close. A space deliberately designed to slow down digital communication.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works (Matching Picky's 3 Pastel Cards) ── */}
+      <section id="how" className="lp-how-section">
+        <div className="lp-how-inner">
+          <span className="lp-kicker">How It Works</span>
+          <h2 className="lp-section-h2">Three simple steps into quietude.</h2>
+
+          <div className="lp-pastel-grid">
+            {/* Card 1: Pastel Mint */}
+            <div className="lp-pastel-card lp-pastel-card--mint">
+              <div className="lp-card-badge">01</div>
+              <h3 className="lp-card-title">Wander the Cosmos</h3>
+              <p className="lp-card-desc">
+                Drift freely through themed galaxies and discover nearby thoughts as they gently illuminate in real time.
+              </p>
+            </div>
+
+            {/* Card 2: Pastel Rose */}
+            <div className="lp-pastel-card lp-pastel-card--rose">
+              <div className="lp-card-badge">02</div>
+              <h3 className="lp-card-title">Form a Private Planet</h3>
+              <p className="lp-card-desc">
+                Exchange a pulse with someone nearby. A quiet 1-on-1 sanctuary opens instantly in volatile memory.
+              </p>
+            </div>
+
+            {/* Card 3: Pastel Sky */}
+            <div className="lp-pastel-card lp-pastel-card--sky">
+              <div className="lp-card-badge">03</div>
+              <h3 className="lp-card-title">Disappear Into Stardust</h3>
+              <p className="lp-card-desc">
+                The moment either person leaves, the world dissolves forever. No chat logs, no transcripts, pure peace.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Community Testimonials (Picky Reference) ── */}
+      <section id="community" className="lp-community-section">
+        <div className="lp-community-inner">
+          <span className="lp-kicker">Hear It From Our Community</span>
+          <h2 className="lp-section-h2">Gentle reflections from visitors.</h2>
+
+          <div className="lp-testimonials-grid">
+            <div className="lp-test-card">
+              <div className="lp-quote-mark">&ldquo;</div>
+              <p className="lp-test-quote">
+                Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you&apos;ve never met.
+              </p>
+              <div className="lp-test-author">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+                  alt="Elena"
+                  className="lp-author-img"
+                />
+                <div>
+                  <div className="lp-author-name">Elena R.</div>
+                  <div className="lp-author-loc">Tokyo, Japan</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lp-test-card">
+              <div className="lp-quote-mark">&ldquo;</div>
+              <p className="lp-test-quote">
+                There&apos;s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.
+              </p>
+              <div className="lp-test-author">
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
+                  alt="Marcus"
+                  className="lp-author-img"
+                />
+                <div>
+                  <div className="lp-author-name">Marcus K.</div>
+                  <div className="lp-author-loc">Berlin, Germany</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lp-test-card">
+              <div className="lp-quote-mark">&ldquo;</div>
+              <p className="lp-test-quote">
+                A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.
+              </p>
+              <div className="lp-test-author">
+                <img
+                  src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
+                  alt="Hana"
+                  className="lp-author-img"
+                />
+                <div>
+                  <div className="lp-author-name">Hana S.</div>
+                  <div className="lp-author-loc">Seoul, Korea</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQs (Picky Clean Accordion) ── */}
+      <section id="faq" className="lp-faq-section">
+        <div className="lp-faq-inner">
+          <span className="lp-kicker">FAQs</span>
+          <h2 className="lp-section-h2">Frequently asked questions.</h2>
+
+          <div className="lp-faq-accordion">
+            {FAQS.map((faq, i) => (
+              <div key={i} className={`lp-faq-item ${openFaq === i ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="lp-faq-q"
+                  onClick={() => toggleFaq(i)}
+                  aria-expanded={openFaq === i}
+                >
+                  <span>{faq.q}</span>
+                  <span className="lp-faq-icon">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && (
+                  <div className="lp-faq-a">
+                    <p>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner (Picky Style) ── */}
+      <section className="lp-cta-section">
+        <div className="lp-cta-card">
+          <h2 className="lp-cta-title">Your light belongs in the sky.</h2>
+          <p className="lp-cta-sub">
             Step into the quiet. It only takes a second, and no account is required.
           </p>
-          <Link href="/sky" className="lp-btn-apple lp-btn-apple--lg">
-            Enter the Sky
-            <IconSparkle size={16} />
-          </Link>
+          <div className="lp-cta-actions">
+            <Link href="/sky" className="lp-primary-btn">
+              Enter Untold
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* ── Apple-Style Minimalist Footer ── */}
+      {/* ── Clean Minimalist Footer ── */}
       <footer className="lp-footer">
-        <div className="lp-footer-links">
-          <Link href="/rules">Rules</Link>
-          <Link href="/privacy">Privacy</Link>
-          <span className="lp-footer-badge">18+</span>
+        <div className="lp-footer-inner">
+          <div className="lp-footer-brand">
+            <Link href="/" className="lp-logo">
+              untold<span>.</span>
+            </Link>
+            <p className="lp-footer-tagline">A quiet universe of real humans.</p>
+          </div>
+
+          <div className="lp-footer-links">
+            <Link href="/rules">Community Rules</Link>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/login">Sign In</Link>
+            <span className="lp-age-badge">18+</span>
+          </div>
         </div>
-        <p>© 2026 Stranger Sky. All rights reserved.</p>
+
+        <div className="lp-footer-bottom">
+          <p>&copy; {new Date().getFullYear()} Untold. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );

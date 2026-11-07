@@ -1,6 +1,6 @@
-# Stranger Sky - Web (User App)
+# Untold - Web (User App)
 
-Next.js 15 user application for Stranger Sky.
+Next.js 15 user application for Untold.
 
 ## Setup
 1. Copy `.env.example` to `.env.local`:

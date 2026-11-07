@@ -9,7 +9,7 @@ import { IcoUser, IcoCalendar } from '@/components/sky/icons';
 import Logo from '@/components/Logo';
 
 const MSG: Record<string, string> = {
-  underage: 'Stranger Sky is for people 18 and older.', registration_closed: 'Sign-ups are closed for now.', content_not_allowed: 'Please choose a different name.',
+  underage: 'Untold is for people 18 and older.', registration_closed: 'Sign-ups are closed for now.', content_not_allowed: 'Please choose a different name.',
   invalid_input: 'Check your name and date of birth.',
 };
 

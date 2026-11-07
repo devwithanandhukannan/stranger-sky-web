@@ -8,8 +8,8 @@ interface FAQItem {
 
 const FAQS: FAQItem[] = [
   {
-    q: "What is Stranger Sky?",
-    a: "Stranger Sky is a quiet, contemplative digital universe where people meet as gentle glowing lights. Unlike modern social media, there are no profile pictures, bios, follower counts, or algorithmic feeds. You drift freely across a real-time celestial canvas, read thoughts that surface only when you draw close, and connect organically."
+    q: "What is Untold?",
+    a: "Untold is a quiet, contemplative digital universe where people meet as gentle glowing lights. Unlike modern social media, there are no profile pictures, bios, follower counts, or algorithmic feeds. You drift freely across a real-time celestial canvas, read thoughts that surface only when you draw close, and connect organically."
   },
   {
     q: "How do chats work, and are they really never stored?",
@@ -21,11 +21,11 @@ const FAQS: FAQItem[] = [
   },
   {
     q: "How do Mutual Bonds work?",
-    a: "On Stranger Sky, you remain entirely anonymous and identifiable only by a transient glowing star. If you have a meaningful connection inside a planet and both people explicitly choose to keep in touch, a 'Bond' is created. Only then are your chosen first names shared, allowing you to connect again."
+    a: "On Untold, you remain entirely anonymous and identifiable only by a transient glowing star. If you have a meaningful connection inside a planet and both people explicitly choose to keep in touch, a 'Bond' is created. Only then are your chosen first names shared, allowing you to connect again."
   },
   {
-    q: "Is Stranger Sky safe and who is it designed for?",
-    a: "Stranger Sky is strictly 18+ to protect the tranquility of the space. We have zero algorithmic vanity feeds, hyperlinks are blocked to prevent spam and scams, and every light or planet has an instant one-tap block and report button with automated server evidence capture."
+    q: "Is Untold safe and who is it designed for?",
+    a: "Untold is strictly 18+ to protect the tranquility of the space. We have zero algorithmic vanity feeds, hyperlinks are blocked to prevent spam and scams, and every light or planet has an instant one-tap block and report button with automated server evidence capture."
   },
 ];
 

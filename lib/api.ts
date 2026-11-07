@@ -12,7 +12,7 @@ export class ApiError extends Error {
 }
 
 export const DEFAULT_CONFIG: PublicConfig = {
-  appName: 'Stranger Sky',
+  appName: 'Untold',
   minAge: 18,
   skyTheme: 'auto',
   announcement: '',

@@ -7,6 +7,7 @@ import { api, API } from '@/lib/api';
 import { IcoPin, IcoCalendar, IcoAge, IcoBond, IcoChat, IcoChime, IcoCrystal, IcoBell, IcoClock, IcoSun, IcoSunset, IcoMoon, IcoCheck, IcoSparkle, IcoIncognito, IcoShieldAlert, IcoX, IcoGlobe, IcoRadar, IcoPhoneCall, IcoTrash, IcoBan } from './icons';
 
 import { resolveTheme, getTimeBasedThemeId, applyThemeCss, getThemeScheduleDescription } from '@/lib/sky/themes';
+import { isPwaInstalled, promptPwaInstall, isIosDevice } from '@/lib/pwa';
 
 export function Sheet({
   title,
@@ -644,6 +645,15 @@ export function SettingsSheet() {
   const [err, setErr] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [profile, setProfile] = useState<{ email?: string; age?: number; createdAt?: string } | null>(null);
+  const [installed, setInstalled] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+
+  useEffect(() => {
+    setInstalled(isPwaInstalled());
+    const onInstalled = () => setInstalled(true);
+    window.addEventListener('untold-pwa-installed', onInstalled);
+    return () => window.removeEventListener('untold-pwa-installed', onInstalled);
+  }, []);
 
   useEffect(() => {
     let dead = false;
@@ -892,6 +902,42 @@ export function SettingsSheet() {
             </label>
           </div>
 
+          <div className="setting-switch-card">
+            <div className="setting-switch-info">
+              <h4 className="setting-switch-title">Untold App</h4>
+              <p className="setting-switch-sub">
+                {installed ? 'App installed on device' : 'Add to home screen for full-screen quiet'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary-pill"
+              style={{
+                height: 32,
+                padding: '0 14px',
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 9999,
+                background: installed ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                color: installed ? '#888888' : '#111111',
+                cursor: installed ? 'default' : 'pointer',
+                border: 'none',
+              }}
+              disabled={installed}
+              onClick={async () => {
+                if (installed) return;
+                const res = await promptPwaInstall();
+                if (res.outcome === 'accepted') {
+                  setInstalled(true);
+                } else if (res.outcome === 'manual') {
+                  setShowIosGuide(true);
+                }
+              }}
+            >
+              {installed ? 'Installed ✓' : 'Install'}
+            </button>
+          </div>
+
           <p className="tiny muted" style={{ marginTop: 10, paddingLeft: 4 }}>
             Sky quality: {s.quality} · Adjusts automatically to your device.
           </p>
@@ -919,6 +965,59 @@ export function SettingsSheet() {
           {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
         </details>
       </div>
+
+      {showIosGuide && (
+        <div className="pwa-modal-backdrop" onClick={() => setShowIosGuide(false)}>
+          <div className="pwa-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="pwa-modal-header">
+              <img
+                src="/web-app-manifest-192x192.png"
+                alt="Untold"
+                width={48}
+                height={48}
+                className="pwa-modal-icon"
+              />
+              <h3 className="pwa-modal-title">Install Untold on your device</h3>
+            </div>
+
+            {isIosDevice() ? (
+              <div className="pwa-modal-steps">
+                <div className="pwa-step-item">
+                  <span className="pwa-step-num">1</span>
+                  <span>Tap the <b>Share</b> button in Safari&apos;s bottom toolbar.</span>
+                </div>
+                <div className="pwa-step-item">
+                  <span className="pwa-step-num">2</span>
+                  <span>Scroll down and tap <b>Add to Home Screen</b>.</span>
+                </div>
+                <div className="pwa-step-item">
+                  <span className="pwa-step-num">3</span>
+                  <span>Tap <b>Add</b> in the top right corner.</span>
+                </div>
+              </div>
+            ) : (
+              <div className="pwa-modal-steps">
+                <div className="pwa-step-item">
+                  <span className="pwa-step-num">1</span>
+                  <span>Click your browser menu (<b>&vellip;</b> or <b>&hellip;</b>) in the top right.</span>
+                </div>
+                <div className="pwa-step-item">
+                  <span className="pwa-step-num">2</span>
+                  <span>Select <b>Install Untold</b> or <b>Add to Home Screen</b>.</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="pwa-btn-done"
+              onClick={() => setShowIosGuide(false)}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </Sheet>
   );
 }

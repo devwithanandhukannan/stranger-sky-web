@@ -12,7 +12,7 @@ export function middleware(req: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://apis.google.com${dev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `style-src-attr 'unsafe-inline'`,
-    `img-src 'self' data: blob:`,
+    `img-src 'self' data: blob: https://images.unsplash.com`,
     `font-src 'self'`,
     `connect-src 'self' ${api} ${ws} https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com${dev ? ' ws://localhost:3000' : ''}`,
     `frame-src https://accounts.google.com https://*.firebaseapp.com https://*.web.app ${process.env.NEXT_PUBLIC_EXTRA_FRAME_SRC || ''}`.trim(),

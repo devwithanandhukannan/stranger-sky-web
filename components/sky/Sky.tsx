@@ -248,7 +248,7 @@ function BanScreen({
         </div>
 
         <p className="ban-notice">
-          To maintain a safe and respectful sanctuary, Stranger Sky enforces a strict zero-tolerance instant-suspension policy for explicit content, harassment, prohibited words, or safety reports. You cannot reconnect until the timer runs out.
+          To maintain a safe and respectful sanctuary, Untold enforces a strict zero-tolerance instant-suspension policy for explicit content, harassment, prohibited words, or safety reports. You cannot reconnect until the timer runs out.
         </p>
 
         <div className="stack">
@@ -387,7 +387,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
           <Logo size={48} glow={true} />
         </div>
         <h1>{status === 'full' ? 'The sky is full' : status === 'kicked' && denied === 'other_session' ? 'Opened somewhere else' : 'You are not in the sky'}</h1>
-        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Stranger Sky is open in another tab or device. Only one at a time.' : 'Your session ended.'}</p>
+        <p className="muted">{status === 'full' ? 'Every galaxy is at capacity right now. Please try again in a little while.' : status === 'kicked' && denied === 'other_session' ? 'Untold is open in another tab or device. Only one at a time.' : 'Your session ended.'}</p>
         <div className="stack"><button className="btn" onClick={() => location.reload()}>Try again</button></div>
       </div></div>
     );
