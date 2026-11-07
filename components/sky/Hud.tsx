@@ -21,19 +21,8 @@ export function SkyHeader() {
   const incoming = useUI(ui, (s) => s.incoming);
   const activeChatCount = bonds.filter((b) => b.online).length + incoming.length;
 
-  const handleToggleClick = (e: React.MouseEvent) => {
-    if (isIncognito) {
-      e.preventDefault();
-      ui.set({ toast: 'Incognito is active. You cannot disable Incognito during this session.' });
-    }
-  };
-
   const toggleIncognito = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isIncognito) {
-      e.preventDefault();
-      ui.set({ toast: 'Incognito is active. You cannot disable Incognito during this session.' });
-      return;
-    }
+    if (isIncognito) return;
     ui.set({ isIncognito: true });
     if (state.you) state.you.isIncognito = true;
     try {
@@ -50,24 +39,24 @@ export function SkyHeader() {
       </div>
 
       <div className="sky-header-right">
-        <label
-          className={`sky-incognito-wrap ${isIncognito ? 'sky-incognito-locked' : ''}`}
-          onClick={handleToggleClick}
-          title={isIncognito ? 'Incognito is active for this session and cannot be turned off' : 'Incognito mode: Disguise presence in the sky'}
-        >
-          <span className="sky-incognito-label">Incognito</span>
-          <input
-            type="checkbox"
-            className="sky-switch-input"
-            checked={isIncognito}
-            disabled={isIncognito}
-            onChange={toggleIncognito}
-            aria-label="Toggle Incognito"
-          />
-          <span className="sky-switch-track">
-            <span className="sky-switch-thumb" />
-          </span>
-        </label>
+        {!isIncognito && (
+          <label
+            className="sky-incognito-wrap"
+            title="Incognito mode: Disguise presence in the sky"
+          >
+            <span className="sky-incognito-label">Incognito</span>
+            <input
+              type="checkbox"
+              className="sky-switch-input"
+              checked={false}
+              onChange={toggleIncognito}
+              aria-label="Toggle Incognito"
+            />
+            <span className="sky-switch-track">
+              <span className="sky-switch-thumb" />
+            </span>
+          </label>
+        )}
 
         <button
           type="button"
