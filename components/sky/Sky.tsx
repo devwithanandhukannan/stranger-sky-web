@@ -300,6 +300,20 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
   const census = useUI(ui, (s) => s.census);
 
   const [activeTheme, setActiveTheme] = useState(() => resolveTheme(ui.get().skyTheme));
+  const userCount = Math.max(1, (census.counts[galaxy] ?? census.total ?? 1));
+  const prevCountRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (status !== 'live') return;
+    if (prevCountRef.current !== null && prevCountRef.current !== userCount) {
+      if (userCount === 1 && prevCountRef.current > 1) {
+        ui.set({ toast: 'No one in space right now' });
+      } else if (userCount > 1 && prevCountRef.current === 1) {
+        ui.set({ toast: 'A wanderer entered the sky' });
+      }
+    }
+    prevCountRef.current = userCount;
+  }, [userCount, status, ui]);
 
   // preferences + world lifecycle
   useEffect(() => {

@@ -213,17 +213,17 @@ export function LightSheet() {
       <div className="peek-body">
         {n ? (
           <>
-            <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <i className="dot" style={{ background: MOOD_COLORS[n.m], boxShadow: `0 0 12px ${MOOD_COLORS[n.m]}` }} />
-              <span className="tiny">{kind} · {MOOD_NAMES[n.m]}</span>
+            <div className="peek-header-row">
+              <i className="dot" style={{ background: MOOD_COLORS[n.m], boxShadow: `0 0 10px ${MOOD_COLORS[n.m]}` }} />
+              <span className="peek-kind-label">{kind} · {MOOD_NAMES[n.m]}</span>
               {n.isIncognito && (
-                <span className="top-incognito-badge" style={{ fontSize: 11, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <IcoIncognito size={11} /> Ignoto
+                <span className="peek-badge-incognito">
+                  <IcoIncognito size={10} /> Ignoto
                 </span>
               )}
-              {typeof n.distKm === 'number' && <span className="dist-chip"><IcoPin size={12} /> ~{n.distKm} km away</span>}
+              {typeof n.distKm === 'number' && <span className="peek-dist-chip"><IcoPin size={10} /> ~{n.distKm} km away</span>}
             </div>
-            <p className="thought">{n.t || 'Quiet. No thought shared.'}</p>
+            <p className="peek-thought-text">{n.t ? `“${n.t}”` : 'Quiet. No thought shared.'}</p>
             {lightInterests.length > 0 && (
               <div className="light-interests-list">
                 {lightInterests.map((tag) => {
@@ -233,7 +233,6 @@ export function LightSheet() {
                       key={tag}
                       className={`interest-tag-pill${shared ? ' shared' : ''}`}
                       title={shared ? 'Shared interest with you!' : `Interest: #${tag}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
                     >
                       {shared && <IcoSparkle size={10} />}#{tag}
                     </span>
@@ -243,16 +242,19 @@ export function LightSheet() {
             )}
           </>
         ) : (
-          <p className="muted">Drift closer to read their thought.</p>
+          <p className="peek-muted-hint">Drift closer to read their thought.</p>
         )}
-        {pulsed && <p className="tiny" style={{ color: 'var(--accent)' }}>They sent you a pulse. Pulse back to open a planet.</p>}
+        {pulsed && <p className="peek-pulsed-banner">They sent you a pulse. Pulse back to open a planet.</p>}
       </div>
-      <div className="row peek-actions">
-        <button className="btn" disabled={!n && !pulsed} onClick={() => world.pulse(sid)}>{pulsed ? 'Pulse back' : 'Send a pulse'}</button>
+      <div className="peek-actions">
+        <button className="btn btn-pulse-main" disabled={!n && !pulsed} onClick={() => world.pulse(sid)}>
+          <IcoSparkle size={13} />
+          <span>{pulsed ? 'Pulse back' : 'Send a pulse'}</span>
+        </button>
         {pulsed && <button className="btn ghost" onClick={() => { world.declinePulse(sid); ui.set({ selected: null }); }}>Decline</button>}
         {!(n && n.f & F_ECHO) && <button className="btn ghost" onClick={() => ui.set({ panel: 'report', reportSid: sid })}>Report</button>}
         {!(n && n.f & F_ECHO) && <button className="btn ghost" onClick={async () => { await world.block(sid); ui.set({ selected: null }); }}>Block</button>}
-        <button className="icon" onClick={() => ui.set({ selected: null })} aria-label="Close"><IcoX size={15} /></button>
+        <button className="icon peek-close-btn" onClick={() => ui.set({ selected: null })} aria-label="Close"><IcoX size={14} /></button>
       </div>
     </aside>
   );

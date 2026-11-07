@@ -44,9 +44,15 @@ export function TopBar() {
           <span className="top-brand-divider" />
           <button
             className="top-census-btn"
-            onClick={() => ui.set({ panel: 'map' })}
+            onClick={() => {
+              if (userCount <= 1) {
+                ui.set({ toast: 'No one in space right now' });
+              } else {
+                ui.set({ panel: 'map' });
+              }
+            }}
             aria-label={`Users in sky: ${userCount}`}
-            title="Wanderers present in the sky"
+            title={userCount <= 1 ? 'No one in space right now' : `${userCount} wanderers in the sky`}
           >
             <span className="top-live-dot" />
             <span className="top-census-count">{userCount}</span>

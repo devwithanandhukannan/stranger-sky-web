@@ -133,10 +133,19 @@ export class NetWorld implements World {
         void this.thought(myThought, ui.get().mood || 0);
       }
       for (const r of g.roster) {
-        if (!(r.f & 8)) st.add(r);
+        if (!(r.f & 8) && r.sid !== g.you?.sid) st.add(r);
       }
       for (const sid of g.hide) { const l = st.bySid.get(sid); if (l) l.hidden = true; }
       st.warpedAt = performance.now();
+      const realOthers = (g.roster || []).filter((r) => !(r.f & 8) && r.sid !== g.you?.sid);
+      const totalCount = g.census?.counts?.[g.galaxy] ?? g.census?.total ?? (realOthers.length + 1);
+      if (totalCount <= 1 || realOthers.length === 0) {
+        setTimeout(() => {
+          if (ui.get().status === 'live') {
+            ui.set({ toast: 'No one in space right now' });
+          }
+        }, 1000);
+      }
       ui.set({ galaxy: g.galaxy, near: [], selected: null, census: g.census, status: 'live', warp: ui.get().warp + 1, incoming: [] });
     });
     s.on('roster:add', (r) => { if (!(r.f & 8)) st.add(r); });
