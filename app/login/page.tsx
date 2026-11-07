@@ -145,7 +145,7 @@ export default function Login() {
         <div className="login-right">
           <div className="login-hero-card">
             <img
-              src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"
+              src="/assets/imagetwo.webp"
               alt="Untold connection"
               className="login-hero-img"
             />
@@ -332,7 +332,7 @@ export default function Login() {
       <div className="login-right">
         <div className="login-hero-card">
           <img
-            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"
+            src="/assets/imagetwo.webp"
             alt="Untold connection"
             className="login-hero-img"
           />

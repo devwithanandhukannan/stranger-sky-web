@@ -96,7 +96,7 @@ export default function Home() {
           {/* Clean Editorial Hero Visual (Picky Style) */}
           <div className="lp-hero-visual-card">
             <img
-              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1600&q=80"
+              src="/assets/imageone.webp"
               alt="Untold community connection"
               className="lp-hero-photo"
             />
