@@ -68,6 +68,8 @@ export type UI = {
   interestDrive: boolean;
   selectedInterest: string | null;
   isIncognito: boolean;
+  isGuest: boolean;
+  isLoggedIn: boolean;
   planetMinimized: boolean;
 };
 
@@ -83,6 +85,8 @@ export const initialUI: UI = {
   interestDrive: false,
   selectedInterest: null,
   isIncognito: false,
+  isGuest: false,
+  isLoggedIn: false,
   planetMinimized: false,
 };
 

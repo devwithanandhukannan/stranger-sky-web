@@ -47,6 +47,10 @@ export default function SkyPage() {
   useEffect(() => {
     setMounted(true);
 
+    if (typeof window !== 'undefined' && (localStorage.getItem('untold_auth_cached') === '1' || sessionStorage.getItem('lumen_has_profile') === '1')) {
+      clearIncognitoSession();
+    }
+
     if (getIncognitoSession()) {
       setOk(true);
       return;

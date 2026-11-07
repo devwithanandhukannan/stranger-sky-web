@@ -152,6 +152,7 @@ export class SkyEngine {
   private threadUserLabel: HTMLDivElement | null = null;
   private threadConnectedSid: string | null = null;
   private threadProgress = 0;
+  private edgeBeacons: { sid: string; x: number; y: number; worldX: number; worldY: number; mood: string }[] = [];
   private cleanup: (() => void)[] = [];
   constructor(private canvas: HTMLCanvasElement, private host: HTMLElement, private state: WorldState, private ui: Store, private world: World) {
     for (let i = 0; i < 220; i++) {
@@ -523,6 +524,14 @@ export class SkyEngine {
       const l = this.toScreen(this.lanternPos.x, this.lanternPos.y + bob);
       if (Math.hypot(l.x - sx, l.y - sy) < 44) { this.ui.set({ panel: 'lanterns' }); return; }
     }
+    // Check if user tapped an edge beacon to drift directly toward distant stranger
+    for (const b of this.edgeBeacons) {
+      if (Math.hypot(b.x - sx, b.y - sy) < 36) {
+        this.waypoint = { x: b.worldX, y: b.worldY };
+        this.spawn(b.x, b.y, KIND_RING, b.mood, 60, 0.7);
+        return;
+      }
+    }
     let best: Light | null = null, bd = 30;
     for (const l of this.state.lights.values()) {
       if (l.hidden || l === this.state.you) continue;
@@ -675,8 +684,7 @@ export class SkyEngine {
     const ease = 1 - Math.exp(-dt * 7);
     const sel = this.ui.get().selected;
     const inc = this.ui.get().incoming;
-    const halfW = this.W / 2 + 100;
-    const halfH = this.H / 2 + 100;
+    this.edgeBeacons = [];
 
     for (const l of this.state.lights.values()) {
       if (l !== this.state.you) {
@@ -690,10 +698,85 @@ export class SkyEngine {
       const isYou = l === this.state.you;
       const relX = this.wrap(l.x - this.cam.x);
       const relY = this.wrap(l.y - this.cam.y);
-      if (!isYou && (Math.abs(relX) > halfW || Math.abs(relY) > halfH)) continue;
-
       const p = { x: this.W / 2 + relX, y: this.H / 2 - relY };
       const mood = MOOD_COLORS[l.m % 8] || MOOD_COLORS[0];
+
+      // Off-screen indicator: subtle perimeter edge beacon guiding user to stranger
+      if (!isYou && (p.x < -24 || p.x > this.W + 24 || p.y < -24 || p.y > this.H + 24)) {
+        const cx = this.W / 2;
+        const cy = this.H / 2;
+        const dx = relX;
+        const dy = -relY;
+        const dist = Math.hypot(dx, dy);
+
+        // Safe margins inside the viewport (under header, above composer)
+        const padLeft = 24;
+        const padRight = 24;
+        const padTop = 64;
+        const padBottom = 84;
+        const minX = padLeft;
+        const maxX = this.W - padRight;
+        const minY = padTop;
+        const maxY = this.H - padBottom;
+
+        let t = Infinity;
+        if (dx > 0) t = Math.min(t, (maxX - cx) / dx);
+        else if (dx < 0) t = Math.min(t, (minX - cx) / dx);
+
+        if (dy > 0) t = Math.min(t, (maxY - cy) / dy);
+        else if (dy < 0) t = Math.min(t, (minY - cy) / dy);
+
+        if (t > 0 && t < 1 && Number.isFinite(t)) {
+          const edgeX = cx + t * dx;
+          const edgeY = cy + t * dy;
+
+          const distFactor = Math.max(0.2, Math.min(1.0, 1.25 - dist / 1800));
+          const pulse = 0.5 + 0.45 * Math.sin(time * 2.8 + (l.i || 0));
+          const alpha = distFactor * pulse;
+
+          ctx.save();
+
+          // 1. Soft atmospheric glow at the perimeter
+          const glowR = 18;
+          const grad = ctx.createRadialGradient(edgeX, edgeY, 0, edgeX, edgeY, glowR);
+          grad.addColorStop(0, mood);
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.globalAlpha = alpha * (isLight ? 0.35 : 0.5);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(edgeX, edgeY, glowR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Minimal starlight pip at the edge
+          ctx.globalAlpha = alpha * (isLight ? 0.85 : 0.95);
+          ctx.fillStyle = isLight ? '#2563eb' : mood;
+          ctx.beginPath();
+          ctx.arc(edgeX, edgeY, 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 3. If stranger has a thought, draw a delicate breathing halo ring
+          if (l.t) {
+            ctx.globalAlpha = alpha * 0.55;
+            ctx.strokeStyle = mood;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(edgeX, edgeY, 7 + Math.sin(time * 3.5) * 1.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          ctx.restore();
+
+          this.edgeBeacons.push({
+            sid: l.sid,
+            x: edgeX,
+            y: edgeY,
+            worldX: l.x,
+            worldY: l.y,
+            mood,
+          });
+        }
+        continue;
+      }
       const baseR = isYou ? 7 : l.near ? 5.5 : 4;
       const isIncognito = isYou && (this.ui.get().isIncognito || l.isIncognito);
       const incognitoColor = '#9baeff';

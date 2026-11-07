@@ -1,7 +1,7 @@
 'use client';
 import type { Socket } from 'socket.io-client';
 import { API } from '../api';
-import { getToken, getIncognitoSession } from '../auth';
+import { getToken, getIncognitoSession, clearIncognitoSession } from '../auth';
 import { sfx, buzz, speakMessage } from './audio';
 import { type NearItem, type Store, type Planet, type Galaxy, type ToastItem } from './store';
 import type { WorldState } from './state';
@@ -55,12 +55,22 @@ export class NetWorld implements World {
     const s = io(API, {
       transports: ['websocket', 'polling'], reconnectionDelayMax: 8000,
       auth: (cb) => {
-        const inc = getIncognitoSession();
-        if (inc) {
-          cb({ token: '', incognito: inc });
-        } else {
-          getToken().then((t) => cb({ token: t || '' })).catch(() => cb({ token: '' }));
-        }
+        getToken()
+          .then((t) => {
+            if (t) {
+              clearIncognitoSession();
+              cb({ token: t });
+            } else {
+              const inc = getIncognitoSession();
+              if (inc) cb({ token: '', incognito: inc });
+              else cb({ token: '' });
+            }
+          })
+          .catch(() => {
+            const inc = getIncognitoSession();
+            if (inc) cb({ token: '', incognito: inc });
+            else cb({ token: '' });
+          });
       },
     });
     this.s = s;
@@ -100,6 +110,7 @@ export class NetWorld implements World {
         const raw = localStorage.getItem('userInterests');
         if (raw) savedInterests = JSON.parse(raw);
       } catch { /* ignore */ }
+      const isGuest = !!h.isGuest || !h.isLoggedIn;
       ui.set({
         name: h.name,
         galaxies: h.galaxies,
@@ -108,6 +119,8 @@ export class NetWorld implements World {
         announcement: h.announcement || '',
         bonds: h.bonds,
         isIncognito: !!h.isIncognito,
+        isGuest,
+        isLoggedIn: !isGuest,
         activeInterests: h.activeInterests || [],
         userInterests: savedInterests,
       });
@@ -175,7 +188,14 @@ export class NetWorld implements World {
       const ab = buf instanceof ArrayBuffer ? buf : buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
       st.applyPos(new Int16Array(ab as ArrayBuffer));
     });
-    s.on('flag', (p) => { const l = st.lights.get(p.i); if (l) { l.f = p.f; l.m = p.m; } });
+    s.on('flag', (p: { i: number; f: number; m: number; isIncognito?: boolean }) => {
+      const l = st.lights.get(p.i);
+      if (l) {
+        l.f = p.f;
+        l.m = p.m;
+        if ('isIncognito' in p) l.isIncognito = !!p.isIncognito;
+      }
+    });
     s.on('hide', (p) => {
       const hideSet = new Set(p.sids);
       for (const [sid, l] of st.bySid) {
@@ -549,7 +569,7 @@ export class NetWorld implements World {
     if (!this.s) return false;
     const r = await ack<{ ok?: boolean; error?: string }>(this.s, 'incognito:set', { enabled });
     if (r.error) {
-      this.toast('Incognito cannot be turned off during an active session');
+      this.toast('Incognito cannot be turned off during a guest session');
       return false;
     }
     return !!r.ok;
