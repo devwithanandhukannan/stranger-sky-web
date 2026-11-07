@@ -169,9 +169,6 @@ export default function Login() {
           <Link href="/" className="login-brand-logo">
             untold<span>.</span>
           </Link>
-          <Link href="/sky" className="login-top-link">
-            Explore the sky &rarr;
-          </Link>
         </header>
 
         <div className="login-form-container">

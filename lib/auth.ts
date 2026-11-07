@@ -100,10 +100,24 @@ export async function getCurrentUser() {
   const { auth } = await init();
   return auth.currentUser ? { email: auth.currentUser.email || '', uid: auth.currentUser.uid } : null;
 }
+export function getActionCodeSettings(path = '/auth/action') {
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'http://localhost:3000';
+  return {
+    url: `${origin}${path}`,
+    handleCodeInApp: true,
+  };
+}
+
 export async function signUp(email: string, password: string) {
   const { auth, fb } = await init();
   const c = await fb.createUserWithEmailAndPassword(auth, email, password);
-  await fb.sendEmailVerification(c.user);
+  try {
+    await fb.sendEmailVerification(c.user, getActionCodeSettings('/auth/action'));
+  } catch {
+    await fb.sendEmailVerification(c.user);
+  }
 }
 export async function signIn(email: string, password: string) {
   const { auth, fb } = await init();
@@ -115,7 +129,13 @@ export async function signInGoogle() {
 }
 export async function resendVerification() {
   const { auth, fb } = await init();
-  if (auth.currentUser) await fb.sendEmailVerification(auth.currentUser);
+  if (auth.currentUser) {
+    try {
+      await fb.sendEmailVerification(auth.currentUser, getActionCodeSettings('/auth/action'));
+    } catch {
+      await fb.sendEmailVerification(auth.currentUser);
+    }
+  }
 }
 export async function refreshUser() {
   const { auth } = await init();
@@ -126,7 +146,24 @@ export async function refreshUser() {
 }
 export async function resetPassword(email: string) {
   const { auth, fb } = await init();
-  await fb.sendPasswordResetEmail(auth, email);
+  try {
+    await fb.sendPasswordResetEmail(auth, email, getActionCodeSettings('/auth/action'));
+  } catch (err) {
+    // If the custom domain or URL fails ActionCodeSettings check, fallback to default
+    await fb.sendPasswordResetEmail(auth, email);
+  }
+}
+export async function verifyResetCode(oobCode: string): Promise<string> {
+  const { auth, fb } = await init();
+  return fb.verifyPasswordResetCode(auth, oobCode);
+}
+export async function confirmNewPassword(oobCode: string, newPw: string): Promise<void> {
+  const { auth, fb } = await init();
+  await fb.confirmPasswordReset(auth, oobCode, newPw);
+}
+export async function applyEmailVerification(oobCode: string): Promise<void> {
+  const { auth, fb } = await init();
+  await fb.applyActionCode(auth, oobCode);
 }
 export async function logOut() {
   const { auth, fb } = await init();
@@ -145,6 +182,9 @@ export function authMessage(e: unknown) {
     'auth/too-many-requests': 'Too many tries. Wait a minute and try again.', 'auth/popup-closed-by-user': '',
     'auth/popup-blocked': 'Allow pop-ups to sign in with Google.', 'auth/network-request-failed': 'Network problem. Check your connection.',
     'auth/requires-recent-login': 'For safety, sign in again and retry.',
+    'auth/expired-action-code': 'This link has expired. Please request a new one.',
+    'auth/invalid-action-code': 'This link is invalid or has already been used.',
+    'auth/user-disabled': 'This account has been disabled.',
   };
   return code in map ? map[code] : 'Something went wrong. Please try again.';
 }

@@ -31,17 +31,60 @@ const FAQS: FAQItem[] = [
 ];
 
 const COMMUNITY_MEMBERS = [
-  { name: 'Elena', color: '#60a5fa', mood: 'Calm', location: 'Tokyo' },
-  { name: 'Marcus', color: '#a78bfa', mood: 'Warm', location: 'Berlin' },
-  { name: 'Hana', color: '#f472b6', mood: 'Deep', location: 'Seoul' },
-  { name: 'Liam', color: '#38bdf8', mood: 'Quiet', location: 'Dublin' },
-  { name: 'Aria', color: '#fb923c', mood: 'Grounded', location: 'Toronto' },
-  { name: 'Dev', color: '#4ade80', mood: 'Joyful', location: 'Bengaluru' },
-  { name: 'Chloe', color: '#facc15', mood: 'Dreamy', location: 'Paris' },
+  {
+    name: 'Elena',
+    letter: 'E',
+    mood: 'Calm',
+    location: 'Tokyo, Japan',
+    reflection: 'Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you’ve never met.',
+  },
+  {
+    name: 'Marcus',
+    letter: 'M',
+    mood: 'Warm',
+    location: 'Berlin, Germany',
+    reflection: 'There’s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.',
+  },
+  {
+    name: 'Hana',
+    letter: 'H',
+    mood: 'Deep',
+    location: 'Seoul, Korea',
+    reflection: 'A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.',
+  },
+  {
+    name: 'Liam',
+    letter: 'L',
+    mood: 'Quiet',
+    location: 'Dublin, Ireland',
+    reflection: 'No vanity feeds, no performative metrics. A quiet digital universe where minds meet with genuine vulnerability.',
+  },
+  {
+    name: 'Aria',
+    letter: 'A',
+    mood: 'Grounded',
+    location: 'Toronto, Canada',
+    reflection: 'A sanctuary that deliberately slows down communication. Releasing thoughts into the dark brings true tranquility.',
+  },
+  {
+    name: 'Dev',
+    letter: 'D',
+    mood: 'Joyful',
+    location: 'Bengaluru, India',
+    reflection: 'Meeting as glowing lights strips away all societal noise. You connect with a human spirit, pure and unfiltered.',
+  },
+  {
+    name: 'Chloe',
+    letter: 'C',
+    mood: 'Dreamy',
+    location: 'Paris, France',
+    reflection: 'Drifting paper lanterns carrying strangers’ whispers across the globe. It is the poetic internet I always hoped for.',
+  },
 ];
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [activeMember, setActiveMember] = useState(0);
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -102,27 +145,39 @@ export default function Home() {
             />
           </div>
 
-          {/* Under-Hero Community Strip (Picky Style 7-Avatar Row) */}
+          {/* Under-Hero Community Strip (Solid Circular Avatars - Image 2 Style) */}
           <div className="lp-community-strip">
-            <h3 className="lp-strip-title">A Contemplative Digital Universe</h3>
+            <h3 className="lp-strip-title">Gentle reflections from visitors.</h3>
             <p className="lp-strip-subtitle">
               Meet as gentle glowing lights. No profiles, no pressure, no performative feeds.
             </p>
 
             <div className="lp-avatars-row">
               {COMMUNITY_MEMBERS.map((member, i) => (
-                <div key={i} className="lp-avatar-item" title={`${member.name} · ${member.mood} (${member.location})`}>
-                  <div
-                    className="lp-avatar-orb"
-                    style={{
-                      background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${member.color} 60%, rgba(0,0,0,0.7) 100%)`,
-                      boxShadow: `0 0 14px ${member.color}88`,
-                    }}
-                  />
-                  <span className="lp-avatar-initial">{member.name[0]}</span>
-                </div>
+                <button
+                  key={i}
+                  type="button"
+                  className={`lp-avatar-item ${activeMember === i ? 'is-active' : ''}`}
+                  onClick={() => setActiveMember(i)}
+                  onMouseEnter={() => setActiveMember(i)}
+                  title={`${member.name} (${member.location})`}
+                  aria-label={`${member.name}'s reflection`}
+                >
+                  <span className="lp-avatar-initial">{member.letter}</span>
+                </button>
               ))}
             </div>
+
+            {COMMUNITY_MEMBERS[activeMember] && (
+              <div className="lp-active-reflection">
+                <p className="lp-active-reflection-text">
+                  &ldquo;{COMMUNITY_MEMBERS[activeMember].reflection}&rdquo;
+                </p>
+                <div className="lp-active-reflection-author">
+                  &mdash; {COMMUNITY_MEMBERS[activeMember].name} &middot; {COMMUNITY_MEMBERS[activeMember].location}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -240,13 +295,7 @@ export default function Home() {
                 Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you&apos;ve never met.
               </p>
               <div className="lp-test-author">
-                <div
-                  className="lp-author-orb"
-                  style={{
-                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #60a5fa 60%, #1e40af 100%)',
-                    boxShadow: '0 0 14px rgba(96, 165, 250, 0.45)',
-                  }}
-                >
+                <div className="lp-author-orb">
                   E
                 </div>
                 <div>
@@ -262,13 +311,7 @@ export default function Home() {
                 There&apos;s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.
               </p>
               <div className="lp-test-author">
-                <div
-                  className="lp-author-orb"
-                  style={{
-                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #a78bfa 60%, #5b21b6 100%)',
-                    boxShadow: '0 0 14px rgba(167, 139, 250, 0.45)',
-                  }}
-                >
+                <div className="lp-author-orb">
                   M
                 </div>
                 <div>
@@ -284,13 +327,7 @@ export default function Home() {
                 A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.
               </p>
               <div className="lp-test-author">
-                <div
-                  className="lp-author-orb"
-                  style={{
-                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #f472b6 60%, #9d174d 100%)',
-                    boxShadow: '0 0 14px rgba(244, 114, 182, 0.45)',
-                  }}
-                >
+                <div className="lp-author-orb">
                   H
                 </div>
                 <div>
