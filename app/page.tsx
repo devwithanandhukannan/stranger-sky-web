@@ -31,13 +31,13 @@ const FAQS: FAQItem[] = [
 ];
 
 const COMMUNITY_MEMBERS = [
-  { img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80', name: 'Elena' },
-  { img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=240&q=80', name: 'Marcus' },
-  { img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=240&q=80', name: 'Hana' },
-  { img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=240&q=80', name: 'Liam' },
-  { img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80', name: 'Aria' },
-  { img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80', name: 'Dev' },
-  { img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80', name: 'Chloe' },
+  { name: 'Elena', color: '#60a5fa', mood: 'Calm', location: 'Tokyo' },
+  { name: 'Marcus', color: '#a78bfa', mood: 'Warm', location: 'Berlin' },
+  { name: 'Hana', color: '#f472b6', mood: 'Deep', location: 'Seoul' },
+  { name: 'Liam', color: '#38bdf8', mood: 'Quiet', location: 'Dublin' },
+  { name: 'Aria', color: '#fb923c', mood: 'Grounded', location: 'Toronto' },
+  { name: 'Dev', color: '#4ade80', mood: 'Joyful', location: 'Bengaluru' },
+  { name: 'Chloe', color: '#facc15', mood: 'Dreamy', location: 'Paris' },
 ];
 
 export default function Home() {
@@ -111,8 +111,15 @@ export default function Home() {
 
             <div className="lp-avatars-row">
               {COMMUNITY_MEMBERS.map((member, i) => (
-                <div key={i} className="lp-avatar-item" title={member.name}>
-                  <img src={member.img} alt={member.name} className="lp-avatar-img" />
+                <div key={i} className="lp-avatar-item" title={`${member.name} · ${member.mood} (${member.location})`}>
+                  <div
+                    className="lp-avatar-orb"
+                    style={{
+                      background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${member.color} 60%, rgba(0,0,0,0.7) 100%)`,
+                      boxShadow: `0 0 14px ${member.color}88`,
+                    }}
+                  />
+                  <span className="lp-avatar-initial">{member.name[0]}</span>
                 </div>
               ))}
             </div>
@@ -233,11 +240,15 @@ export default function Home() {
                 Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you&apos;ve never met.
               </p>
               <div className="lp-test-author">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                  alt="Elena"
-                  className="lp-author-img"
-                />
+                <div
+                  className="lp-author-orb"
+                  style={{
+                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #60a5fa 60%, #1e40af 100%)',
+                    boxShadow: '0 0 14px rgba(96, 165, 250, 0.45)',
+                  }}
+                >
+                  E
+                </div>
                 <div>
                   <div className="lp-author-name">Elena R.</div>
                   <div className="lp-author-loc">Tokyo, Japan</div>
@@ -251,11 +262,15 @@ export default function Home() {
                 There&apos;s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.
               </p>
               <div className="lp-test-author">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
-                  alt="Marcus"
-                  className="lp-author-img"
-                />
+                <div
+                  className="lp-author-orb"
+                  style={{
+                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #a78bfa 60%, #5b21b6 100%)',
+                    boxShadow: '0 0 14px rgba(167, 139, 250, 0.45)',
+                  }}
+                >
+                  M
+                </div>
                 <div>
                   <div className="lp-author-name">Marcus K.</div>
                   <div className="lp-author-loc">Berlin, Germany</div>
@@ -269,11 +284,15 @@ export default function Home() {
                 A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.
               </p>
               <div className="lp-test-author">
-                <img
-                  src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
-                  alt="Hana"
-                  className="lp-author-img"
-                />
+                <div
+                  className="lp-author-orb"
+                  style={{
+                    background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #f472b6 60%, #9d174d 100%)',
+                    boxShadow: '0 0 14px rgba(244, 114, 182, 0.45)',
+                  }}
+                >
+                  H
+                </div>
                 <div>
                   <div className="lp-author-name">Hana S.</div>
                   <div className="lp-author-loc">Seoul, Korea</div>

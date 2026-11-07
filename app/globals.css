@@ -1134,21 +1134,57 @@ button { cursor: pointer; }
 .lp-avatar-item {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #f0f0f2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #09090b;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .lp-avatar-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
-.lp-avatar-img {
-  width: 100%;
-  height: 100%;
+.lp-avatar-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.lp-avatar-initial {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.lp-author-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.lp-author-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   object-fit: cover;
-  display: block;
 }
 
 /* Editorial Manifesto */
