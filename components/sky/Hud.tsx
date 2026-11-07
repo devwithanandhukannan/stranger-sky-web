@@ -29,18 +29,30 @@ export function TopBar() {
   const userCount = Math.max(1, (census.counts[galaxy] ?? census.total ?? 1));
   return (
     <header className="top" data-ui>
-      <div className="row" style={{ gap: 8 }}>
-        <button
-          className="chip sky-realm-chip user-count-chip"
-          onClick={() => ui.set({ panel: 'map' })}
-          aria-label={`Users in sky: ${userCount}`}
-          title="Users in sky"
-        >
-          <span className="chip-icon">
-            <IcoAlien size={16} />
-          </span>
-          <span className="chip-count">{userCount}</span>
-        </button>
+      <div className="row top-left-group" style={{ gap: 8 }}>
+        {/* Editorial Brand & Live Census Island */}
+        <div className="top-brand-capsule">
+          <button
+            className="top-brand-btn"
+            onClick={() => ui.set({ panel: 'map' })}
+            aria-label="Universe map"
+            title="Universe and realms"
+          >
+            <span className="top-brand-text">untold</span>
+            <span className="top-brand-dot">.</span>
+          </button>
+          <span className="top-brand-divider" />
+          <button
+            className="top-census-btn"
+            onClick={() => ui.set({ panel: 'map' })}
+            aria-label={`Users in sky: ${userCount}`}
+            title="Wanderers present in the sky"
+          >
+            <span className="top-live-dot" />
+            <span className="top-census-count">{userCount}</span>
+            <span className="top-census-label">{userCount === 1 ? 'wanderer' : 'wanderers'}</span>
+          </button>
+        </div>
 
         {/* Minimal Interest Sky Drive Toggle */}
         <button
@@ -50,7 +62,7 @@ export function TopBar() {
           title="Drive to Interest Sky: Steer towards lights with matching interests and draw constellation links"
         >
           <span className="chip-icon-sparkle"><IcoSparkle size={13} /></span>
-          <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interest'}</span>
+          <span className="chip-label">{selectedInterest ? `#${selectedInterest}` : 'Interests'}</span>
           <span className={`chip-status-tag ${interestDrive ? 'on' : 'off'}`}>{interestDrive ? 'ON' : 'OFF'}</span>
         </button>
 
@@ -62,9 +74,21 @@ export function TopBar() {
         )}
       </div>
 
-      <div className="row">
-        <button className="icon" aria-label={sound ? 'Mute sound' : 'Turn sound on'} onClick={() => { const v = !sound; ui.set({ sound: v }); setSound(v); try { localStorage.setItem('sound', v ? '1' : '0'); } catch { /* ignore */ } if (v) unlock(); }}><Ico d={sound ? ICONS.sound : ICONS.mute} /></button>
-        <button className="icon" aria-label="Settings" onClick={() => ui.set({ panel: 'settings' })}><Ico d={ICONS.gear} /></button>
+      <div className="row top-right-group">
+        <button
+          className="icon"
+          aria-label={sound ? 'Mute sound' : 'Turn sound on'}
+          onClick={() => { const v = !sound; ui.set({ sound: v }); setSound(v); try { localStorage.setItem('sound', v ? '1' : '0'); } catch { /* ignore */ } if (v) unlock(); }}
+        >
+          <Ico d={sound ? ICONS.sound : ICONS.mute} />
+        </button>
+        <button
+          className="icon"
+          aria-label="Settings"
+          onClick={() => ui.set({ panel: 'settings' })}
+        >
+          <Ico d={ICONS.gear} />
+        </button>
       </div>
       {status !== 'live' && <div className="banner" role="status">{status === 'connecting' ? 'Reaching the sky…' : status === 'offline' ? 'Connection lost. Reconnecting…' : ''}</div>}
     </header>
@@ -88,10 +112,16 @@ export function Dock() {
     <nav className="dock" data-ui aria-label="Actions">
       <button className="think" onClick={() => ui.set({ panel: 'thought' })}>
         <i className="dot" style={{ background: MOOD_COLORS[mood], boxShadow: `0 0 10px ${MOOD_COLORS[mood]}` }} />
-        <span>{thought || 'What is on your mind?'}</span>
+        <span className="think-text">{thought ? `“${thought}”` : 'What is on your mind?'}</span>
+        <span className="think-kicker">Share</span>
       </button>
-      <button className={`icon big${drift ? ' glow' : ''}`} aria-label="Lanterns" onClick={() => ui.set({ panel: 'lanterns' })}><Ico d={ICONS.lantern} /></button>
-      <button className="icon big" aria-label="Kept in touch" onClick={() => ui.set({ panel: 'bonds' })}><Ico d={ICONS.people} />{onlineBonds > 0 && <b className="badge">{onlineBonds}</b>}</button>
+      <button className={`icon big${drift ? ' glow' : ''}`} aria-label="Lanterns" onClick={() => ui.set({ panel: 'lanterns' })} title="Lanterns">
+        <Ico d={ICONS.lantern} />
+      </button>
+      <button className="icon big" aria-label="Kept in touch" onClick={() => ui.set({ panel: 'bonds' })} title="Kept in touch">
+        <Ico d={ICONS.people} />
+        {onlineBonds > 0 && <b className="badge">{onlineBonds}</b>}
+      </button>
       <button
         className={`icon big${listMode ? ' active' : ''}`}
         aria-label={listMode ? 'Return to 3D Sky' : 'List view'}

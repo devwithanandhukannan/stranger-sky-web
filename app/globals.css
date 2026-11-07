@@ -21,20 +21,20 @@
 :root[data-theme="light"],
 [data-theme="light"],
 .sky-root[data-theme="light"] {
-  --bg: #eaf1fc; --bg2: #d8e5f8; --ink: #0f172a; --ink2: #334155; --ink3: #64748b;
-  --glass: rgba(255, 255, 255, 0.88);
-  --glass-bg: rgba(255, 255, 255, 0.88);
-  --glass-bg-hover: rgba(255, 255, 255, 0.96);
-  --glass-border: rgba(140, 180, 255, 0.35);
-  --glass-border-hover: rgba(140, 180, 255, 0.5);
-  --glass-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.8);
-  --glass-shadow-hover: 0 16px 36px -4px rgba(15, 23, 42, 0.22), 0 0 20px rgba(90, 130, 215, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9);
-  --line: rgba(0, 0, 0, 0.08); --accent: #0071e3; --danger: #e11d48;
-  --modal-backdrop: rgba(15, 23, 42, 0.65);
+  --bg: #f8fafc; --bg2: #f1f5f9; --ink: #09090b; --ink2: #52525b; --ink3: #71717a;
+  --glass: rgba(255, 255, 255, 0.75);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg-hover: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-hover: rgba(0, 0, 0, 0.14);
+  --glass-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  --glass-shadow-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.09), inset 0 1px 1px rgba(255, 255, 255, 1);
+  --line: #eaeaea; --accent: #111111; --danger: #e11d48;
+  --modal-backdrop: rgba(15, 23, 42, 0.45);
   --sheet-bg: #ffffff;
-  --sheet-card-bg: rgba(240, 245, 255, 0.65);
-  --sheet-card-border: rgba(140, 180, 245, 0.25);
-  --sky-top: #244888; --sky-bottom: #92bcf6;
+  --sheet-card-bg: #f9fafb;
+  --sheet-card-border: #eaeaea;
+  --sky-top: #e2e8f0; --sky-bottom: #f8fafc;
   color-scheme: light;
 }
 
@@ -142,16 +142,16 @@ button { cursor: pointer; }
 /* Light / Daylight Sky Atmosphere */
 [data-theme="light"] .sky-bg {
   background:
-    radial-gradient(90% 70% at 50% 0%, rgba(180, 215, 255, 0.45) 0%, transparent 65%),
-    radial-gradient(80% 60% at 15% 85%, rgba(140, 190, 255, 0.35) 0%, transparent 55%),
-    radial-gradient(75% 65% at 88% 80%, rgba(200, 180, 255, 0.3) 0%, transparent 50%),
+    radial-gradient(90% 70% at 50% 0%, rgba(226, 232, 240, 0.6) 0%, transparent 65%),
+    radial-gradient(80% 60% at 15% 85%, rgba(241, 245, 249, 0.7) 0%, transparent 55%),
+    radial-gradient(75% 65% at 88% 80%, rgba(203, 213, 225, 0.5) 0%, transparent 50%),
     radial-gradient(130% 95% at 50% 105%, var(--sky-bottom), var(--sky-top) 72%);
 }
 [data-theme="light"] .sky-bg::before {
-  opacity: 0.35;
+  opacity: 0.18;
 }
 [data-theme="light"] .sky-bg::after {
-  background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(15, 30, 70, 0.18) 85%, rgba(10, 22, 55, 0.38) 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 55%, rgba(241, 245, 249, 0.3) 85%, rgba(226, 232, 240, 0.6) 100%);
 }
 
 /* Evening / Sunset Sky Atmosphere */
