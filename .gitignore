@@ -6,3 +6,6 @@ out
 *.log
 next-env.d.ts
 *.tsbuildinfo
+service-account.json
+*service*account*.json
+*firebase-adminsdk*.json

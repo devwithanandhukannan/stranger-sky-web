@@ -150,30 +150,16 @@ export async function resetPassword(email: string) {
     : 'https://stranger-sky-web.vercel.app';
   const continueUrl = `${origin}/auth/action`;
 
-  // 1. Send via custom backend SMTP mailer first (custom HTML with button, zero Firebase email)
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    const res = await fetch(`${apiUrl}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, continueUrl }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.method === 'smtp') {
-        return; // Sent cleanly via custom SMTP
-      }
-    }
-  } catch (e) {
-    console.warn('[auth] Custom SMTP reset request failed:', e);
-  }
+  // Call our same-origin Next.js SMTP API (Zero Firebase emails)
+  const res = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), continueUrl }),
+  });
 
-  // 2. Fallback to Firebase client SDK if server is unreachable
-  const { auth, fb } = await init();
-  try {
-    await fb.sendPasswordResetEmail(auth, email, getActionCodeSettings('/auth/action'));
-  } catch (err) {
-    await fb.sendPasswordResetEmail(auth, email);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to send reset email. Please try again.');
   }
 }
 export async function verifyResetCode(oobCode: string): Promise<string> {
