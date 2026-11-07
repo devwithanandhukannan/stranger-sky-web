@@ -1,40 +1,41 @@
 :root {
-  --bg: #000000; --bg2: #0c0c0e; --ink: #ffffff; --ink2: #a1a1aa; --ink3: #71717a;
-  --glass: rgba(18, 18, 22, 0.78);
-  --glass-bg: rgba(18, 18, 22, 0.82);
-  --glass-bg-hover: rgba(28, 28, 32, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.16);
-  --glass-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  --glass-shadow-hover: 0 16px 36px -4px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.16);
-  --line: rgba(255, 255, 255, 0.08); --accent: #ffffff; --danger: #ff453a;
-  --modal-backdrop: rgba(3, 6, 16, 0.75);
-  --sheet-bg: rgba(13, 17, 32, 0.94);
-  --sheet-card-bg: rgba(255, 255, 255, 0.045);
-  --sheet-card-border: rgba(255, 255, 255, 0.08);
-  --r: 20px; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
-  --sky-top: #000000; --sky-bottom: #09090b;
+  --font-sans: var(--font-sans), 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #0a0a0c;
+  --bg-secondary: #121318;
+  --ink: #ffffff;
+  --ink2: #8e9099;
+  --ink3: #52545e;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --accent: #ffffff;
+  --accent-ink: #000000;
+  --danger: #ef4444;
+  --sheet-bg: #0a0a0c;
+  --sky-top: #0a0a0c;
+  --sky-bottom: #0a0a0c;
+  --panel-width: 420px;
+  --r: 20px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
   color-scheme: dark;
 }
-
 
 :root[data-theme="light"],
 [data-theme="light"],
 .sky-root[data-theme="light"] {
-  --bg: #f8fafc; --bg2: #f1f5f9; --ink: #09090b; --ink2: #52525b; --ink3: #71717a;
-  --glass: rgba(255, 255, 255, 0.75);
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-bg-hover: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-hover: rgba(0, 0, 0, 0.14);
-  --glass-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.9);
-  --glass-shadow-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.09), inset 0 1px 1px rgba(255, 255, 255, 1);
-  --line: #eaeaea; --accent: #111111; --danger: #e11d48;
-  --modal-backdrop: rgba(15, 23, 42, 0.45);
+  --bg: #ffffff;
+  --bg-secondary: #f4f4f6;
+  --ink: #0a0a0c;
+  --ink2: #6b6d76;
+  --ink3: #a0a2aa;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --accent: #0a0a0c;
+  --accent-ink: #ffffff;
+  --danger: #e11d48;
   --sheet-bg: #ffffff;
-  --sheet-card-bg: #f9fafb;
-  --sheet-card-border: #eaeaea;
-  --sky-top: #e2e8f0; --sky-bottom: #f8fafc;
+  --sky-top: #ffffff;
+  --sky-bottom: #ffffff;
   color-scheme: light;
 }
 

@@ -360,7 +360,7 @@ export class SkyEngine {
     if (this.renderer) {
       this.renderer.setPixelRatio(this.dpr);
       this.far.geometry.setDrawRange(0, s.far); this.mid.geometry.setDrawRange(0, s.mid);
-      this.nebula.forEach((m, i) => { m.visible = i < s.nebula; });
+      this.nebula.forEach((m) => { m.visible = false; });
       (this.far.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
       (this.mid.material as ShaderMaterial).uniforms.uTw.value = s.twinkle;
     }
@@ -389,13 +389,11 @@ export class SkyEngine {
   }
   private applyTheme(t: Theme) {
     this.theme = t; this.tint = t.tint;
-    this.nebula.forEach((m, i) => {
-      const mat = m.material as MeshBasicMaterial;
-      mat.color.set(t.nebula[i % t.nebula.length]);
-      mat.opacity = t.mode === 'light' ? 0.02 : 0.04;
+    this.nebula.forEach((m) => {
+      m.visible = false;
     });
-    const starFar = t.mode === 'light' ? '#94a3b8' : t.mode === 'evening' ? '#ffc4a8' : '#e2ecff';
-    const starMid = t.mode === 'light' ? '#cbd5e1' : '#ffffff';
+    const starFar = t.mode === 'light' ? '#a1a1aa' : '#cbd5e1';
+    const starMid = t.mode === 'light' ? '#71717a' : '#ffffff';
     (this.far.material as ShaderMaterial).uniforms.uColor.value.set(hex(starFar));
     (this.mid.material as ShaderMaterial).uniforms.uColor.value.set(hex(starMid));
   }

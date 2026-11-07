@@ -9,11 +9,9 @@ import { NetWorld } from '@/lib/sky/net';
 import { applyThemeCss, resetThemeCss, resolveTheme } from '@/lib/sky/themes';
 import { setSound, unlock } from '@/lib/sky/audio';
 import { Ctx, useSky, type SkyCtx } from './ctx';
-import { Announcement, Dock, IncomingCall, MeteorCard, Toast, TopBar, Warp } from './Hud';
-import { BondsSheet, LightSheet, MapSheet, ReportSheet, SettingsSheet, ThoughtSheet } from './Sheets';
+import { Announcement, IncomingCall, SelectedLightThought, SkyComposer, SkyHeader, SkyHints, Toast, Warp } from './Hud';
+import { BondsSheet, ReportSheet, SettingsSheet } from './Sheets';
 import { PlanetSheet } from './Planet';
-import { LanternSheet } from './Lanterns';
-import { ListView } from './ListView';
 import { SkyEngine } from '@/lib/sky/engine';
 import { IcoPin, IcoShield, IcoGlobe, IcoRadar, IcoShieldAlert, IcoX } from './icons';
 import Logo from '@/components/Logo';
@@ -407,36 +405,50 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
     );
   }
 
+  // Global keyboard listeners: Escape to close panels or clear selection
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (ui.get().panel) {
+          ui.set({ panel: null });
+        } else if (ui.get().selected) {
+          ui.set({ selected: null });
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ui]);
+
   return (
     <Ctx.Provider value={ctx}>
       <div className={`sky-root${lite ? ' lite' : ''}`} data-theme={activeTheme.mode}>
-        <div ref={hostRef} className="stage"><canvas ref={canvasRef} aria-label="Night sky of lights. Use the list view for a text version." /></div>
-        <TopBar />
+        <div ref={hostRef} className="stage">
+          <canvas ref={canvasRef} aria-label="Night sky of wanderers" />
+        </div>
+
+        {/* 1. Sky Header (Wordmark Untold, Incognito switch, Chats, You) */}
+        <SkyHeader />
+
         <Announcement />
         <Warp />
-        {!listMode && !hasLight && !planet && <p className="hint" aria-hidden>Drag to drift · tap a light to read it</p>}
-        <LightSheet />
-        <Dock />
-        {listMode && <ListView />}
-        {panel === 'thought' && <ThoughtSheet />}
-        {panel === 'lanterns' && <LanternSheet />}
-        {panel === 'bonds' && <BondsSheet />}
-        {panel === 'map' && <MapSheet />}
-        {panel === 'settings' && <SettingsSheet />}
+
+        {/* 2. Selected Light Thought (Lower-left large thought + Say hello / Report / Close) */}
+        <SelectedLightThought />
+
+        {/* 3. Bottom One-line Composer + Mood Choices while typing */}
+        <SkyComposer />
+
+        {/* 4. Lower-right Hints */}
+        <SkyHints />
+
+        {/* Panels / Drawers */}
+        {(panel === 'chats' || panel === 'bonds') && <BondsSheet />}
+        {(panel === 'you' || panel === 'settings') && <SettingsSheet />}
         {panel === 'report' && <ReportSheet />}
         {planet && <PlanetSheet />}
         <IncomingCall />
-        <MeteorCard />
         <Toast />
-        {galaxy === 'neighbours' && !locationGranted && <NeighbourLocationPrompt />}
-        {galaxy === 'neighbours' && locationGranted && (census.counts['neighbours'] ?? 0) <= 1 && !hasLight && !planet && !listMode && (
-          <div className="neighbour-empty-notice" data-ui>
-            <span>No wanderers within 100 km right now</span>
-            <button type="button" className="btn sm ghost neighbour-empty-btn" onClick={() => void world.travel('night')}>
-              Switch to One Sky
-            </button>
-          </div>
-        )}
       </div>
     </Ctx.Provider>
   );

@@ -1,21 +1,18 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useUI, MOOD_COLORS, MOOD_NAMES } from '@/lib/sky/store';
+import { useUI } from '@/lib/sky/store';
 import { useSky } from './ctx';
 import { ReportForm } from './Sheets';
-import { IcoPin, IcoBond, IcoIncognito, IcoSparkle, IcoLock, IcoShieldAlert, IcoX } from './icons';
-
 
 export function PlanetSheet() {
   const { ui, world } = useSky();
   const p = useUI(ui, (s) => s.planet);
-  const [text, setText] = useState(''), [err, setErr] = useState(''), [menu, setMenu] = useState<'' | 'report'>('');
-  const sound = useUI(ui, (s) => s.sound);
-  const messageSound = useUI(ui, (s) => s.messageSound);
+  const [text, setText] = useState('');
+  const [err, setErr] = useState('');
+  const [menu, setMenu] = useState<'' | 'report'>('');
   const isIncognito = useUI(ui, (s) => s.isIncognito);
   const bodyRef = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
-  const minimized = useUI(ui, (s) => s.planetMinimized);
   const n = p?.msgs.length ?? 0;
 
   useEffect(() => {
@@ -27,9 +24,20 @@ export function PlanetSheet() {
     }
   }, [n, p?.typing]);
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        world.leave();
+        setMenu('');
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [world]);
+
   if (!p) return null;
-  const moodName = MOOD_NAMES[p.m] || 'quiet';
-  const color = MOOD_COLORS[p.m] || '#7aa2ff';
+
+  const strangerName = p.known && p.with ? p.with.name : 'Stranger';
 
   const send = async () => {
     const t = text.trim();
@@ -53,6 +61,13 @@ export function PlanetSheet() {
     setMenu('');
   };
 
+  const handleBlock = async () => {
+    if (p.sid) {
+      await world.report(p.sid, 'block', '');
+    }
+    close();
+  };
+
   const fmtTime = (ts?: number) => {
     if (!ts) return '';
     try {
@@ -69,219 +84,116 @@ export function PlanetSheet() {
     }
   };
 
-  if (minimized) {
-    return (
-      <div className="planet-docked-pill" data-ui role="status" aria-label="Connected peer in sky">
-        <div className="planet-docked-orb" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
-        <span className="planet-docked-name">{p.known && p.with ? p.with.name : 'A stranger'}</span>
-        <span className="planet-docked-status">· Connected in sky</span>
-        <button
-          type="button"
-          className="planet-docked-btn"
-          onClick={() => ui.set({ planetMinimized: false })}
-        >
-          Open chat {n > 0 ? `(${n})` : ''}
-        </button>
-        <button
-          type="button"
-          className="planet-docked-close"
-          onClick={(e) => {
-            e.stopPropagation();
-            close();
-          }}
-          title="Leave connection"
-          aria-label="Leave connection"
-        >
-          <IcoX size={12} />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="planet-overlay" data-ui role="dialog" aria-label="Planet chat" style={{ ['--c' as string]: color }}>
-      <div className="planet-glow" aria-hidden />
-      <div className="planet">
-        <header className="planet-h">
-          <div className="planet-avatar">
-            <div className="orb-planet" style={{ ['--c' as string]: color }} />
-            <span className="planet-live-ring" />
-          </div>
-          <div className="planet-meta">
-            <div className="planet-title-row">
-              <b className="planet-name">{p.known && p.with ? p.with.name : 'A stranger'}</b>
-              {isIncognito && (
-                <span className="top-incognito-badge" style={{ fontSize: 11, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <IcoIncognito size={11} /> Ignoto
-                </span>
-              )}
-              <span className="planet-mood-tag" style={{ color, borderColor: `${color}45`, background: `${color}18` }}>
-                {moodName}
-              </span>
-            </div>
-            <div className="planet-thought ellipsis">
-              {p.typing ? (
-                <span className="planet-typing-indicator" style={{ color: 'var(--accent)', fontWeight: 500 }}>typing…</span>
-              ) : (
-                <>
-                  <span className="planet-thought-text">{p.t ? `“${p.t}”` : 'A quiet wandering soul'}</span>
-                  {typeof p.distKm === 'number' && (
-                    <span className="planet-dist-text" title={`${p.distKm} km away`}> · ~{p.distKm} km away</span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-          <div className="planet-actions">
+    <div
+      className="sky-drawer-backdrop"
+      data-ui
+      role="dialog"
+      aria-label="Conversation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
+    >
+      <aside className="sky-drawer chat-drawer">
+        {/* Header: Stranger name + Block and Leave */}
+        <header className="sky-drawer-header">
+          <h2 className="sky-drawer-title">{strangerName}</h2>
+          <div className="chat-header-actions">
             <button
               type="button"
-              className="planet-btn-icon planet-btn-minimize"
-              onClick={() => ui.set({ planetMinimized: true })}
-              title="View sky & thread"
-              aria-label="Minimize to sky view"
+              className="chat-header-btn danger"
+              onClick={handleBlock}
+              title="Block this stranger"
+              aria-label="Block this stranger"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+              Block
             </button>
             <button
               type="button"
-              className="planet-btn-icon"
-              onClick={() => {
-                const next = !messageSound;
-                ui.set({ messageSound: next });
-                try { localStorage.setItem('messageSound', next ? '1' : '0'); } catch { /* ignore */ }
-              }}
-              title={messageSound && sound ? 'Mute message sound' : 'Unmute message sound'}
-              aria-label={messageSound && sound ? 'Mute message sound' : 'Unmute message sound'}
-            >
-              {messageSound && sound ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.6 }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-              )}
-            </button>
-            <button
-              type="button"
-              className="planet-btn-icon"
-              onClick={() => setMenu(menu ? '' : 'report')}
-              title="Report user"
-              aria-label="Report user"
-            >
-              <IcoShieldAlert size={15} />
-            </button>
-            <button
-              type="button"
-              className="planet-btn-leave"
+              className="chat-header-btn"
               onClick={close}
-              title={p.ended ? 'Close planet' : 'Leave planet'}
-              aria-label={p.ended ? 'Close planet' : 'Leave planet'}
+              title="Leave conversation"
+              aria-label="Leave conversation"
             >
-              <IcoX size={13} />
-              <span>{p.ended ? 'Close' : 'Leave'}</span>
+              Leave
             </button>
           </div>
         </header>
 
         {menu === 'report' ? (
-          <div className="planet-body" ref={bodyRef}>
-            <ReportForm onCancel={() => setMenu('')} onSubmit={async (r, d) => { await world.report(p.sid, r, d); setMenu(''); }} />
+          <div className="sky-drawer-body">
+            <ReportForm
+              onCancel={() => setMenu('')}
+              onSubmit={async (r, d) => {
+                await world.report(p.sid, r, d);
+                setMenu('');
+                close();
+              }}
+            />
           </div>
         ) : (
           <>
-            <div className="planet-body" ref={bodyRef} aria-live="polite">
-              {isIncognito ? (
-                <div className="planet-privacy-pill" style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  <span>Ignoto Mode · Ephemeral chat. Making friends and saving data is disabled.</span>
-                </div>
-              ) : (
-
-                <div className="planet-privacy-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  <span>Private planet · Messages fade into the cosmos when you leave</span>
-                </div>
+            {/* Stranger's thought as a quote at the top */}
+            <div className="chat-thought-quote-section">
+              <blockquote className="chat-thought-quote">
+                “{p.t || 'Quiet wandering stranger.'}”
+              </blockquote>
+              {typeof p.distKm === 'number' && (
+                <span className="chat-thought-dist">~{p.distKm} km away</span>
               )}
+            </div>
 
+            {/* Plain Message List */}
+            <div className="chat-messages-body" ref={bodyRef} aria-live="polite">
               {p.msgs.map((m, i) => (
-                <div key={m.ts ? `${m.ts}-${i}` : i} className={`bub-row${m.mine ? ' me' : ''}`}>
-                  <div className={`bub${m.mine ? ' me' : ''}`}>
-                    <div className="bub-content-row">
-                      <p className="bub-text">{m.t}</p>
-                      <div className="bub-meta">
-                        {m.ts ? <span className="bub-time">{fmtTime(m.ts)}</span> : null}
-                        {m.mine && (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="bub-check" aria-hidden="true">
-                            <polyline points="18 6 9 16 4 11" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
+                <div key={m.ts ? `${m.ts}-${i}` : i} className={`chat-bubble-row${m.mine ? ' me' : ''}`}>
+                  <div className={`chat-bubble${m.mine ? ' me' : ''}`}>
+                    <p className="chat-bubble-text">{m.t}</p>
+                    {m.ts ? <span className="chat-bubble-time">{fmtTime(m.ts)}</span> : null}
                   </div>
                 </div>
               ))}
 
               {p.typing && (
-                <div className="bub-row">
-                  <div className="bub typing">
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
-                    <span className="typing-dot" />
-                  </div>
+                <div className="chat-bubble-row">
+                  <span className="chat-typing-indicator">Stranger is typing…</span>
                 </div>
               )}
 
               {p.ended && (
-                <div className="planet-ended-notice">
-                  <span className="ended-icon" style={{ display: 'inline-flex', alignItems: 'center' }}><IcoSparkle size={14} /></span>
-                  <p>{p.ended === 'blocked' ? 'This planet has closed.' : 'This planet has gently drifted away into the night sky.'}</p>
+                <div className="chat-ended-card">
+                  <p>{p.ended === 'blocked' ? 'This conversation has ended.' : 'This stranger has gently drifted away.'}</p>
                 </div>
               )}
             </div>
 
+            {/* Footer with Keep In Touch + One-line Message Composer */}
             {!p.ended && (
-              <footer className="planet-f">
-                <div className="planet-quick-actions">
-                  {isIncognito ? (
-                    <button
-                      className="planet-chip-btn keep"
-                      disabled
-                      title="Ignoto / Incognito mode: Making friends and saving bonds is disabled"
-                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                    >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <IcoLock size={12} />
-                        Friends disabled (Ignoto)
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      className={`planet-chip-btn keep${p.kept ? ' waiting' : ''}${p.known ? ' bonded' : ''}`}
-                      disabled={p.kept || p.known}
-                      onClick={() => world.keep()}
-                    >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <IcoBond size={13} />
-                        {p.known ? 'Kept in touch' : p.kept ? 'Waiting for them…' : 'Keep in touch'}
-                      </span>
-                    </button>
-                  )}
-                </div>
+              <footer className="chat-footer">
+                {!isIncognito && (
+                  <button
+                    type="button"
+                    className="chat-keep-btn"
+                    disabled={p.kept || p.known}
+                    onClick={() => world.keep()}
+                  >
+                    {p.known ? 'Kept in touch' : p.kept ? 'Waiting for stranger…' : 'Keep in touch'}
+                  </button>
+                )}
 
-                <div className="planet-input-bar">
+                <form
+                  className="chat-composer-line"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void send();
+                  }}
+                >
                   <input
-                    className="planet-input"
+                    className="chat-composer-input"
                     value={text}
                     maxLength={400}
                     placeholder="Say something kind to this stranger…"
                     aria-label="Message"
-                    onFocus={() => {
-                      if (typeof window !== 'undefined') window.scrollTo(0, 0);
-                      setTimeout(() => {
-                        if (bodyRef.current) {
-                          bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-                        }
-                        if (typeof window !== 'undefined') window.scrollTo(0, 0);
-                      }, 100);
-                    }}
                     onChange={(e) => {
                       setText(e.target.value);
                       const now = Date.now();
@@ -291,27 +203,28 @@ export function PlanetSheet() {
                       }
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') void send();
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void send();
+                      }
                     }}
                   />
                   <button
-                    className="planet-send-btn"
-                    onClick={send}
+                    type="submit"
+                    className="chat-composer-send"
                     disabled={!text.trim()}
                     aria-label="Send message"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
+                    Send
                   </button>
-                </div>
+                </form>
 
-                {err && <div className="planet-err">{err}</div>}
+                {err && <div className="err" style={{ marginTop: 6, fontSize: 13 }}>{err}</div>}
               </footer>
             )}
           </>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

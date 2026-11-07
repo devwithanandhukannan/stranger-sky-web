@@ -515,8 +515,14 @@ export function BondsSheet() {
   const { ui, world, getToken } = useSky();
   const bonds = useUI(ui, (s) => s.bonds);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'online'>('all');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') ui.set({ panel: null });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ui]);
 
   const remove = async (id: string, block: boolean) => {
     const target = bonds.find((b) => b.id === id);
@@ -531,7 +537,7 @@ export function BondsSheet() {
         bonds: ui.get().bonds.filter((b) => b.id !== id),
         toast: block
           ? `Blocked ${name}. They will not be able to reach you.`
-          : `Bond with ${name} removed`,
+          : `Removed connection with ${name}`,
       });
     } catch {
       ui.set({ toast: 'Could not complete that action. Please try again.' });
@@ -540,103 +546,71 @@ export function BondsSheet() {
     }
   };
 
-  const filteredBonds = bonds.filter((b) => {
-    if (filter === 'online' && !b.online) return false;
-    if (search.trim() && !b.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
-    return true;
-  });
-
-  const onlineCount = bonds.filter((b) => b.online).length;
-
   return (
-    <Sheet title="Kept in touch" onClose={() => ui.set({ panel: null })} className="bonds-sheet">
-      {!bonds.length ? (
-        <p className="muted" style={{ padding: '8px 0', lineHeight: 1.5 }}>
-          When you and a stranger both choose to keep in touch, they appear here with their name. Nobody is added without both saying yes.
-        </p>
-      ) : (
-        <>
-          <div className="bonds-filter-bar">
-            {bonds.length >= 4 && (
-              <input
-                type="text"
-                className="field sm bonds-search-input"
-                placeholder="Search connections…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            )}
-            <div className="bonds-tabs-row">
-              <button
-                type="button"
-                className={`bonds-tab-pill${filter === 'all' ? ' on' : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                All ({bonds.length})
-              </button>
-              <button
-                type="button"
-                className={`bonds-tab-pill${filter === 'online' ? ' on' : ''}`}
-                onClick={() => setFilter('online')}
-              >
-                Online ({onlineCount})
-              </button>
-            </div>
-          </div>
+    <div
+      className="sky-drawer-backdrop"
+      data-ui
+      role="dialog"
+      aria-label="Chats"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) ui.set({ panel: null });
+      }}
+    >
+      <aside className="sky-drawer">
+        <header className="sky-drawer-header">
+          <h2 className="sky-drawer-title">Chats</h2>
+          <button
+            type="button"
+            className="sky-drawer-close"
+            onClick={() => ui.set({ panel: null })}
+            aria-label="Close Chats"
+          >
+            Close
+          </button>
+        </header>
 
-          {filteredBonds.length === 0 ? (
-            <p className="muted" style={{ padding: '24px 0', textAlign: 'center' }}>
-              No matching connections found.
-            </p>
+        <div className="sky-drawer-body">
+          {bonds.length === 0 ? (
+            <p className="chats-empty-hint">No chats yet. Tap a light and say hello.</p>
           ) : (
-            <ul className="bonds-list">
-              {filteredBonds.map((b) => (
-                <li key={b.id} className="bonds-item">
-                  <div className="bonds-item-info">
-                    <b className="bonds-item-name">{b.name}</b>
-                    <span className={`bonds-item-status ${b.online ? 'online' : 'away'}`}>
-                      {b.online ? 'in the sky now' : 'away'}
+            <div className="chats-list-wrap">
+              {bonds.map((b) => (
+                <div
+                  key={b.id}
+                  className="chats-item-row"
+                  onClick={() => {
+                    world.callBond(b.id);
+                    ui.set({ panel: null });
+                  }}
+                >
+                  <div className="chats-item-main">
+                    <div className="chats-item-name-line">
+                      <span className="chats-item-name">{b.name}</span>
+                      {b.online && <span className="chats-status-dot" title="In the sky now" />}
+                    </div>
+                    <span className="chats-item-status">
+                      {b.online ? 'In the sky now' : 'Away'}
                     </span>
                   </div>
-                  <div className="bonds-item-actions">
+                  <div className="chats-item-actions" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
-                      className="btn sm bonds-btn-call"
-                      disabled={!b.online || busyId === b.id}
-                      onClick={() => { world.callBond(b.id); ui.set({ panel: null }); }}
-                      title={b.online ? `Call ${b.name}` : `${b.name} is away`}
-                      aria-label={`Call ${b.name}`}
-                    >
-                      <IcoPhoneCall size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn ghost sm bonds-btn-remove"
+                      className="chats-btn-action"
                       disabled={busyId === b.id}
                       onClick={() => void remove(b.id, false)}
-                      title={`Remove ${b.name}`}
+                      title="Remove connection"
                       aria-label={`Remove ${b.name}`}
                     >
-                      <IcoTrash size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn danger sm bonds-btn-block"
-                      disabled={busyId === b.id}
-                      onClick={() => void remove(b.id, true)}
-                      title={`Block ${b.name}`}
-                      aria-label={`Block ${b.name}`}
-                    >
-                      <IcoBan size={15} />
+                      Remove
                     </button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </>
-      )}
-    </Sheet>
+        </div>
+      </aside>
+    </div>
   );
 }
 
@@ -701,325 +675,179 @@ export function SettingsSheet() {
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
     : 'Oct 2026';
+
+  const isNearbyOnly = s.galaxy === 'neighbours';
+
+  const handleToggleNearby = () => {
+    if (isNearbyOnly) {
+      void world.travel('night');
+      ui.set({ toast: 'Entered One Sky' });
+    } else {
+      if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            await world.setLocation(pos.coords.latitude, pos.coords.longitude);
+            void world.travel('neighbours');
+            ui.set({ locationGranted: true, toast: 'Nearby mode active (≤ 100 km)' });
+          },
+          () => {
+            void world.travel('neighbours');
+            ui.set({ toast: 'Switched to Neighbours' });
+          },
+          { timeout: 8000 }
+        );
+      } else {
+        void world.travel('neighbours');
+      }
+    }
+  };
+
+  const cycleAppearance = () => {
+    const themes = ['midnight', 'day', 'auto'];
+    const cur = s.skyTheme;
+    const nextIdx = (themes.indexOf(cur) + 1) % themes.length;
+    const next = themes[nextIdx];
+    ui.set({ skyTheme: next });
+    try {
+      localStorage.setItem('skyTheme', next);
+      localStorage.setItem('skyThemeLocked', next === 'auto' ? 'false' : 'true');
+    } catch {}
+    applyThemeCss(resolveTheme(next));
+  };
+
+  const appearanceLabel = s.skyTheme === 'day' ? 'Light' : s.skyTheme === 'auto' ? 'Auto' : 'Dark';
+
   return (
-    <Sheet title="You" onClose={() => ui.set({ panel: null })} tall className="settings-sheet">
-      {/* Top Profile Card (Image 2 style) */}
-      <div className="settings-profile-card">
-        <div className="settings-profile-orb">
-          <div className="settings-profile-orb-core" />
-        </div>
-        <div className="settings-profile-info">
-          <div className="settings-profile-name-row">
-            <h3 className="settings-profile-name">{s.name || 'Anonymous Light'}</h3>
-          </div>
-          <p className="settings-profile-sub">
-            {s.bonds.length} bond{s.bonds.length === 1 ? '' : 's'} · here since {memberSince}
-          </p>
-          {showDetails && profile?.email && (
-            <p className="settings-profile-email">{profile.email} · {profile.age ? `${profile.age} yrs old` : '18+ verified'}</p>
-          )}
-        </div>
-        <button
-          type="button"
-          className="btn-profile-edit"
-          onClick={() => setShowDetails(!showDetails)}
-        >
-          {showDetails ? 'Close' : 'Edit'}
-        </button>
-      </div>
+    <div
+      className="sky-drawer-backdrop"
+      data-ui
+      role="dialog"
+      aria-label="You Settings"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) ui.set({ panel: null });
+      }}
+    >
+      <aside className="sky-drawer">
+        <header className="sky-drawer-header">
+          <h2 className="sky-drawer-title">You</h2>
+          <button
+            type="button"
+            className="sky-drawer-close"
+            onClick={() => ui.set({ panel: null })}
+            aria-label="Close You Settings"
+          >
+            Close
+          </button>
+        </header>
 
-      {/* Two-Column Grid for Desktop */}
-      <div className="settings-grid">
-        {/* Left Column: SKY & PRIVACY */}
-        <div className="settings-col">
-          {/* Section: SKY */}
-          <div className="settings-sec-title">SKY</div>
-          <div className="settings-sky-pills" role="tablist">
-            {[
-              { id: 'auto', label: 'Auto' },
-              { id: 'day', label: 'Day' },
-              { id: 'evening', label: 'Dusk' },
-              { id: 'midnight', label: 'Night' },
-            ].map((theme) => {
-              const active = s.skyTheme === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  className={`sky-pill-btn${active ? ' active' : ''}`}
-                  onClick={() => {
-                    ui.set({ skyTheme: theme.id });
-                    try {
-                      localStorage.setItem('skyTheme', theme.id);
-                      if (theme.id === 'auto') localStorage.removeItem('skyThemeLocked');
-                      else localStorage.setItem('skyThemeLocked', 'true');
-                    } catch {}
-                    applyThemeCss(resolveTheme(theme.id));
+        <div className="sky-drawer-body">
+          <div className="you-rows-list">
+            {/* Row 1: Sound */}
+            <div className="you-row">
+              <span className="you-row-title">Sound</span>
+              <label className="sky-incognito-wrap">
+                <input
+                  type="checkbox"
+                  className="sky-switch-input"
+                  checked={s.sound}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    ui.set({ sound: next });
+                    setSound(next);
+                    save('sound', next);
                   }}
-                >
-                  {theme.label}
-                </button>
-              );
-            })}
-          </div>
-          {s.skyTheme === 'auto' && (
-            <div className="settings-auto-hint">
-              Matching your clock ({getTimeBasedThemeId() === 'day' ? 'Daylight' : getTimeBasedThemeId() === 'evening' ? 'Sunset Dusk' : 'Dark Night'})
+                  aria-label="Toggle Sound"
+                />
+                <span className="sky-switch-track">
+                  <span className="sky-switch-thumb" />
+                </span>
+              </label>
             </div>
-          )}
 
-          {/* Section: PRIVACY */}
-          <div className="settings-sec-title" style={{ marginTop: 20 }}>PRIVACY</div>
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Nearby galaxy</h4>
-              <p className="setting-switch-sub">Within 100 km, blurred to about 1 km</p>
+            {/* Row 2: Nearby only */}
+            <div className="you-row">
+              <div className="you-row-group">
+                <span className="you-row-title">Nearby only</span>
+                <span className="you-row-sub">Within about 100 km, location blurred to 1 km.</span>
+              </div>
+              <label className="sky-incognito-wrap">
+                <input
+                  type="checkbox"
+                  className="sky-switch-input"
+                  checked={isNearbyOnly}
+                  onChange={handleToggleNearby}
+                  aria-label="Toggle Nearby only"
+                />
+                <span className="sky-switch-track">
+                  <span className="sky-switch-thumb" />
+                </span>
+              </label>
             </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={s.locationGranted}
-                onChange={async (e) => {
-                  if (!e.target.checked) {
-                    await world.clearLocation();
-                  } else {
-                    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-                      ui.set({ toast: 'Geolocation not supported by your browser.' });
-                      return;
-                    }
-                    navigator.geolocation.getCurrentPosition(
-                      async (pos) => {
-                        const ok = await world.setLocation(pos.coords.latitude, pos.coords.longitude);
-                        if (ok) ui.set({ toast: 'Location discovery activated (fuzzed to ~1.1 km).' });
-                      },
-                      () => ui.set({ toast: 'Location access was denied or unavailable.' }),
-                      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
-                    );
-                  }
-                }}
-              />
-              <i />
-            </label>
-          </div>
 
-        </div>
-
-        {/* Right Column: COMFORT */}
-        <div className="settings-col">
-          <div className="settings-sec-title">COMFORT</div>
-
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Sound</h4>
+            {/* Row 3: Appearance */}
+            <div className="you-row">
+              <span className="you-row-title">Appearance</span>
+              <button
+                type="button"
+                className="you-appearance-toggle"
+                onClick={cycleAppearance}
+                title="Click to toggle Light, Dark, or Auto"
+                aria-label="Appearance Mode"
+              >
+                {appearanceLabel}
+              </button>
             </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.sound} onChange={(e) => { ui.set({ sound: e.target.checked }); setSound(e.target.checked); save('sound', e.target.checked); }} />
-              <i />
-            </label>
-          </div>
 
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Lite mode</h4>
-            </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.lite} onChange={(e) => { ui.set({ lite: e.target.checked }); save('lite', e.target.checked); }} />
-              <i />
-            </label>
-          </div>
-
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">List view</h4>
-            </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.listMode} onChange={(e) => { ui.set({ listMode: e.target.checked, panel: null }); save('list', e.target.checked); }} />
-              <i />
-            </label>
-          </div>
-
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Message sounds</h4>
-            </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.messageSound} onChange={(e) => { ui.set({ messageSound: e.target.checked }); save('messageSound', e.target.checked); }} />
-              <i />
-            </label>
-          </div>
-
-          {s.messageSound && (
-            <div className="settings-tone-subcard">
-              <span className="tiny muted" style={{ display: 'block', marginBottom: 6 }}>Tone</span>
-              <div className="settings-tone-pills">
-                {[
-                  { id: 'pop', label: 'Pop' },
-                  { id: 'chime', label: 'Chime' },
-                  { id: 'crystal', label: 'Crystal' },
-                  { id: 'bell', label: 'Bell' },
-                ].map((tone) => {
-                  const active = s.messageTone === tone.id;
-                  return (
-                    <button
-                      key={tone.id}
-                      type="button"
-                      className={`tone-pill-btn${active ? ' active' : ''}`}
-                      onClick={() => {
-                        ui.set({ messageTone: tone.id });
-                        try { localStorage.setItem('messageTone', tone.id); } catch {}
-                        sfx.msgSent(tone.id);
-                        setTimeout(() => sfx.msgReceived(tone.id), 260);
-                      }}
-                    >
-                      {tone.label}
-                    </button>
-                  );
-                })}
+            {/* Row 4: Account */}
+            <div className="you-row">
+              <div className="you-row-group">
+                <span className="you-row-title">Account</span>
+                <span className="you-row-sub">{s.name || 'Drifting Stranger'}, here since {memberSince}</span>
               </div>
             </div>
-          )}
-
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Voice reader</h4>
-              <p className="setting-switch-sub">Speak incoming messages aloud</p>
-            </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.voiceReader} onChange={(e) => {
-                ui.set({ voiceReader: e.target.checked });
-                save('voiceReader', e.target.checked);
-                if (e.target.checked) speakMessage('Voice reader enabled.');
-              }} />
-              <i />
-            </label>
           </div>
 
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Haptics</h4>
-            </div>
-            <label className="switch">
-              <input type="checkbox" checked={s.haptics} onChange={(e) => { ui.set({ haptics: e.target.checked }); save('haptics', e.target.checked); }} />
-              <i />
-            </label>
+          {/* Bottom Footer Links */}
+          <div className="you-footer-links">
+            <button type="button" className="you-footer-link" onClick={onSignOut}>
+              Sign out
+            </button>
+            <button type="button" className="you-footer-link" onClick={exportData}>
+              Download data
+            </button>
+            <button type="button" className="you-footer-link danger" onClick={() => setShowDel(!showDel)}>
+              Delete account
+            </button>
           </div>
 
-          <div className="setting-switch-card">
-            <div className="setting-switch-info">
-              <h4 className="setting-switch-title">Untold App</h4>
-              <p className="setting-switch-sub">
-                {installed ? 'App installed on device' : 'Add to home screen for full-screen quiet'}
+          {showDel && (
+            <div style={{ marginTop: 20, padding: 16, border: '1px solid var(--line)', borderRadius: 12 }}>
+              <p className="tiny muted" style={{ margin: '0 0 10px 0' }}>
+                This removes your account permanently. Type DELETE to confirm:
               </p>
-            </div>
-            <button
-              type="button"
-              className="btn-secondary-pill"
-              style={{
-                height: 32,
-                padding: '0 14px',
-                fontSize: 13,
-                fontWeight: 600,
-                borderRadius: 9999,
-                background: installed ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                color: installed ? '#888888' : '#111111',
-                cursor: installed ? 'default' : 'pointer',
-                border: 'none',
-              }}
-              disabled={installed}
-              onClick={async () => {
-                if (installed) return;
-                const res = await promptPwaInstall();
-                if (res.outcome === 'accepted') {
-                  setInstalled(true);
-                } else if (res.outcome === 'manual') {
-                  setShowIosGuide(true);
-                }
-              }}
-            >
-              {installed ? 'Installed ✓' : 'Install'}
-            </button>
-          </div>
-
-          <p className="tiny muted" style={{ marginTop: 10, paddingLeft: 4 }}>
-            Sky quality: {s.quality} · Adjusts automatically to your device.
-          </p>
-        </div>
-      </div>
-
-      {/* Account & Safety Card - Positioned at bottom */}
-      <div className="setting-account-card">
-        <div className="setting-links-row">
-          <a className="setting-link" href="/rules" target="_blank" rel="noopener">Community rules</a>
-          <span className="setting-link-sep">·</span>
-          <a className="setting-link" href="/privacy" target="_blank" rel="noopener">Privacy</a>
-        </div>
-        <div className="setting-account-btns">
-          <button className="btn-secondary-pill" onClick={exportData}>Download data</button>
-          <button className="btn-secondary-pill" onClick={onSignOut}>Sign out</button>
-        </div>
-        <details className="settings-delete-details">
-          <summary className="tiny muted" style={{ cursor: 'pointer' }}>Delete account</summary>
-          <p className="tiny muted" style={{ margin: '8px 0' }}>This removes your profile permanently. Type DELETE to confirm.</p>
-          <div className="row" style={{ gap: 8 }}>
-            <input className="field" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} aria-label="Type DELETE" />
-            <button className="btn danger" disabled={confirmDel !== 'DELETE'} onClick={del}>Delete</button>
-          </div>
-          {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
-        </details>
-      </div>
-
-      {showIosGuide && (
-        <div className="pwa-modal-backdrop" onClick={() => setShowIosGuide(false)}>
-          <div className="pwa-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="pwa-modal-header">
-              <img
-                src="/web-app-manifest-192x192.png"
-                alt="Untold"
-                width={48}
-                height={48}
-                className="pwa-modal-icon"
-              />
-              <h3 className="pwa-modal-title">Install Untold on your device</h3>
-            </div>
-
-            {isIosDevice() ? (
-              <div className="pwa-modal-steps">
-                <div className="pwa-step-item">
-                  <span className="pwa-step-num">1</span>
-                  <span>Tap the <b>Share</b> button in Safari&apos;s bottom toolbar.</span>
-                </div>
-                <div className="pwa-step-item">
-                  <span className="pwa-step-num">2</span>
-                  <span>Scroll down and tap <b>Add to Home Screen</b>.</span>
-                </div>
-                <div className="pwa-step-item">
-                  <span className="pwa-step-num">3</span>
-                  <span>Tap <b>Add</b> in the top right corner.</span>
-                </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="sky-composer-input"
+                  style={{ fontSize: 14, borderBottom: '1px solid var(--line-strong)', padding: '4px 0' }}
+                  value={confirmDel}
+                  onChange={(e) => setConfirmDel(e.target.value)}
+                  placeholder="DELETE"
+                  aria-label="Confirm DELETE"
+                />
+                <button
+                  type="button"
+                  className="btn danger sm"
+                  disabled={confirmDel !== 'DELETE'}
+                  onClick={del}
+                >
+                  Delete
+                </button>
               </div>
-            ) : (
-              <div className="pwa-modal-steps">
-                <div className="pwa-step-item">
-                  <span className="pwa-step-num">1</span>
-                  <span>Click your browser menu (<b>&vellip;</b> or <b>&hellip;</b>) in the top right.</span>
-                </div>
-                <div className="pwa-step-item">
-                  <span className="pwa-step-num">2</span>
-                  <span>Select <b>Install Untold</b> or <b>Add to Home Screen</b>.</span>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="pwa-btn-done"
-              onClick={() => setShowIosGuide(false)}
-            >
-              Got it
-            </button>
-          </div>
+              {err && <div className="err" style={{ marginTop: 6, fontSize: 12 }}>{err}</div>}
+            </div>
+          )}
         </div>
-      )}
-    </Sheet>
+      </aside>
+    </div>
   );
 }

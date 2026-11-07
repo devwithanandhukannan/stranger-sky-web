@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
-import { Newsreader, Inter } from 'next/font/google';
-import PwaPrompt from '@/components/PwaPrompt';
+import { Hanken_Grotesk, Newsreader } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const hanken = Hanken_Grotesk({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -36,16 +35,15 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
 };
-export const viewport: Viewport = { themeColor: '#070b1a', width: 'device-width', initialScale: 1, viewportFit: 'cover', maximumScale: 1, interactiveWidget: 'resizes-content' };
+export const viewport: Viewport = { themeColor: '#0a0a0c', width: 'device-width', initialScale: 1, viewportFit: 'cover', maximumScale: 1, interactiveWidget: 'resizes-content' };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await headers(); // opts every page into per-request rendering so the CSP nonce can be applied
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
-      <body className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${hanken.variable} ${newsreader.variable}`} suppressHydrationWarning>
+      <body className={`${hanken.variable} ${newsreader.variable}`} suppressHydrationWarning>
         <div className="sky-bg" aria-hidden />
         {children}
-        <PwaPrompt />
       </body>
     </html>
   );
