@@ -1495,9 +1495,12 @@
   transition: opacity 0.2s ease;
 }
 
-[data-theme="light"] .sky-thread-user-ring,
+[data-theme="light"] .sky-thread-user-ring {
+  stroke: rgba(24, 75, 200, 0.45);
+}
+
 [data-theme="light"] .sky-thread-target-glow {
-  stroke: rgba(0, 0, 0, 0.35);
+  stroke: rgba(217, 119, 6, 0.55);
 }
 
 /* Docked pill when planet is minimized into sky view */

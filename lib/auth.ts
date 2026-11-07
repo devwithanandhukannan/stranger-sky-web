@@ -52,9 +52,49 @@ export async function onAuth(cb: (s: AuthState) => void) {
   const { auth, fb } = await init();
   return fb.onAuthStateChanged(auth, (u) => cb(u ? { email: u.email || '', verified: u.emailVerified } : null));
 }
-export async function getToken(force = false) {
-  const { auth } = await init();
-  return auth.currentUser ? auth.currentUser.getIdToken(force) : null;
+export async function getToken(force = false): Promise<string | null> {
+  const { auth, fb } = await init();
+  if (auth.currentUser) {
+    try {
+      return await auth.currentUser.getIdToken(force);
+    } catch {
+      return null;
+    }
+  }
+
+  // If Firebase Auth is still restoring session from IndexedDB/localStorage, wait for it
+  if (typeof (auth as any).authStateReady === 'function') {
+    try {
+      await (auth as any).authStateReady();
+      const current = (auth as any).currentUser;
+      if (current) {
+        return await current.getIdToken(force);
+      }
+    } catch {}
+  }
+
+  // Fallback: wait up to 4s for initial onAuthStateChanged resolution
+  return new Promise<string | null>((resolve) => {
+    let unsub = () => {};
+    const timer = setTimeout(() => {
+      unsub();
+      resolve(null);
+    }, 4000);
+
+    unsub = fb.onAuthStateChanged(auth, async (u) => {
+      clearTimeout(timer);
+      unsub();
+      if (u) {
+        try {
+          resolve(await u.getIdToken(force));
+        } catch {
+          resolve(null);
+        }
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
 export async function getCurrentUser() {
   const { auth } = await init();

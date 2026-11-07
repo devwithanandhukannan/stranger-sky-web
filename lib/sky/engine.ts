@@ -60,12 +60,16 @@ void main(){
     a += exp(-d*d*1.6)*.4; col = mix(col, vec3(1.,.86,.62), .35);
   } else if (vKind>2.5 && vKind<3.5) { // echo: faint, flickering trace
     a *= .5*(.75+.25*sin(uTime*1.4+gl_FragCoord.x*.02)); col = mix(col, vec3(.6,.7,1.), .5);
-  } else if (vKind>3.5 && vKind<4.5) { // you: pulsing ring
-    float pr = .62+.1*sin(uTime*2.3); a += smoothstep(.06,0.,abs(d-pr))*.9; col = mix(col, vec3(1.), .4);
+  } else if (vKind>3.5 && vKind<4.5) { // you: solid celestial core
+    a = smoothstep(.45,.0,d) + exp(-d*d*4.0)*0.85;
+    col = mix(col, vec3(1.), .45);
   } else if (vKind>4.5) { // in a conversation: dimmer, ringed
     a *= .5; a += smoothstep(.05,0.,abs(d-.72))*.55;
   }
-  if (uLight > .5) col = vColor;
+  if (uLight > .5) {
+    col = vColor;
+    a = smoothstep(.75,.15,d);
+  }
   gl_FragColor = vec4(col, clamp(a,0.,1.)*vBright);
 }`;
 
@@ -811,9 +815,16 @@ export class SkyEngine {
       g.size[n] = size;
       g.kind[n] = kind;
       g.bright[n] = bright;
-      g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]);
-      g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]);
-      g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
+      if (this.theme.mode === 'light') {
+        const lightCol = isYou ? [0.18, 0.42, 0.95] : [mood[0] * 0.85, mood[1] * 0.75, mood[2] * 0.75];
+        g.color[n * 3] = lightCol[0];
+        g.color[n * 3 + 1] = lightCol[1];
+        g.color[n * 3 + 2] = lightCol[2];
+      } else {
+        g.color[n * 3] = Math.min(1, mood[0] * this.tint[0]);
+        g.color[n * 3 + 1] = Math.min(1, mood[1] * this.tint[1]);
+        g.color[n * 3 + 2] = Math.min(1, mood[2] * this.tint[2]);
+      }
       n++;
     }
     const geo = this.lights.geometry; geo.setDrawRange(0, n);

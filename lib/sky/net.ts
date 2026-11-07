@@ -70,8 +70,24 @@ export class NetWorld implements World {
     s.on('disconnect', () => { if (ui.get().status === 'live') ui.set({ status: 'offline' }); });
     s.on('connect_error', (e: Error) => {
       const m = e.message || '';
-      if (['email_not_verified', 'no_profile'].includes(m) || m.startsWith('account_')) { ui.set({ status: 'denied', denied: m }); s.close(); }
-      else ui.set({ status: 'offline' });
+      if (['email_not_verified', 'no_profile'].includes(m) || m.startsWith('account_')) {
+        ui.set({ status: 'denied', denied: m });
+        s.close();
+      } else if (m === 'unauthenticated') {
+        ui.set({ status: 'connecting' });
+        setTimeout(() => {
+          if (!this.stopped && this.s) {
+            getToken(true).then((newToken) => {
+              if (newToken && this.s) {
+                this.s.auth = { token: newToken };
+                this.s.connect();
+              }
+            }).catch(() => {});
+          }
+        }, 600);
+      } else {
+        ui.set({ status: 'offline' });
+      }
     });
 
     s.on('hello', (h) => {

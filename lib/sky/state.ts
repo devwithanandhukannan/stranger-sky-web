@@ -13,6 +13,33 @@ export class WorldState {
   scale = 16;
   warpedAt = 0;
 
+  constructor() {
+    this.initSelf();
+  }
+
+  initSelf(thought = '', mood = 0) {
+    let t = thought;
+    if (typeof localStorage !== 'undefined' && !t) {
+      try { t = localStorage.getItem('userThought') || ''; } catch {}
+    }
+    const selfLight: Light = {
+      i: 0,
+      sid: 'you_self',
+      x: 0,
+      y: 0,
+      tx: 0,
+      ty: 0,
+      m: mood,
+      f: 0,
+      hidden: false,
+      near: true,
+      t,
+    };
+    this.lights.set(0, selfLight);
+    this.bySid.set('you_self', selfLight);
+    this.you = selfLight;
+  }
+
   reset() { this.lights.clear(); this.bySid.clear(); this.you = null; }
   add(p: { i: number; sid: string; x: number; y: number; m: number; f: number; interests?: string[]; isIncognito?: boolean; t?: string; near?: boolean }) {
     const old = this.lights.get(p.i) || (p.sid ? this.bySid.get(p.sid) : undefined);
