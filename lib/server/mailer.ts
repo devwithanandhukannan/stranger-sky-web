@@ -8,6 +8,16 @@ import path from 'node:path';
  * or local service-account.json
  */
 export function getServiceAccount() {
+  // 1. Separate individual environment variables (cleanest in Vercel!)
+  if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      project_id: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'stranger-social-41bc5',
+      client_email: process.env.FIREBASE_CLIENT_EMAIL.trim(),
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
+  }
+
+  // 2. Single JSON string or Base64 string
   const envVal = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (envVal) {
     try {
@@ -17,6 +27,7 @@ export function getServiceAccount() {
     } catch {}
   }
 
+  // 3. Local file fallback
   const candidatePaths = [
     path.resolve(process.cwd(), 'service-account.json'),
     path.resolve(process.cwd(), '../stranger-social-41bc5-firebase-adminsdk-fbsvc-6ead8f6850.json'),
@@ -387,3 +398,4 @@ export function sendSmtpEmail({
     });
   });
 }
+
