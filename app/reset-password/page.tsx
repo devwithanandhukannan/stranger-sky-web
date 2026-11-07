@@ -1,26 +1,7 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-
-function ResetPasswordRedirect() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!params.has('mode')) {
-      params.set('mode', 'resetPassword');
-    }
-    router.replace(`/auth/action?${params.toString()}`);
-  }, [router, searchParams]);
-
-  return (
-    <div className="login-loading">
-      <div className="login-spinner" />
-    </div>
-  );
-}
+import { Suspense } from 'react';
+import { AuthActionContent } from '@/components/sky/AuthActionContent';
 
 export default function ResetPasswordPage() {
   return (
@@ -31,8 +12,7 @@ export default function ResetPasswordPage() {
         </div>
       }
     >
-      <ResetPasswordRedirect />
+      <AuthActionContent />
     </Suspense>
   );
 }
-

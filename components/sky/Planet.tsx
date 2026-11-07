@@ -132,7 +132,7 @@ export function PlanetSheet() {
               aria-label={voiceReader ? 'Turn off voice over' : 'Turn on voice over'}
             >
               {voiceReader ? <IcoVolume size={14} /> : <IcoVolumeMute size={14} />}
-              <span>{voiceReader ? 'Voice on' : 'Voice off'}</span>
+              <span>{voiceReader ? '' : ''}</span>
             </button>
             <button
               type="button"

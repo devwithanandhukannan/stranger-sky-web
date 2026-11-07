@@ -293,20 +293,13 @@ export default function Login() {
               </button>
 
               {mode === 'in' && (
-                <button
-                  type="button"
+                <Link
+                  href={email.trim() ? `/reset-password?email=${encodeURIComponent(email.trim())}` : '/reset-password'}
                   className="login-forgot-btn"
-                  onClick={() => run(async () => {
-                    if (!email) {
-                      setErr('Please enter your email above to reset password.');
-                      return;
-                    }
-                    await resetPassword(email.trim());
-                    setInfo('If that email exists, a password reset link has been sent.');
-                  })}
+                  style={{ textAlign: 'center', display: 'inline-block' }}
                 >
                   Forgot password?
-                </button>
+                </Link>
               )}
             </div>
           </form>
