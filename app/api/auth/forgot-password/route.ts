@@ -39,3 +39,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || 'Could not send reset email.' }, { status: 500 });
   }
 }
+

@@ -80,6 +80,31 @@ async function getAccessToken(sa: any) {
   return data.access_token;
 }
 
+/**
+ * Rewrites Firebase's default hosting URL (firebaseapp.com/__/auth/action)
+ * directly into Untold's custom editorial minimalism action handler (/auth/action).
+ */
+export function buildCustomActionUrl(rawOobLink: string, preferredBaseUrl?: string): string {
+  try {
+    const raw = new URL(rawOobLink);
+    const mode = raw.searchParams.get('mode') || '';
+    const oobCode = raw.searchParams.get('oobCode') || '';
+    const apiKey = raw.searchParams.get('apiKey') || '';
+    const lang = raw.searchParams.get('lang') || 'en';
+
+    const base = preferredBaseUrl || raw.searchParams.get('continueUrl') || 'https://stranger-sky-web.vercel.app/auth/action';
+    const custom = new URL(base);
+    if (mode) custom.searchParams.set('mode', mode);
+    if (oobCode) custom.searchParams.set('oobCode', oobCode);
+    if (apiKey) custom.searchParams.set('apiKey', apiKey);
+    if (lang) custom.searchParams.set('lang', lang);
+
+    return custom.toString();
+  } catch {
+    return rawOobLink;
+  }
+}
+
 export async function generatePasswordResetLink(email: string, continueUrl?: string) {
   const sa = getServiceAccount();
   if (!sa) {
@@ -109,7 +134,192 @@ export async function generatePasswordResetLink(email: string, continueUrl?: str
   }
 
   const data = await res.json();
-  return data.oobLink as string;
+  return buildCustomActionUrl(data.oobLink, target);
+}
+
+export async function generateEmailVerificationLink(email: string, continueUrl?: string) {
+  const sa = getServiceAccount();
+  if (!sa) {
+    throw new Error('Firebase service account credentials missing. Please set FIREBASE_SERVICE_ACCOUNT in environment or add service-account.json.');
+  }
+
+  const token = await getAccessToken(sa);
+  const target = continueUrl || 'https://stranger-sky-web.vercel.app/auth/action';
+  const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requestType: 'VERIFY_EMAIL',
+      email,
+      returnOobLink: true,
+      continueUrl: target,
+      canHandleCodeInApp: true,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Google Identity Toolkit error: ${err}`);
+  }
+
+  const data = await res.json();
+  return buildCustomActionUrl(data.oobLink, target);
+}
+
+export function renderEmailVerificationEmail({ verifyLink, email }: { verifyLink: string; email: string }) {
+  const subject = 'Verify your email for Untold';
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fafafa;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #111111;
+      -webkit-font-smoothing: antialiased;
+    }
+    table { border-spacing: 0; }
+    td { padding: 0; }
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #fafafa;
+      padding-top: 48px;
+      padding-bottom: 48px;
+    }
+    .main-card {
+      background-color: #ffffff;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 540px;
+      border: 1px solid #e5e5ea;
+      border-radius: 20px;
+      padding: 44px 40px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+    .brand-logo {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #111111;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 28px;
+    }
+    .brand-logo span { color: #0071e3; }
+    .h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #111111;
+      margin: 0 0 14px 0;
+      line-height: 1.25;
+    }
+    .paragraph {
+      font-size: 15px;
+      line-height: 1.55;
+      color: #555555;
+      margin: 0 0 20px 0;
+    }
+    .button-table { margin: 32px 0; }
+    .btn-primary {
+      background-color: #111111;
+      color: #ffffff !important;
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none !important;
+      padding: 14px 36px;
+      border-radius: 9999px;
+      display: inline-block;
+      letter-spacing: -0.01em;
+    }
+    .security-note {
+      background-color: #f8f8fa;
+      border: 1px solid #ededf2;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #666666;
+      line-height: 1.45;
+      margin-top: 24px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 12px;
+      color: #999999;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" align="center" class="main-card">
+      <tr>
+        <td>
+          <a href="https://untold.app" class="brand-logo">untold<span>.</span></a>
+          <h1 class="h1">Verify your email</h1>
+          <p class="paragraph">
+            Welcome to Untold. To activate your account and step into the quiet sky, please confirm your email address (<strong>${email}</strong>).
+          </p>
+          <p class="paragraph" style="margin-bottom: 0;">
+            Click the button below to complete your verification:
+          </p>
+
+          <!-- Clean Action Button -->
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="button-table">
+            <tr>
+              <td>
+                <a href="${verifyLink}" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                  Verify Email
+                </a>
+              </td>
+            </tr>
+          </table>
+
+          <div class="security-note">
+            If you did not create an account on Untold, you can safely ignore this email.
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" align="center" style="max-width: 540px; margin: 0 auto;">
+      <tr>
+        <td class="footer">
+          Untold · Where minds meet quietly.<br>
+          Ephemeral · Private · Contemplative
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `Verify your email for Untold
+
+Hello,
+
+Welcome to Untold. Please confirm your email address (${email}) by clicking the link below:
+${verifyLink}
+
+If you did not create an account on Untold, you can safely ignore this email.
+
+With care,
+The Untold Team
+`;
+
+  return { subject, html, text };
 }
 
 export function renderPasswordResetEmail({ resetLink, email }: { resetLink: string; email: string }) {

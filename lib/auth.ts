@@ -112,11 +112,27 @@ export function getActionCodeSettings(path = '/auth/action') {
 
 export async function signUp(email: string, password: string) {
   const { auth, fb } = await init();
-  const c = await fb.createUserWithEmailAndPassword(auth, email, password);
+  // 1. Create the user account using Firebase Auth
+  await fb.createUserWithEmailAndPassword(auth, email, password);
+
+  // 2. Dispatch custom email verification via Untold SMTP API (Zero Firebase emails)
+  const origin = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://stranger-sky-web.vercel.app';
+  const continueUrl = `${origin}/auth/action`;
+
   try {
-    await fb.sendEmailVerification(c.user, getActionCodeSettings('/auth/action'));
-  } catch {
-    await fb.sendEmailVerification(c.user);
+    const res = await fetch('/api/auth/send-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), continueUrl }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.warn('[auth] Verification email notice:', data.error);
+    }
+  } catch (err) {
+    console.warn('[auth] Could not send verification via custom SMTP:', err);
   }
 }
 export async function signIn(email: string, password: string) {
@@ -128,12 +144,22 @@ export async function signInGoogle() {
   await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
 }
 export async function resendVerification() {
-  const { auth, fb } = await init();
-  if (auth.currentUser) {
-    try {
-      await fb.sendEmailVerification(auth.currentUser, getActionCodeSettings('/auth/action'));
-    } catch {
-      await fb.sendEmailVerification(auth.currentUser);
+  const { auth } = await init();
+  if (auth.currentUser && auth.currentUser.email) {
+    const origin = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://stranger-sky-web.vercel.app';
+    const continueUrl = `${origin}/auth/action`;
+
+    const res = await fetch('/api/auth/send-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: auth.currentUser.email.trim(), continueUrl }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to resend verification email.');
     }
   }
 }
