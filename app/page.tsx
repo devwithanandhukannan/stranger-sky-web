@@ -37,6 +37,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Calm',
     location: 'Tokyo, Japan',
     reflection: 'Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you’ve never met.',
+    bg: '#DBEAFE', // Soft Pastel Sky Blue
+    color: '#1E40AF',
+    border: '#BFDBFE',
   },
   {
     name: 'Marcus',
@@ -44,6 +47,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Warm',
     location: 'Berlin, Germany',
     reflection: 'There’s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.',
+    bg: '#EDE9FE', // Soft Pastel Lavender / Lilac
+    color: '#5B21B6',
+    border: '#DDD6FE',
   },
   {
     name: 'Hana',
@@ -51,6 +57,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Deep',
     location: 'Seoul, Korea',
     reflection: 'A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.',
+    bg: '#FCE7F3', // Soft Pastel Rose / Pink
+    color: '#9D174D',
+    border: '#FBCFE8',
   },
   {
     name: 'Liam',
@@ -58,6 +67,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Quiet',
     location: 'Dublin, Ireland',
     reflection: 'No vanity feeds, no performative metrics. A quiet digital universe where minds meet with genuine vulnerability.',
+    bg: '#CFFAFE', // Soft Pastel Aqua / Ice Cyan
+    color: '#0E7490',
+    border: '#A5F3FC',
   },
   {
     name: 'Aria',
@@ -65,6 +77,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Grounded',
     location: 'Toronto, Canada',
     reflection: 'A sanctuary that deliberately slows down communication. Releasing thoughts into the dark brings true tranquility.',
+    bg: '#FFEDD5', // Soft Pastel Peach / Apricot
+    color: '#C2410C',
+    border: '#FED7AA',
   },
   {
     name: 'Dev',
@@ -72,6 +87,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Joyful',
     location: 'Bengaluru, India',
     reflection: 'Meeting as glowing lights strips away all societal noise. You connect with a human spirit, pure and unfiltered.',
+    bg: '#DCFCE7', // Soft Pastel Mint / Sage
+    color: '#15803D',
+    border: '#BBF7D0',
   },
   {
     name: 'Chloe',
@@ -79,6 +97,9 @@ const COMMUNITY_MEMBERS = [
     mood: 'Dreamy',
     location: 'Paris, France',
     reflection: 'Drifting paper lanterns carrying strangers’ whispers across the globe. It is the poetic internet I always hoped for.',
+    bg: '#FEF3C7', // Soft Pastel Warm Honey / Lemon
+    color: '#A16207',
+    border: '#FDE68A',
   },
 ];
 
@@ -153,19 +174,31 @@ export default function Home() {
             </p>
 
             <div className="lp-avatars-row">
-              {COMMUNITY_MEMBERS.map((member, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`lp-avatar-item ${activeMember === i ? 'is-active' : ''}`}
-                  onClick={() => setActiveMember(i)}
-                  onMouseEnter={() => setActiveMember(i)}
-                  title={`${member.name} (${member.location})`}
-                  aria-label={`${member.name}'s reflection`}
-                >
-                  <span className="lp-avatar-initial">{member.letter}</span>
-                </button>
-              ))}
+              {COMMUNITY_MEMBERS.map((member, i) => {
+                const isActive = activeMember === i;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`lp-avatar-item ${isActive ? 'is-active' : ''}`}
+                    onClick={() => setActiveMember(i)}
+                    onMouseEnter={() => setActiveMember(i)}
+                    title={`${member.name} (${member.location})`}
+                    aria-label={`${member.name}'s reflection`}
+                    style={{
+                      backgroundColor: member.bg,
+                      borderColor: isActive ? '#111111' : member.border,
+                      boxShadow: isActive
+                        ? '0 0 0 2px #ffffff, 0 0 0 4px #111111, 0 6px 16px rgba(0, 0, 0, 0.12)'
+                        : undefined,
+                    }}
+                  >
+                    <span className="lp-avatar-initial" style={{ color: member.color }}>
+                      {member.letter}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {COMMUNITY_MEMBERS[activeMember] && (
@@ -295,7 +328,10 @@ export default function Home() {
                 Untold reminded me what the internet used to feel like before algorithms took over. It feels like stargazing on a quiet rooftop with someone you&apos;ve never met.
               </p>
               <div className="lp-test-author">
-                <div className="lp-author-orb">
+                <div
+                  className="lp-author-orb"
+                  style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', borderColor: '#BFDBFE' }}
+                >
                   E
                 </div>
                 <div>
@@ -311,7 +347,10 @@ export default function Home() {
                 There&apos;s no anxiety of who is watching or how many likes. Just writing what is genuinely in my heart and letting it drift into the night.
               </p>
               <div className="lp-test-author">
-                <div className="lp-author-orb">
+                <div
+                  className="lp-author-orb"
+                  style={{ backgroundColor: '#EDE9FE', color: '#5B21B6', borderColor: '#DDD6FE' }}
+                >
                   M
                 </div>
                 <div>
@@ -327,7 +366,10 @@ export default function Home() {
                 A paper lantern I released in Seoul was caught by someone in Reykjavik. That feeling of gentle human resonance across borders is unmatched.
               </p>
               <div className="lp-test-author">
-                <div className="lp-author-orb">
+                <div
+                  className="lp-author-orb"
+                  style={{ backgroundColor: '#FCE7F3', color: '#9D174D', borderColor: '#FBCFE8' }}
+                >
                   H
                 </div>
                 <div>
