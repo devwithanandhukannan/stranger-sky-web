@@ -15,7 +15,7 @@ const MOOD_OPTIONS = [
  * 1. Sky Header: Wordmark Untold, Incognito Switch, Chats, You
  */
 export function SkyHeader() {
-  const { ui } = useSky();
+  const { ui, state } = useSky();
   const isIncognito = useUI(ui, (s) => s.isIncognito);
   const bonds = useUI(ui, (s) => s.bonds);
   const incoming = useUI(ui, (s) => s.incoming);
@@ -24,9 +24,10 @@ export function SkyHeader() {
   const toggleIncognito = () => {
     const next = !isIncognito;
     ui.set({ isIncognito: next });
+    if (state.you) state.you.isIncognito = next;
     try {
       if (next) {
-        sessionStorage.setItem('lumen_incognito', JSON.stringify({ incognito: true }));
+        sessionStorage.setItem('lumen_incognito', JSON.stringify({ isIncognito: true, alias: 'Drifting Stranger' }));
         ui.set({ toast: 'Incognito enabled · Disguised in the sky' });
       } else {
         sessionStorage.removeItem('lumen_incognito');

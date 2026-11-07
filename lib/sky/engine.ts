@@ -805,7 +805,14 @@ export class SkyEngine {
       g.size[n] = size;
       g.kind[n] = kind;
       g.bright[n] = bright;
-      if (this.theme.mode === 'light') {
+      const isIncognito = isYou && (this.ui.get().isIncognito || l.isIncognito);
+      if (isIncognito) {
+        // Disguised ghost slate-indigo star matching Reference image
+        g.color[n * 3] = 0.42;
+        g.color[n * 3 + 1] = 0.48;
+        g.color[n * 3 + 2] = 0.62;
+        bright = 0.65;
+      } else if (this.theme.mode === 'light') {
         const lightCol = isYou ? [0.18, 0.42, 0.95] : [mood[0] * 0.85, mood[1] * 0.75, mood[2] * 0.75];
         g.color[n * 3] = lightCol[0];
         g.color[n * 3 + 1] = lightCol[1];
@@ -903,16 +910,25 @@ export class SkyEngine {
     const s = this.ui.get();
     const you = this.state.you;
 
-    // 1. Center User Star: Delicate circular ring with mood stroke (Reference 1)
+    const isIncognito = s.isIncognito || you?.isIncognito;
+
+    // 1. Center User Star: Delicate circular ring with mood stroke (Reference 1 / Dashed for Incognito)
     if (you && this.threadUserRing) {
       const p1 = this.toScreen(you.x, you.y);
       if (p1.x >= -60 && p1.x <= this.W + 60 && p1.y >= -60 && p1.y <= this.H + 60) {
         this.threadUserRing.setAttribute('cx', p1.x.toFixed(1));
         this.threadUserRing.setAttribute('cy', p1.y.toFixed(1));
         this.threadUserRing.setAttribute('r', '24');
-        const moodColor = MOOD_COLORS[you.m % 4] || '#818cf8';
-        this.threadUserRing.style.stroke = moodColor;
-        this.threadUserRing.style.opacity = '0.75';
+        if (isIncognito) {
+          this.threadUserRing.style.strokeDasharray = '4 4';
+          this.threadUserRing.style.stroke = 'rgba(130, 150, 190, 0.45)';
+          this.threadUserRing.style.opacity = '0.65';
+        } else {
+          this.threadUserRing.style.strokeDasharray = 'none';
+          const moodColor = MOOD_COLORS[you.m % 4] || '#818cf8';
+          this.threadUserRing.style.stroke = moodColor;
+          this.threadUserRing.style.opacity = '0.75';
+        }
       } else {
         this.threadUserRing.style.opacity = '0';
       }
