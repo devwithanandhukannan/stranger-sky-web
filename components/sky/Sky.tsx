@@ -11,6 +11,7 @@ import { setSound, unlock } from '@/lib/sky/audio';
 import { Ctx, type SkyCtx } from './ctx';
 import { Announcement, IncomingCall, SelectedLightThought, SkyComposer, SkyHeader, SkyHints, Toast, Warp } from './Hud';
 import { BondsSheet, ReportSheet, SettingsSheet } from './Sheets';
+import { LanternsSheet } from './Lanterns';
 import { PlanetSheet } from './Planet';
 import { SkyEngine } from '@/lib/sky/engine';
 import { IcoShieldAlert } from './icons';
@@ -312,6 +313,7 @@ export default function Sky({ getToken, onSignOut, onDeleted }: { getToken: (for
         {/* Panels / Drawers */}
         {(panel === 'chats' || panel === 'bonds') && <BondsSheet />}
         {(panel === 'you' || panel === 'settings') && <SettingsSheet />}
+        {panel === 'lanterns' && <LanternsSheet />}
         {panel === 'report' && <ReportSheet />}
         {planet && <PlanetSheet />}
         <IncomingCall />

@@ -17,6 +17,7 @@ const MOOD_OPTIONS = [
 export function SkyHeader() {
   const { ui, state, world } = useSky();
   const isIncognito = useUI(ui, (s) => s.isIncognito);
+  const lanternDrift = useUI(ui, (s) => s.lanternDrift);
   const bonds = useUI(ui, (s) => s.bonds);
   const incoming = useUI(ui, (s) => s.incoming);
   const activeChatCount = bonds.filter((b) => b.online).length + incoming.length;
@@ -57,6 +58,16 @@ export function SkyHeader() {
             </span>
           </label>
         )}
+
+        <button
+          type="button"
+          className="sky-nav-btn"
+          onClick={() => ui.set({ panel: 'lanterns' })}
+          aria-label="Open Lanterns"
+        >
+          <span>Lanterns</span>
+          {lanternDrift && <span className="sky-nav-badge lantern-badge" />}
+        </button>
 
         <button
           type="button"
